@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdminEmail() {
+      return isSignedIn() && (request.auth.token.email.lower() == 'yanandraderfo@gmail.com' || request.auth.token.email.lower() == 'yandatafox@gmail.com');
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Phase 4: Entity Validations
+    function isValidClinic(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.ownerId == request.auth.uid
+        && data.accessCode is string && data.accessCode.size() == 6;
+    }
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid
+        && (data.clinicId == null || isValidId(data.clinicId));
+    }
+
+    function isValidPatient(data) {
+      return data.name is string && data.name.size() > 0
+        && data.clinicId is string;
+    }
+
+    function isValidAppointment(data) {
+      return data.patientId is string
+        && data.date is string
+        && data.clinicId is string;
+    }
+
+    // Collection Rules
+    match /licenseCodes/{code} {
+      allow read: if isSignedIn();
+      allow create: if isAdminEmail();
+      allow update: if isSignedIn() && incoming().used == true && existing().used == false;
+    }
+
+    match /clinics/{clinicId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidClinic(incoming());
+      allow update, delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && userId == request.auth.uid;
+    }
+
+    match /patients/{patientId} {
+      allow read: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == resource.data.clinicId;
+      allow create: if isSignedIn() && isValidPatient(incoming())
+                     && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == incoming().clinicId;
+      allow update: if isSignedIn() && isValidPatient(incoming()) 
+                     && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == incoming().clinicId
+                     && incoming().clinicId == existing().clinicId;
+      allow delete: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == existing().clinicId;
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == resource.data.clinicId;
+      allow create: if isSignedIn() && isValidAppointment(incoming())
+                     && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == incoming().clinicId;
+      allow update: if isSignedIn() && isValidAppointment(incoming())
+                     && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == incoming().clinicId
+                     && incoming().clinicId == existing().clinicId;
+      allow delete: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == existing().clinicId;
+    }
+
+    match /clinicalRecords/{recordId} {
+      allow read, write: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == (resource == null ? incoming().clinicId : resource.data.clinicId);
+    }
+
+    match /evolutions/{evolutionId} {
+      allow read, write: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == (resource == null ? incoming().clinicId : resource.data.clinicId);
+    }
+
+    match /patientPhotos/{photoId} {
+      allow read, write: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == (resource == null ? incoming().clinicId : resource.data.clinicId);
+    }
+
+    match /transactions/{transactionId} {
+      allow read, write: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.clinicId == (resource == null ? incoming().clinicId : resource.data.clinicId);
+    }
+    
+    match /settings/{settingId} {
+      allow read, write: if isSignedIn() && settingId == request.auth.uid;
+    }
+  }
+}

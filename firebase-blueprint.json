@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "Clinic": {
+      "title": "Clínica",
+      "description": "Informações da clínica do dentista",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "taxId": { "type": "string", "description": "CNPJ/CPF" },
+        "address": { "type": "string" },
+        "phone": { "type": "string" },
+        "specialties": { "type": "array", "items": { "type": "string" } },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["name", "ownerId"]
+    },
+    "Patient": {
+      "title": "Paciente",
+      "description": "Cadastro completo do paciente",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "cpf": { "type": "string" },
+        "birthDate": { "type": "string", "format": "date" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "address": { "type": "string" },
+        "medicalHistory": {
+          "type": "object",
+          "properties": {
+            "allergies": { "type": "string" },
+            "diseases": { "type": "string" },
+            "medications": { "type": "string" }
+          }
+        },
+        "clinicId": { "type": "string" }
+      },
+      "required": ["name", "clinicId"]
+    },
+    "Appointment": {
+      "title": "Consulta",
+      "description": "Agendamento de consulta",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "duration": { "type": "integer", "description": "minutos" },
+        "procedure": { "type": "string" },
+        "dentistId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pendente", "confirmado", "cancelado", "finalizado"] },
+        "reminderSent": { "type": "boolean" },
+        "clinicId": { "type": "string" }
+      },
+      "required": ["patientId", "date", "clinicId"]
+    },
+    "ClinicalRecord": {
+      "title": "Prontuário",
+      "description": "Registro clínico detalhado",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "anamnese": { "type": "string" },
+        "evolution": { "type": "string" },
+        "odontogram": { "type": "object" },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "clinicId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Evolution": {
+      "title": "Evolução de Tratamento",
+      "description": "Notas sobre o procedimento realizado na data",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "dentistId": { "type": "string" },
+        "clinicId": { "type": "string" }
+      },
+      "required": ["patientId", "description", "date", "clinicId"]
+    },
+    "PatientPhoto": {
+      "title": "Foto do Paciente",
+      "description": "Fotos de exames ou progresso do tratamento",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string" },
+        "url": { "type": "string" },
+        "caption": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "clinicId": { "type": "string" }
+      },
+      "required": ["patientId", "url", "clinicId"]
+    },
+    "Transaction": {
+      "title": "Transação Financeira",
+      "description": "Controle de receitas e despesas",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "enum": ["receita", "despesa"] },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "patientId": { "type": "string", "description": "Opcional: vincular a um paciente" },
+        "category": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["pix", "cartão", "dinheiro"] },
+        "status": { "type": "string", "enum": ["pago", "pendente"] },
+        "date": { "type": "string", "format": "date-time" },
+        "clinicId": { "type": "string" }
+      },
+      "required": ["type", "amount", "date", "clinicId"]
+    },
+    "Settings": {
+      "title": "Configurações",
+      "description": "Configurações da clínica, incluindo WhatsApp",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string" },
+        "whatsappReminderText": { "type": "string" },
+        "whatsappReminderHoursBefore": { "type": "integer" },
+        "automaticReminders": { "type": "boolean" }
+      }
+    }
+  },
+  "firestore": {
+    "clinics": { "schema": "Clinic", "description": "Lista de clínicas" },
+    "patients": { "schema": "Patient", "description": "Pacientes cadastrados" },
+    "appointments": { "schema": "Appointment", "description": "Agenda de consultas" },
+    "clinicalRecords": { "schema": "ClinicalRecord", "description": "Prontuários eletrônicos" },
+    "evolutions": { "schema": "Evolution", "description": "Evoluções de tratamento dos pacientes" },
+    "patientPhotos": { "schema": "PatientPhoto", "description": "Galeria de fotos/exames dos pacientes" },
+    "transactions": { "schema": "Transaction", "description": "Movimentação financeira" },
+    "settings": { "schema": "Settings", "description": "Configurações gerais" }
+  }
+}
