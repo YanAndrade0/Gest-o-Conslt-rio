@@ -10,11 +10,12 @@ import { medicalRecordService, PatientPayment } from './services/medicalRecordSe
 import { appointmentService, Appointment as AppointmentType } from './services/appointmentService';
 import { patientService } from './services/patientService';
 import { toast } from 'sonner';
-import { Mail, Lock, User as UserIcon, ArrowRight, History, Clock, CreditCard, PlusCircle } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, History, Clock, CreditCard, PlusCircle, Menu, X as CloseIcon } from 'lucide-react';
 import { format, isToday, startOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from './components/ui/input';
 import { Button } from './components/ui/button';
+import { cn } from './lib/utils';
 
 // Components
 const Login = () => {
@@ -145,7 +146,7 @@ const Login = () => {
 const Settings = () => <WhatsAppSettings />;
 const Agenda = () => <AppointmentAgenda />;
 const Patients = () => <PatientManagement />;
-const Finance = () => <div className="p-8"><h2 className="text-3xl font-bold">Financeiro</h2><p className="text-slate-500">Módulo em desenvolvimento.</p></div>;
+const Finance = () => <div className="p-4 md:p-8"><h2 className="text-3xl font-bold">Financeiro</h2><p className="text-slate-500">Módulo em desenvolvimento.</p></div>;
 const Dashboard = () => {
   const { user } = useAuth();
   const [monthRevenue, setMonthRevenue] = React.useState(0);
@@ -193,8 +194,8 @@ const Dashboard = () => {
   }, [user?.clinicId]);
 
   return (
-    <div className="p-8 space-y-8 h-full overflow-y-auto">
-      <header className="flex justify-between items-center bg-white/50 backdrop-blur-sm p-6 rounded-2xl border border-white">
+    <div className="p-4 md:p-8 space-y-8 h-full overflow-y-auto">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/50 backdrop-blur-sm p-4 md:p-6 rounded-2xl border border-white gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-800">Olá, {user?.displayName ? `Dr(a). ${user.displayName.split(' ')[0]}` : 'Bem-vindo'}</h2>
           <p className="text-slate-500">Seu consultório está com {todayAppointments.length} consultas agendadas para hoje.</p>
@@ -242,8 +243,8 @@ const Dashboard = () => {
             </div>
           ) : (
             todayAppointments.map((item, i) => (
-              <div key={i} className="flex items-center gap-6 p-4 border border-slate-100 rounded-2xl hover:bg-slate-50/50 transition-all cursor-pointer">
-                <div className="text-center w-20">
+              <div key={i} className="flex items-center gap-3 md:gap-6 p-3 md:p-4 border border-slate-100 rounded-2xl hover:bg-slate-50/50 transition-all cursor-pointer">
+                <div className="text-center w-16 md:w-20">
                   <p className="text-sm font-bold text-slate-400">{format(parseISO(item.date), 'HH:mm')}</p>
                   <p className="text-[10px] text-slate-300 font-medium">{item.duration} min</p>
                 </div>
@@ -309,6 +310,7 @@ const Dashboard = () => {
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   
   const navItems = [
     { name: 'Painel Geral', path: '/', id: 'nav-dashboard' },
@@ -319,16 +321,44 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   ];
 
   return (
-    <div className="flex h-screen bg-bg-main overflow-hidden text-slate-700 font-sans">
-      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col items-stretch z-10 shadow-xl shadow-slate-200/20">
-        <div className="p-8 pb-12 flex items-center gap-4">
+    <div className="flex flex-col lg:flex-row h-screen bg-bg-main overflow-hidden text-slate-700 font-sans">
+      {/* Mobile Header */}
+      <header className="lg:hidden bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 z-40 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-primary/20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2a.3.3 0 0 0-.2.3Z"/><path d="M10 22v-6.5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1V22"/><path d="M7 10.8V4.5A2.5 2.5 0 1 1 12 4.5V10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2Z"/><path d="M17 10.8V4.5A2.5 2.5 0 0 0 12 4.5V10a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2Z"/><path d="M12 12v10"/></svg>
+          </div>
+          <h1 className="text-xl font-black text-slate-800 tracking-tight">OdontoPro</h1>
+        </div>
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600 transition-all active:scale-95"
+        >
+          {isSidebarOpen ? <CloseIcon size={20} /> : <Menu size={20} />}
+        </button>
+      </header>
+
+      {/* Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[45]"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={cn(
+        "w-72 bg-white border-r border-slate-200 flex flex-col items-stretch z-50 shadow-xl shadow-slate-200/20 transition-all duration-300 lg:static fixed inset-y-0 left-0 h-full",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}>
+        <div className="p-8 pb-12 hidden lg:flex items-center gap-4">
           <div className="w-12 h-12 bg-brand-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand-primary/20">
             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2a.3.3 0 0 0-.2.3Z"/><path d="M10 22v-6.5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1V22"/><path d="M7 10.8V4.5A2.5 2.5 0 1 1 12 4.5V10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2Z"/><path d="M17 10.8V4.5A2.5 2.5 0 0 0 12 4.5V10a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2Z"/><path d="M12 12v10"/></svg>
           </div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">OdontoPro</h1>
         </div>
         
-        <nav className="flex-1 px-6 space-y-2">
+        <nav className="flex-1 px-6 space-y-2 mt-8 lg:mt-0">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -336,6 +366,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 key={item.path}
                 to={item.path}
                 id={item.id}
+                onClick={() => setIsSidebarOpen(false)}
                 className={`flex items-center gap-4 px-6 py-4 rounded-2xl cursor-pointer transition-all text-sm font-bold ${
                   isActive 
                     ? 'bg-brand-light text-brand-primary border-l-4 border-brand-primary shadow-sm' 
@@ -365,7 +396,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto w-full">{children}</main>
     </div>
   );
 };

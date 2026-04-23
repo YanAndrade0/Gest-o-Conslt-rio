@@ -213,20 +213,20 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
       onClick={(e) => e.target === e.currentTarget && handleClose(e as any)}
     >
       <div 
-        className="bg-bg-main w-full max-w-5xl h-[90vh] rounded-[3rem] shadow-2xl flex flex-col overflow-hidden border border-white animate-in zoom-in-95 duration-300"
+        className="bg-bg-main w-full max-w-5xl h-full lg:h-[90vh] rounded-none lg:rounded-[3rem] shadow-2xl flex flex-col overflow-hidden border border-white animate-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <header className="bg-white p-8 border-b border-slate-100 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 bg-brand-light rounded-2xl flex items-center justify-center text-brand-primary">
-              <UserIcon size={32} />
+        <header className="bg-white p-4 md:p-8 border-b border-slate-100 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-4 md:gap-6">
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-brand-light rounded-2xl flex items-center justify-center text-brand-primary">
+              <UserIcon size={24} className="md:size-32" />
             </div>
             <div>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">{patient.name}</h2>
-              <div className="flex gap-4 items-center mt-1">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg">Prontuário Digital</span>
-                <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest bg-brand-light px-3 py-1 rounded-lg">{patient.cpf || 'Cpf não informado'}</span>
+              <h2 className="text-xl md:text-3xl font-black text-slate-800 tracking-tight">{patient.name}</h2>
+              <div className="flex gap-2 md:gap-4 items-center mt-1">
+                <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 md:px-3 py-1 rounded-lg">Prontuário Digital</span>
+                <span className="text-[8px] md:text-[10px] font-black text-brand-primary uppercase tracking-widest bg-brand-light px-2 md:px-3 py-1 rounded-lg">{patient.cpf || 'Cpf não informado'}</span>
               </div>
             </div>
           </div>
@@ -238,21 +238,21 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
         {/* Content */}
         <div className="flex-1 overflow-hidden">
           <Tabs defaultValue="evolution" className="h-full flex flex-col">
-            <div className="bg-white px-8 pb-0 shrink-0">
-              <TabsList className="bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100 h-auto gap-1">
-                <TabsTrigger value="evolution" className="rounded-xl px-6 py-3 font-bold text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
-                  <History size={18} /> Histórico & Evolução
+            <div className="bg-white px-4 md:px-8 pb-0 shrink-0 overflow-x-auto scrollbar-hide">
+              <TabsList className="bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100 h-auto gap-1 w-max md:w-auto">
+                <TabsTrigger value="evolution" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
+                  <History size={16} className="md:size-[18px]" /> Histórico & Evolução
                 </TabsTrigger>
-                <TabsTrigger value="payments" className="rounded-xl px-6 py-3 font-bold text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
-                  <DollarSign size={18} /> Pagamentos
+                <TabsTrigger value="payments" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
+                  <DollarSign size={16} className="md:size-[18px]" /> Pagamentos
                 </TabsTrigger>
-                <TabsTrigger value="gallery" className="rounded-xl px-6 py-3 font-bold text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
-                  <Camera size={18} /> Galeria de Fotos
+                <TabsTrigger value="gallery" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
+                  <Camera size={16} className="md:size-[18px]" /> Galeria de Fotos
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 pt-6 bg-slate-50/30">
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-6 bg-slate-50/30">
               {/* Evolutions Tab */}
               <TabsContent value="evolution" className="m-0 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                 <Card className="card-custom border-none shadow-sm overflow-hidden border border-white">

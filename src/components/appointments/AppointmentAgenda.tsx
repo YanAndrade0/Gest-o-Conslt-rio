@@ -359,9 +359,10 @@ export function AppointmentAgenda() {
         </Dialog>
       </header>
 
-      <div className="flex-1 bg-white rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden flex flex-col">
-        {/* Days Header */}
-        <div className="grid grid-cols-[100px_repeat(7,1fr)] border-b border-slate-50 bg-slate-50/20">
+      <div className="flex-1 bg-white rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-auto flex flex-col scrollbar-hide">
+        <div className="min-w-[800px] flex-1 flex flex-col">
+          {/* Days Header */}
+          <div className="grid grid-cols-[100px_repeat(7,1fr)] border-b border-slate-50 bg-slate-50/20 shrink-0">
           <div className="p-4 border-r border-slate-50 flex items-center justify-center">
             <Clock size={16} className="text-slate-300" />
           </div>
@@ -487,6 +488,7 @@ export function AppointmentAgenda() {
               </React.Fragment>
             ))}
           </div>
+        </div>
         </div>
       </div>
 

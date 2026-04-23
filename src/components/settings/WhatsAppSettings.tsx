@@ -71,7 +71,7 @@ export function WhatsAppSettings() {
   };
 
   return (
-    <div className="p-8 max-w-2xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <header className="mb-0">
         <h2 className="text-3xl font-black text-slate-800 tracking-tight">Configurações Gerais</h2>
         <p className="text-slate-500 font-medium tracking-tight">Gerencie sua clínica e integrações.</p>

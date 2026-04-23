@@ -167,7 +167,7 @@ export function PatientManagement() {
   };
 
   return (
-    <div className="p-8 space-y-8 h-full overflow-y-auto animate-in fade-in duration-500">
+    <div className="p-4 md:p-8 space-y-8 h-full overflow-y-auto animate-in fade-in duration-500">
       <header className="flex justify-between items-center bg-white/50 backdrop-blur-sm p-6 rounded-2xl border border-white">
         <div>
           <h2 className="text-3xl font-bold text-slate-800">Pacientes</h2>
