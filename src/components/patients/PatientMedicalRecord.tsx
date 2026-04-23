@@ -32,9 +32,10 @@ import {
 import { Patient, patientService } from '../../services/patientService';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
+import { appointmentService } from '../../services/appointmentService';
 
 interface PatientMedicalRecordProps {
   patient: Patient;
@@ -47,6 +48,7 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   const [photos, setPhotos] = useState<PatientPhoto[]>([]);
   const [payments, setPayments] = useState<PatientPayment[]>([]);
   const [photoToDelete, setPhotoToDelete] = useState<string | null>(null);
+  const [evolutionToDelete, setEvolutionToDelete] = useState<string | null>(null);
   
   // Forms
   const [evolutionDesc, setEvolutionDesc] = useState('');
@@ -104,6 +106,21 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
         date: new Date().toISOString(),
         clinicId: cid
       });
+
+      // Automatically finalize today's appointment if it exists
+      try {
+        const patientAppointments = await appointmentService.getAppointmentsByPatient(cid, patient.id);
+        const today = new Date();
+        const todayAppointment = patientAppointments.find(app => isSameDay(parseISO(app.date), today));
+        
+        if (todayAppointment && todayAppointment.id && todayAppointment.status !== 'finalizado') {
+          await appointmentService.updateAppointment(todayAppointment.id, { status: 'finalizado' });
+        }
+      } catch (appError) {
+        console.error('Erro ao atualizar status da consulta:', appError);
+        // We don't block the evolution success if this fails
+      }
+
       setEvolutionDesc('');
       toast.success('Evolução registrada!');
     } catch (error) {
@@ -126,9 +143,9 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   };
 
   const handleDeleteEvolution = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta evolução?')) return;
     try {
       await medicalRecordService.deleteEvolution(id);
+      setEditingEvoId(null);
       toast.success('Evolução excluída.');
     } catch (error) {
       toast.error('Erro ao excluir evolução.');
@@ -344,13 +361,41 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                   >
                                     <RotateCcw size={16} className="mr-2" /> CANCELAR
                                   </Button>
-                                  <Button 
-                                    size="sm" 
-                                    className="rounded-xl bg-brand-primary text-white font-bold shadow-lg shadow-brand-primary/20"
-                                    onClick={() => handleDeleteEvolution(evo.id!)}
-                                  >
-                                    <Trash2 size={16} className="mr-2" /> EXCLUIR
-                                  </Button>
+
+                                  {evolutionToDelete === evo.id ? (
+                                    <div className="flex items-center gap-2 bg-red-50 p-1.5 rounded-xl animate-in fade-in zoom-in-95 duration-200 border border-red-100">
+                                      <span className="text-[10px] font-black text-red-600 uppercase px-2">Excluir?</span>
+                                      <Button 
+                                        size="sm" 
+                                        variant="destructive"
+                                        className="h-8 rounded-lg text-[10px] font-black px-3"
+                                        onClick={() => {
+                                          handleDeleteEvolution(evo.id!);
+                                          setEvolutionToDelete(null);
+                                        }}
+                                      >
+                                        SIM
+                                      </Button>
+                                      <Button 
+                                        size="sm" 
+                                        variant="ghost"
+                                        className="h-8 rounded-lg text-[10px] font-black text-slate-400 hover:bg-white"
+                                        onClick={() => setEvolutionToDelete(null)}
+                                      >
+                                        NÃO
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      className="rounded-xl border-red-200 text-red-500 font-bold hover:bg-red-50"
+                                      onClick={() => setEvolutionToDelete(evo.id!)}
+                                    >
+                                      <Trash2 size={16} className="mr-2" /> EXCLUIR
+                                    </Button>
+                                  )}
+
                                   <Button 
                                     size="sm" 
                                     className="rounded-xl bg-green-500 text-white font-bold shadow-lg shadow-green-500/20"
@@ -379,6 +424,39 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                     >
                                       <Edit2 size={14} />
                                     </Button>
+                                    
+                                    {evolutionToDelete === evo.id ? (
+                                      <div className="flex items-center gap-1 bg-white shadow-xl rounded-xl border border-slate-100 p-1 animate-in slide-in-from-right-2 duration-200">
+                                        <Button 
+                                          size="sm" 
+                                          variant="destructive"
+                                          className="h-7 px-2 rounded-lg text-[9px] font-black"
+                                          onClick={() => {
+                                            handleDeleteEvolution(evo.id!);
+                                            setEvolutionToDelete(null);
+                                          }}
+                                        >
+                                          SIM
+                                        </Button>
+                                        <Button 
+                                          size="sm" 
+                                          variant="ghost"
+                                          className="h-7 px-2 rounded-lg text-[9px] font-black text-slate-400"
+                                          onClick={() => setEvolutionToDelete(null)}
+                                        >
+                                          NÃO
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                        onClick={() => setEvolutionToDelete(evo.id!)}
+                                      >
+                                        <Trash2 size={14} />
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                                 <p className="text-slate-700 font-medium whitespace-pre-wrap text-sm leading-relaxed">{evo.description}</p>

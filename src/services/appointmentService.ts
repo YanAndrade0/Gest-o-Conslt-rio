@@ -19,7 +19,7 @@ export interface Appointment {
   date: string; // ISO string
   duration: number; // minutes
   procedure: string;
-  status: 'pendente' | 'confirmado' | 'cancelado' | 'finalizado';
+  status: 'marcado' | 'confirmado' | 'aguardando' | 'desmarcado' | 'finalizado';
   clinicId: string;
   doctorName?: string;
   reminderSent?: boolean;
@@ -53,5 +53,15 @@ export const appointmentService = {
       appointments.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       callback(appointments);
     });
+  },
+
+  async getAppointmentsByPatient(clinicId: string, patientId: string) {
+    const q = query(
+      collection(db, COLLECTION_NAME),
+      where('clinicId', '==', clinicId),
+      where('patientId', '==', patientId)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Appointment[];
   }
 };

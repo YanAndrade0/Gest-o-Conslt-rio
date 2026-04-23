@@ -15,6 +15,7 @@ import { format, isToday, startOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from './components/ui/input';
 import { Button } from './components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/card';
 import { cn } from './lib/utils';
 
 // Components
@@ -146,12 +147,10 @@ const Login = () => {
 const Settings = () => <WhatsAppSettings />;
 const Agenda = () => <AppointmentAgenda />;
 const Patients = () => <PatientManagement />;
-const Finance = () => <div className="p-4 md:p-8"><h2 className="text-3xl font-bold">Financeiro</h2><p className="text-slate-500">Módulo em desenvolvimento.</p></div>;
-const Dashboard = () => {
+const Finance = () => {
   const { user } = useAuth();
   const [monthRevenue, setMonthRevenue] = React.useState(0);
   const [todayRevenue, setTodayRevenue] = React.useState(0);
-  const [todayAppointments, setTodayAppointments] = React.useState<AppointmentType[]>([]);
   const [totalPatients, setTotalPatients] = React.useState(0);
 
   React.useEffect(() => {
@@ -175,12 +174,6 @@ const Dashboard = () => {
       setTodayRevenue(tTotal);
     });
 
-    // Appointments Sub
-    const unsubAppts = appointmentService.subscribeToAppointments(user.clinicId, (appts) => {
-      const filtered = appts.filter(a => isToday(parseISO(a.date)));
-      setTodayAppointments(filtered);
-    });
-
     // Patients Count
     const unsubPatients = patientService.subscribeToPatients(user.clinicId, (patients) => {
       setTotalPatients(patients.length);
@@ -188,8 +181,76 @@ const Dashboard = () => {
 
     return () => {
       unsubRevenue();
-      unsubAppts();
       unsubPatients();
+    };
+  }, [user?.clinicId]);
+
+  return (
+    <div className="p-4 md:p-8 space-y-8 h-full overflow-y-auto">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/50 backdrop-blur-sm p-4 md:p-6 rounded-2xl border border-white gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800">Gestão Clínica</h2>
+          <p className="text-slate-500">Dados financeiros e base de dados consolidada da clínica.</p>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="card-custom p-8 border-l-4 border-brand-secondary flex flex-col justify-center gap-4 min-h-[160px]">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-brand-secondary/10 rounded-2xl flex items-center justify-center text-brand-secondary">
+              <UserIcon size={24} />
+            </div>
+            <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Base de Pacientes</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-5xl font-extrabold text-slate-800">{totalPatients}</span>
+            <span className="text-xs text-slate-500 font-medium">Pacientes cadastrados no sistema</span>
+          </div>
+        </div>
+
+        <div className="card-custom p-8 border-l-4 border-brand-accent flex flex-col justify-center gap-4 min-h-[160px]">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-brand-accent/10 rounded-2xl flex items-center justify-center text-brand-accent">
+              <CreditCard size={24} />
+            </div>
+            <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Faturamento Mensal</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-5xl font-extrabold text-slate-800">
+              R$ {monthRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+            <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+              <PlusCircle size={12} /> R$ {todayRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} gerados hoje
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <Card className="card-custom border-none bg-white p-8">
+        <CardHeader className="p-0 mb-6">
+          <CardTitle className="text-xl font-bold text-slate-800">Módulo Financeiro</CardTitle>
+          <CardDescription>O módulo completo de fluxo de caixa e relatórios detalhados está sendo preparado para o próximo lançamento.</CardDescription>
+        </CardHeader>
+      </Card>
+    </div>
+  );
+};
+
+const Dashboard = () => {
+  const { user } = useAuth();
+  const [todayAppointments, setTodayAppointments] = React.useState<AppointmentType[]>([]);
+
+  React.useEffect(() => {
+    if (!user?.clinicId) return;
+
+    // Appointments Sub
+    const unsubAppts = appointmentService.subscribeToAppointments(user.clinicId, (appts) => {
+      const filtered = appts.filter(a => isToday(parseISO(a.date)));
+      setTodayAppointments(filtered);
+    });
+
+    return () => {
+      unsubAppts();
     };
   }, [user?.clinicId]);
 
@@ -212,18 +273,6 @@ const Dashboard = () => {
         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Consultas Hoje</span>
         <span className="text-4xl font-extrabold text-slate-800">{todayAppointments.length.toString().padStart(2, '0')}</span>
         <span className="text-xs text-brand-primary font-medium">Agenda em tempo real</span>
-      </div>
-      <div className="card-custom p-6 border-l-4 border-brand-secondary flex flex-col justify-between h-32">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Base de Pacientes</span>
-        <span className="text-4xl font-extrabold text-slate-800">{totalPatients}</span>
-        <span className="text-xs text-slate-500 font-medium">Pacientes cadastrados</span>
-      </div>
-      <div className="card-custom p-6 border-l-4 border-brand-accent flex flex-col justify-between h-32">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Faturamento/Mês</span>
-        <span className="text-4xl font-extrabold text-slate-800">
-          R$ {(monthRevenue / 1000).toFixed(1)}k
-        </span>
-        <span className="text-xs text-green-600 font-medium">+ R$ {todayRevenue.toLocaleString('pt-BR')} hoje</span>
       </div>
     </div>
 
@@ -249,9 +298,10 @@ const Dashboard = () => {
                   <p className="text-[10px] text-slate-300 font-medium">{item.duration} min</p>
                 </div>
                 <div className={`w-1.5 h-12 rounded-full flex-shrink-0 ${
-                  item.status === 'confirmado' ? 'bg-blue-400' : 
-                  item.status === 'pendente' ? 'bg-orange-400' : 
-                  item.status === 'finalizado' ? 'bg-green-400' : 'bg-slate-200'
+                  item.status === 'marcado' ? 'bg-blue-400' : 
+                  item.status === 'confirmado' ? 'bg-green-400' : 
+                  item.status === 'aguardando' ? 'bg-orange-400' : 
+                  item.status === 'desmarcado' ? 'bg-red-400' : 'bg-slate-200'
                 }`}></div>
                 <div className="flex-1">
                   <p className="text-base font-bold text-slate-800">{item.patientName}</p>
@@ -265,9 +315,10 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
-                  ${item.status === 'confirmado' ? 'bg-blue-50 text-blue-600' : 
-                    item.status === 'pendente' ? 'bg-orange-50 text-orange-600' : 
-                    item.status === 'finalizado' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'}`}>
+                  ${item.status === 'marcado' ? 'bg-blue-50 text-blue-600' : 
+                    item.status === 'confirmado' ? 'bg-green-50 text-green-600' : 
+                    item.status === 'aguardando' ? 'bg-orange-50 text-orange-600' : 
+                    item.status === 'desmarcado' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-400'}`}>
                   {item.status}
                 </span>
               </div>

@@ -78,7 +78,8 @@ export function AppointmentAgenda() {
     doctorName: user?.displayName || '',
     time: '09:00',
     duration: '30',
-    date: format(new Date(), 'yyyy-MM-dd')
+    date: format(new Date(), 'yyyy-MM-dd'),
+    status: 'marcado' as Appointment['status']
   });
 
   useEffect(() => {
@@ -111,7 +112,8 @@ export function AppointmentAgenda() {
       doctorName: user?.displayName || '',
       time: '09:00',
       duration: '30',
-      date: format(new Date(), 'yyyy-MM-dd')
+      date: format(new Date(), 'yyyy-MM-dd'),
+      status: 'marcado'
     });
     setPatientSearch('');
     setIsPatientListOpen(false);
@@ -129,7 +131,8 @@ export function AppointmentAgenda() {
       doctorName: app.doctorName || '',
       time: format(appDate, 'HH:mm'),
       duration: app.duration.toString(),
-      date: format(appDate, 'yyyy-MM-dd')
+      date: format(appDate, 'yyyy-MM-dd'),
+      status: app.status
     });
     setPatientSearch(app.patientName);
     setIsModalOpen(true);
@@ -157,7 +160,8 @@ export function AppointmentAgenda() {
           date: appointmentDate.toISOString(),
           duration: parseInt(formData.duration),
           procedure: formData.procedure,
-          doctorName: formData.doctorName
+          doctorName: formData.doctorName,
+          status: formData.status
         });
         toast.success('Agendamento atualizado!');
       } else {
@@ -168,7 +172,7 @@ export function AppointmentAgenda() {
           duration: parseInt(formData.duration),
           procedure: formData.procedure,
           doctorName: formData.doctorName,
-          status: 'pendente',
+          status: formData.status,
           clinicId: user.clinicId!
         });
         toast.success('Consulta agendada com sucesso!');
@@ -200,7 +204,7 @@ export function AppointmentAgenda() {
     }
   };
 
-  const handleUpdateStatus = async (id: string, status: 'confirmado' | 'cancelado' | 'finalizado') => {
+  const handleUpdateStatus = async (id: string, status: Appointment['status']) => {
     try {
       await appointmentService.updateAppointment(id, { status });
       toast.success('Status atualizado!');
@@ -400,21 +404,38 @@ export function AppointmentAgenda() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Duração da Consulta</Label>
-                <Select value={formData.duration} onValueChange={(val) => setFormData({...formData, duration: val})}>
-                  <SelectTrigger className="bg-bg-main border-none h-14 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700">
-                    <SelectValue placeholder="Duração" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-2xl">
-                    <SelectItem value="15" className="py-3 font-bold">15 minutos</SelectItem>
-                    <SelectItem value="30" className="py-3 font-bold">30 minutos</SelectItem>
-                    <SelectItem value="45" className="py-3 font-bold">45 minutos</SelectItem>
-                    <SelectItem value="60" className="py-3 font-bold">1 hora</SelectItem>
-                    <SelectItem value="90" className="py-3 font-bold">1h 30min</SelectItem>
-                    <SelectItem value="120" className="py-3 font-bold">2 horas</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Duração da Consulta</Label>
+                  <Select value={formData.duration} onValueChange={(val) => setFormData({...formData, duration: val})}>
+                    <SelectTrigger className="bg-bg-main border-none h-14 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700">
+                      <SelectValue placeholder="Duração" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-2xl">
+                      <SelectItem value="15" className="py-3 font-bold">15 minutos</SelectItem>
+                      <SelectItem value="30" className="py-3 font-bold">30 minutos</SelectItem>
+                      <SelectItem value="45" className="py-3 font-bold">45 minutos</SelectItem>
+                      <SelectItem value="60" className="py-3 font-bold">1 hora</SelectItem>
+                      <SelectItem value="90" className="py-3 font-bold">1h 30min</SelectItem>
+                      <SelectItem value="120" className="py-3 font-bold">2 horas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Status da Consulta</Label>
+                  <Select value={formData.status} onValueChange={(val) => setFormData({...formData, status: val as Appointment['status']})}>
+                    <SelectTrigger className="bg-bg-main border-none h-14 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-2xl">
+                      <SelectItem value="marcado" className="py-3 font-bold text-blue-600">Marcado</SelectItem>
+                      <SelectItem value="confirmado" className="py-3 font-bold text-green-600">Confirmado</SelectItem>
+                      <SelectItem value="aguardando" className="py-3 font-bold text-orange-600">Aguardando</SelectItem>
+                      <SelectItem value="desmarcado" className="py-3 font-bold text-red-600">Desmarcou</SelectItem>
+                      <SelectItem value="finalizado" className="py-3 font-bold text-slate-600">Atendido</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
@@ -540,10 +561,11 @@ export function AppointmentAgenda() {
                         }}
                         className={cn(
                           "absolute left-1 right-1 p-2 rounded-xl text-[10px] font-bold border-l-4 shadow-md transition-all hover:scale-[1.01] active:scale-[0.98] z-30 overflow-hidden select-none",
-                          app.status === 'pendente' ? 'bg-orange-50 border-orange-400 text-orange-700' : 
-                          app.status === 'confirmado' ? 'bg-blue-50 border-blue-400 text-blue-700' : 
-                          app.status === 'finalizado' ? 'bg-green-50 border-green-400 text-green-700' : 
-                          'bg-red-50 border-red-400 text-red-700 shadow-red-100'
+                          app.status === 'marcado' ? 'bg-blue-50 border-blue-400 text-blue-700' : 
+                          app.status === 'confirmado' ? 'bg-green-50 border-green-400 text-green-700' : 
+                          app.status === 'aguardando' ? 'bg-orange-50 border-orange-400 text-orange-700' : 
+                          app.status === 'desmarcado' ? 'bg-red-50 border-red-400 text-red-700' : 
+                          'bg-slate-50 border-slate-400 text-slate-700'
                         )}
                       >
                          <div className="flex justify-between items-start mb-0.5">
@@ -568,10 +590,12 @@ export function AppointmentAgenda() {
                               <User size={8} /> {app.doctorName?.split(' ')[0]}
                             </span>
                             <div className="flex gap-1">
-                              {app.status === 'pendente' && (
-                                <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'confirmado'); }}><CheckCircle2 size={10} /></button>
+                              {(app.status === 'marcado' || app.status === 'aguardando') && (
+                                <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'confirmado'); }} className="hover:text-green-600 transition-colors"><CheckCircle2 size={10} /></button>
                               )}
-                              <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'cancelado'); }}><XCircle size={10} /></button>
+                              {app.status !== 'desmarcado' && (
+                                <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'desmarcado'); }} className="hover:text-red-600 transition-colors"><XCircle size={10} /></button>
+                              )}
                             </div>
                           </div>
                         )}
@@ -588,20 +612,24 @@ export function AppointmentAgenda() {
 
       <footer className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white flex justify-center gap-6">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Pendente</span>
-        </div>
-        <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Confirmado</span>
+          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Marcado</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-400"></div>
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Finalizado</span>
+          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Confirmado</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Aguardando</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-red-400"></div>
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Cancelado</span>
+          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Desmarcou</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Atendido</span>
         </div>
       </footer>
 
