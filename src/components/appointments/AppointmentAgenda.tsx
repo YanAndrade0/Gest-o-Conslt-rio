@@ -98,13 +98,11 @@ export function AppointmentAgenda() {
   }, [user?.clinicId]);
 
   const weekDays = useMemo(() => {
-    const start = startOfWeek(selectedDate, { weekStartsOn: 0 });
-    const end = endOfWeek(selectedDate, { weekStartsOn: 0 });
-    return eachDayOfInterval({ start, end });
+    return [selectedDate];
   }, [selectedDate]);
 
-  const handleNextWeek = () => setSelectedDate(prev => addDays(prev, 7));
-  const handlePrevWeek = () => setSelectedDate(prev => subDays(prev, 7));
+  const handleNextDay = () => setSelectedDate(prev => addDays(prev, 1));
+  const handlePrevDay = () => setSelectedDate(prev => subDays(prev, 1));
 
   const resetForm = () => {
     setFormData({
@@ -257,23 +255,32 @@ export function AppointmentAgenda() {
             <CalendarIcon size={24} />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Agenda Semanal</h2>
+            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Agenda Diária</h2>
             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-              {format(weekDays[0], "dd 'de' MMM", { locale: ptBR })} - {format(weekDays[6], "dd 'de' MMM", { locale: ptBR })}
+              {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 bg-slate-100/50 p-1.5 rounded-2xl border border-white">
-          <Button variant="ghost" size="icon" onClick={handlePrevWeek} className="rounded-xl hover:bg-white transition-all h-10 w-10">
+          <Button variant="ghost" size="icon" onClick={handlePrevDay} className="rounded-xl hover:bg-white transition-all h-10 w-10">
             <ChevronLeft size={18} />
           </Button>
-          <div className="px-4 py-1">
-            <span className="text-sm font-black text-slate-700 capitalize">
-              {format(selectedDate, "MMMM 'de' yyyy", { locale: ptBR })}
+          <div className="px-4 py-1 flex items-center gap-3">
+             <span className="text-sm font-black text-slate-700 capitalize">
+              {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
             </span>
+            <Input 
+              type="date"
+              value={format(selectedDate, 'yyyy-MM-dd')}
+              onChange={(e) => setSelectedDate(parseISO(e.target.value))}
+              className="w-10 h-10 p-0 border-none bg-transparent cursor-pointer opacity-0 absolute"
+            />
+             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-brand-primary">
+                <CalendarIcon size={14} />
+             </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleNextWeek} className="rounded-xl hover:bg-white transition-all h-10 w-10">
+          <Button variant="ghost" size="icon" onClick={handleNextDay} className="rounded-xl hover:bg-white transition-all h-10 w-10">
             <ChevronRight size={18} />
           </Button>
         </div>
@@ -437,9 +444,9 @@ export function AppointmentAgenda() {
       </header>
 
       <div className="flex-1 bg-white rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-auto flex flex-col scrollbar-hide">
-        <div className="min-w-[800px] flex-1 flex flex-col">
+        <div className="w-full flex-1 flex flex-col">
           {/* Days Header */}
-          <div className="grid grid-cols-[100px_repeat(7,1fr)] border-b border-slate-50 bg-slate-50/20 shrink-0">
+          <div className="grid grid-cols-[100px_1fr] border-b border-slate-50 bg-slate-50/20 shrink-0">
           <div className="p-4 border-r border-slate-50 flex items-center justify-center">
             <Clock size={16} className="text-slate-300" />
           </div>
@@ -452,7 +459,7 @@ export function AppointmentAgenda() {
               )}
             >
               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                {format(day, 'EEE', { locale: ptBR })}
+                {format(day, 'EEEE', { locale: ptBR })}
               </span>
               <span className={cn(
                 "text-lg font-black w-10 h-10 flex items-center justify-center rounded-xl transition-all",
@@ -471,7 +478,7 @@ export function AppointmentAgenda() {
 
         {/* Scrollable Grid */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
-          <div className="grid grid-cols-[80px_repeat(7,1fr)] min-w-[800px] relative">
+          <div className="grid grid-cols-[80px_1fr] relative">
             
             {/* Time Indicators Column */}
             <div className="flex flex-col">
