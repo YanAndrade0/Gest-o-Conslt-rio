@@ -43,6 +43,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Badge } from '../ui/badge';
+import { Card } from '../ui/card';
 import { useAuth } from '../../contexts/AuthContext';
 import { appointmentService, Appointment } from '../../services/appointmentService';
 import { patientService, Patient } from '../../services/patientService';
@@ -50,7 +51,11 @@ import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { PatientMedicalRecord } from '../patients/PatientMedicalRecord';
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 08:00 to 20:00
+const TIME_SLOTS = Array.from({ length: (20 - 8) * 2 + 1 }, (_, i) => {
+  const hour = Math.floor(i / 2) + 8;
+  const minute = (i % 2) * 30;
+  return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+});
 
 export function AppointmentAgenda() {
   const { user } = useAuth();
@@ -62,6 +67,8 @@ export function AppointmentAgenda() {
   const [loading, setLoading] = useState(true);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [selectedPatientRecord, setSelectedPatientRecord] = useState<Patient | null>(null);
+  const [patientSearch, setPatientSearch] = useState('');
+  const [isPatientListOpen, setIsPatientListOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Form State
@@ -108,19 +115,10 @@ export function AppointmentAgenda() {
       duration: '30',
       date: format(new Date(), 'yyyy-MM-dd')
     });
+    setPatientSearch('');
+    setIsPatientListOpen(false);
     setEditingAppointment(null);
     setIsConfirmingDelete(false);
-  };
-
-  const handleSlotClick = (date: Date, hour: number) => {
-    resetForm();
-    const timeStr = `${hour.toString().padStart(2, '0')}:00`;
-    setFormData({
-      ...formData,
-      time: timeStr,
-      date: format(date, 'yyyy-MM-dd')
-    });
-    setIsModalOpen(true);
   };
 
   const handleEditAppointment = (app: Appointment) => {
@@ -135,6 +133,7 @@ export function AppointmentAgenda() {
       duration: app.duration.toString(),
       date: format(appDate, 'yyyy-MM-dd')
     });
+    setPatientSearch(app.patientName);
     setIsModalOpen(true);
   };
 
@@ -212,11 +211,42 @@ export function AppointmentAgenda() {
     }
   };
 
-  const getAppointmentsForSlot = (date: Date, hour: number) => {
-    return appointments.filter(app => {
-      const appDate = parseISO(app.date);
-      return isSameDay(appDate, date) && appDate.getHours() === hour;
+  const filteredPatients = useMemo(() => {
+    if (!patientSearch) return [];
+    return patients.filter(p => 
+      p.name.toLowerCase().includes(patientSearch.toLowerCase())
+    ).slice(0, 5);
+  }, [patients, patientSearch]);
+
+  const handleSlotClick = (day: Date, timeStr: string) => {
+    resetForm();
+    setFormData({
+      ...formData,
+      date: format(day, 'yyyy-MM-dd'),
+      time: timeStr
     });
+    setEditingAppointment(null);
+    setIsModalOpen(true);
+  };
+
+  const calculatePosition = (dateStr: string, duration: number) => {
+    const date = parseISO(dateStr);
+    const startHour = 8;
+    const minutesFromStart = (date.getHours() - startHour) * 60 + date.getMinutes();
+    
+    // Each 30 min slot is 80px (h-20)
+    // So 1 minute = 80 / 30 = 2.666px
+    const slotHeight = 80;
+    const minHeight = slotHeight / 30;
+    
+    return {
+      top: minutesFromStart * minHeight,
+      height: duration * minHeight
+    };
+  };
+
+  const getAppointmentsForDay = (date: Date) => {
+    return appointments.filter(app => isSameDay(parseISO(app.date), date));
   };
 
   return (
@@ -271,24 +301,53 @@ export function AppointmentAgenda() {
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-              <div className="space-y-2">
+              <div className="space-y-2 relative">
                 <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Paciente</Label>
-                <Select value={formData.patientId} onValueChange={(val) => setFormData({...formData, patientId: val})}>
-                  <SelectTrigger className="bg-bg-main border-none h-14 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700">
-                    <SelectValue placeholder="Selecione um paciente cadastrado" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-2xl">
-                    {patients.length === 0 ? (
-                      <div className="p-4 text-center text-xs text-slate-400 font-bold italic">Nenhum paciente cadastrado no momento</div>
-                    ) : (
-                      patients.map(p => (
-                        <SelectItem key={p.id} value={p.id!} className="focus:bg-brand-light focus:text-brand-primary font-bold py-3">
-                          {p.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <div className="relative group">
+                  <Input 
+                    placeholder="Comece a digitar o nome do paciente..."
+                    value={patientSearch}
+                    onChange={(e) => {
+                      setPatientSearch(e.target.value);
+                      setIsPatientListOpen(true);
+                      if (formData.patientId) setFormData({...formData, patientId: ''});
+                    }}
+                    onFocus={() => setIsPatientListOpen(true)}
+                    className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 pr-10"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
+                    <User size={20} />
+                  </div>
+                </div>
+
+                {isPatientListOpen && filteredPatients.length > 0 && (
+                  <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-2 space-y-1 bg-white">
+                      {filteredPatients.map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            setFormData({...formData, patientId: p.id!});
+                            setPatientSearch(p.name);
+                            setIsPatientListOpen(false);
+                          }}
+                          className="w-full text-left p-3 rounded-xl hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
+                        >
+                          <span className="font-bold">{p.name}</span>
+                          <span className="text-[10px] font-black opacity-0 group-hover:opacity-100 uppercase">Selecionar</span>
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+                
+                {formData.patientId && (
+                  <div className="absolute -bottom-6 left-1 flex items-center gap-1.5 animate-in fade-in duration-300">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">Paciente Selecionado</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -326,11 +385,29 @@ export function AppointmentAgenda() {
                   <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Horário</Label>
                   <Input 
                     type="time" 
+                    step="1800"
                     value={formData.time}
                     onChange={(e) => setFormData({...formData, time: e.target.value})}
                     className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Duração da Consulta</Label>
+                <Select value={formData.duration} onValueChange={(val) => setFormData({...formData, duration: val})}>
+                  <SelectTrigger className="bg-bg-main border-none h-14 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700">
+                    <SelectValue placeholder="Duração" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-2xl">
+                    <SelectItem value="15" className="py-3 font-bold">15 minutos</SelectItem>
+                    <SelectItem value="30" className="py-3 font-bold">30 minutos</SelectItem>
+                    <SelectItem value="45" className="py-3 font-bold">45 minutos</SelectItem>
+                    <SelectItem value="60" className="py-3 font-bold">1 hora</SelectItem>
+                    <SelectItem value="90" className="py-3 font-bold">1h 30min</SelectItem>
+                    <SelectItem value="120" className="py-3 font-bold">2 horas</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
@@ -393,99 +470,109 @@ export function AppointmentAgenda() {
         </div>
 
         {/* Scrollable Grid */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide" ref={scrollContainerRef}>
-          <div className="grid grid-cols-[100px_repeat(7,1fr)] min-h-full">
-            {HOURS.map((hour) => (
-              <React.Fragment key={hour}>
-                {/* Time Scale */}
-                <div className="border-r border-b border-slate-50 p-4 h-32 flex flex-col items-center justify-start sticky left-0 bg-white z-10">
-                  <span className="text-sm font-black text-slate-800">{hour.toString().padStart(2, '0')}:00</span>
-                  <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">Horário</span>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
+          <div className="grid grid-cols-[80px_repeat(7,1fr)] min-w-[800px] relative">
+            
+            {/* Time Indicators Column */}
+            <div className="flex flex-col">
+              <div className="h-6 bg-slate-50 border-b border-slate-100"></div> {/* Header spacer */}
+              {TIME_SLOTS.map((timeStr) => (
+                <div key={timeStr} className="h-20 border-r border-b border-slate-50 flex flex-col items-center justify-start p-3 bg-white sticky left-0 z-20">
+                  <span className={cn(
+                    "font-black text-slate-800 transition-all",
+                    timeStr.endsWith(':00') ? "text-xs" : "text-[9px] opacity-30"
+                  )}>{timeStr}</span>
+                  {timeStr.endsWith(':00') && <span className="text-[7px] font-black text-slate-300 uppercase tracking-tighter">Horário</span>}
+                </div>
+              ))}
+            </div>
+
+            {/* Day Columns */}
+            {weekDays.map((day, i) => (
+              <div key={i} className="flex flex-col relative border-r border-slate-50 last:border-r-0">
+                {/* Day Header (Mini) */}
+                <div className={cn(
+                  "h-6 flex items-center justify-center border-b border-slate-100 sticky top-0 bg-white z-10",
+                  isToday(day) ? "bg-brand-primary/5" : "bg-slate-50"
+                )}>
+                  <span className={cn(
+                    "text-[8px] font-black uppercase tracking-widest",
+                    isToday(day) ? "text-brand-primary" : "text-slate-400"
+                  )}>
+                    {format(day, 'EEE', { locale: ptBR })}
+                  </span>
                 </div>
 
-                {/* Day Columns for this hour */}
-                {weekDays.map((day, i) => {
-                  const slotAppointments = getAppointmentsForSlot(day, hour);
-                  return (
+                {/* Vertical Slot Grid */}
+                <div className="relative h-full min-h-[1600px]">
+                  {/* Background Lines */}
+                  {TIME_SLOTS.map((time) => (
                     <div 
-                      key={i} 
-                      onClick={() => handleSlotClick(day, hour)}
+                      key={time} 
+                      onClick={() => handleSlotClick(day, time)}
                       className={cn(
-                        "border-r border-b border-slate-50 last:border-r-0 h-32 p-1.5 transition-all relative group cursor-pointer hover:bg-brand-light/5",
-                        isToday(day) ? "bg-brand-light/5" : ""
+                        "h-20 border-b border-slate-50 transition-colors hover:bg-brand-light/5 cursor-pointer",
+                        isToday(day) ? "bg-brand-light/2" : ""
                       )}
-                    >
-                      {/* Grid Line Visual Aid */}
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-slate-50 opacity-0 group-hover:opacity-100"></div>
-                      
-                      <div className="h-full w-full rounded-2xl flex flex-col gap-1.5 overflow-y-auto scrollbar-hide">
-                        {slotAppointments.length === 0 ? (
-                          <div className="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="w-8 h-8 rounded-xl bg-brand-light flex items-center justify-center text-brand-primary">
-                               <Plus size={14} />
+                    />
+                  ))}
+
+                  {/* Absolute Appointments */}
+                  {getAppointmentsForDay(day).map((app) => {
+                    const pos = calculatePosition(app.date, app.duration || 30);
+                    return (
+                      <div 
+                        key={app.id} 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditAppointment(app);
+                        }}
+                        style={{ 
+                          top: `${pos.top}px`,
+                          height: `${pos.height}px`,
+                        }}
+                        className={cn(
+                          "absolute left-1 right-1 p-2 rounded-xl text-[10px] font-bold border-l-4 shadow-md transition-all hover:scale-[1.01] active:scale-[0.98] z-30 overflow-hidden select-none",
+                          app.status === 'pendente' ? 'bg-orange-50 border-orange-400 text-orange-700' : 
+                          app.status === 'confirmado' ? 'bg-blue-50 border-blue-400 text-blue-700' : 
+                          app.status === 'finalizado' ? 'bg-green-50 border-green-400 text-green-700' : 
+                          'bg-red-50 border-red-400 text-red-700 shadow-red-100'
+                        )}
+                      >
+                         <div className="flex justify-between items-start mb-0.5">
+                          <span 
+                            className="font-black truncate block pr-2 hover:text-brand-primary cursor-pointer transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const p = patients.find(pat => pat.id === app.patientId);
+                              if (p) setSelectedPatientRecord(p);
+                            }}
+                          >
+                            {app.patientName}
+                          </span>
+                          <span className="text-[8px] opacity-70 shrink-0">{app.duration}m</span>
+                        </div>
+                        <p className="opacity-70 flex items-center gap-1 text-[9px] truncate">
+                           {app.procedure}
+                        </p>
+                        {(app.duration || 0) >= 60 && (
+                          <div className="mt-1 pt-1 border-t border-black/5 flex items-center justify-between">
+                            <span className="text-[8px] opacity-60 flex items-center gap-1">
+                              <User size={8} /> {app.doctorName?.split(' ')[0]}
+                            </span>
+                            <div className="flex gap-1">
+                              {app.status === 'pendente' && (
+                                <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'confirmado'); }}><CheckCircle2 size={10} /></button>
+                              )}
+                              <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'cancelado'); }}><XCircle size={10} /></button>
                             </div>
                           </div>
-                        ) : (
-                          slotAppointments.map((app) => (
-                            <div 
-                              key={app.id} 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditAppointment(app);
-                              }}
-                              className={cn(
-                                "p-2.5 rounded-2xl text-[10px] font-bold border-l-4 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98]",
-                                app.status === 'pendente' ? 'bg-orange-50/80 border-orange-400 text-orange-700' : 
-                                app.status === 'confirmado' ? 'bg-blue-50/80 border-blue-400 text-blue-700' : 
-                                app.status === 'finalizado' ? 'bg-green-50/80 border-green-400 text-green-700' : 
-                                'bg-red-50/80 border-red-400 text-red-700'
-                              )}
-                            >
-                              <div className="flex justify-between items-start mb-1">
-                                <span 
-                                  className="font-black truncate block pr-2 hover:text-brand-primary cursor-pointer transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const p = patients.find(pat => pat.id === app.patientId);
-                                    if (p) setSelectedPatientRecord(p);
-                                  }}
-                                >
-                                  {app.patientName}
-                                </span>
-                                <div className="flex gap-1 shrink-0">
-                                  {app.status === 'pendente' && (
-                                    <button 
-                                      onClick={() => handleUpdateStatus(app.id!, 'confirmado')}
-                                      className="hover:scale-110 transition-transform"
-                                    >
-                                      <CheckCircle2 size={12} />
-                                    </button>
-                                  )}
-                                  <button 
-                                    onClick={() => handleUpdateStatus(app.id!, 'cancelado')}
-                                    className="hover:scale-110 transition-transform"
-                                  >
-                                    <XCircle size={12} />
-                                  </button>
-                                </div>
-                              </div>
-                              <p className="opacity-70 flex items-center gap-1">
-                                <Clock size={8} /> {format(parseISO(app.date), 'HH:mm')} • {app.duration}m
-                              </p>
-                              <p className="font-black mt-1 line-clamp-1">{app.procedure}</p>
-                              {app.doctorName && (
-                                <p className="text-[9px] font-bold text-brand-primary/60 mt-0.5 truncate flex items-center gap-1">
-                                  <User size={8} /> {app.doctorName.split(' ')[0]}
-                                </p>
-                              )}
-                            </div>
-                          ))
                         )}
                       </div>
-                    </div>
-                  );
-                })}
-              </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
           </div>
         </div>

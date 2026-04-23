@@ -178,9 +178,15 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
       setPhotoFile(null);
       setPhotoCaption('');
       toast.success('Foto enviada com sucesso!');
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao realizar upload da foto.');
+    } catch (error: any) {
+      console.error('Erro detalhado do upload:', error);
+      let errorMessage = 'Erro ao realizar upload da foto.';
+      if (error.code === 'storage/unauthorized') {
+        errorMessage = 'Erro de permissão no Firebase Storage. Verifique as regras de segurança.';
+      } else if (error.code === 'storage/unknown') {
+        errorMessage = 'Erro desconhecido. O Firebase Storage foi ativado no console?';
+      }
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
     }
