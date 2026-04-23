@@ -10,7 +10,8 @@ import {
   deleteDoc,
   doc
 } from 'firebase/firestore';
-import { db } from '../lib/firebase-config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../lib/firebase-config';
 
 export interface Evolution {
   id?: string;
@@ -71,6 +72,12 @@ export const medicalRecordService = {
   },
 
   // Photos
+  async uploadPhoto(file: File, clinicId: string) {
+    const storageRef = ref(storage, `patients/${clinicId}/${Date.now()}_${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    return getDownloadURL(snapshot.ref);
+  },
+
   async addPhoto(photo: Omit<PatientPhoto, 'id'>) {
     return addDoc(collection(db, 'patientPhotos'), photo);
   },

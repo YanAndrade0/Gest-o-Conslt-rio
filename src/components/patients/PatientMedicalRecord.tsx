@@ -14,7 +14,9 @@ import {
   Camera,
   Edit2,
   Save,
-  RotateCcw
+  RotateCcw,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
@@ -49,8 +51,9 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   // Forms
   const [evolutionDesc, setEvolutionDesc] = useState('');
   const [paymentData, setPaymentData] = useState({ amount: '', description: '', method: 'pix' as any });
-  const [photoUrl, setPhotoUrl] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoCaption, setPhotoCaption] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   // Finances
   const [totalTreatmentValue, setTotalTreatmentValue] = useState<string>(patient.totalTreatmentValue?.toString() || '');
@@ -157,21 +160,29 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   const handleAddPhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     const cid = user?.clinicId || patient.clinicId;
-    if (!photoUrl.trim() || !cid || !patient.id) return;
+    if (!photoFile || !cid || !patient.id) {
+      toast.error('Selecione um arquivo primeiro.');
+      return;
+    }
 
+    setIsUploading(true);
     try {
+      const url = await medicalRecordService.uploadPhoto(photoFile, cid);
       await medicalRecordService.addPhoto({
         patientId: patient.id,
-        url: photoUrl,
+        url: url,
         caption: photoCaption,
         date: new Date().toISOString(),
         clinicId: cid
       });
-      setPhotoUrl('');
+      setPhotoFile(null);
       setPhotoCaption('');
-      toast.success('Foto adicionada à galeria!');
+      toast.success('Foto enviada com sucesso!');
     } catch (error) {
-      toast.error('Erro ao salvar foto.');
+      console.error(error);
+      toast.error('Erro ao realizar upload da foto.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -537,14 +548,32 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                   <CardContent className="p-8 pt-0">
                     <form onSubmit={handleAddPhoto} className="space-y-4">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">URL da Imagem</Label>
-                        <Input 
-                          placeholder="Cole o link da imagem aqui..."
-                          value={photoUrl}
-                          onChange={(e) => setPhotoUrl(e.target.value)}
-                          required
-                          className="bg-bg-main border-none h-14 rounded-2xl font-bold"
-                        />
+                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Selecione o Arquivo</Label>
+                        <div className="relative group">
+                          <input 
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+                            className="hidden"
+                            id="photo-upload"
+                          />
+                          <label 
+                            htmlFor="photo-upload"
+                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 rounded-[2rem] cursor-pointer hover:bg-slate-50 hover:border-brand-primary/40 transition-all group"
+                          >
+                            {photoFile ? (
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="text-sm font-black text-brand-primary">{photoFile.name}</span>
+                                <span className="text-[10px] font-bold text-slate-400 capitalize">{(photoFile.size / 1024 / 1024).toFixed(2)} MB</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-2">
+                                <Upload className="text-slate-300 group-hover:text-brand-primary transition-colors" size={28} />
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Clique para escolher foto</span>
+                              </div>
+                            )}
+                          </label>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Legenda / Identificação</Label>
@@ -556,8 +585,20 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                         />
                       </div>
                       <div className="flex gap-4">
-                        <Button type="submit" className="flex-1 bg-brand-primary text-white rounded-2xl h-14 font-black shadow-lg shadow-brand-primary/20 transition-all active:scale-95 gap-2">
-                          <Plus size={20} /> ADICIONAR À GALERIA
+                        <Button 
+                          type="submit" 
+                          disabled={isUploading}
+                          className="flex-1 bg-brand-primary text-white rounded-2xl h-14 font-black shadow-lg shadow-brand-primary/20 transition-all active:scale-95 gap-2"
+                        >
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="animate-spin" size={20} /> ENVIANDO...
+                            </>
+                          ) : (
+                            <>
+                              <Plus size={20} /> ADICIONAR À GALERIA
+                            </>
+                          )}
                         </Button>
                       </div>
                     </form>
