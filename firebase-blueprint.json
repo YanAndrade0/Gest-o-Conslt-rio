@@ -10,9 +10,23 @@
         "address": { "type": "string" },
         "phone": { "type": "string" },
         "specialties": { "type": "array", "items": { "type": "string" } },
-        "ownerId": { "type": "string" }
+        "ownerId": { "type": "string" },
+        "accessCode": { "type": "string" }
       },
-      "required": ["name", "ownerId"]
+      "required": ["name", "ownerId", "accessCode"]
+    },
+    "UserProfile": {
+      "title": "Perfil de Usuário",
+      "description": "Dados do usuário e vínculo com clínica",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "clinicId": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner", "member", "secretary"] },
+        "displayName": { "type": "string" }
+      },
+      "required": ["uid", "role"]
     },
     "Patient": {
       "title": "Paciente",

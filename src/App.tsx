@@ -24,6 +24,8 @@ const Login = () => {
   const [isRegister, setIsRegister] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [displayName, setDisplayName] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   
   if (user) return <Navigate to="/" />;
@@ -42,19 +44,31 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      const finalName = displayName || (email.toLowerCase() === 'yanandradeodt@gmail.com' ? 'Secretaria' : '');
       if (isRegister) {
-        await registerWithEmail(email, password);
+        await registerWithEmail(email, password, finalName);
         toast.success('Conta profissional criada!');
       } else {
         await loginWithEmail(email, password);
         toast.success('Acesso autorizado!');
       }
     } catch (error: any) {
-      console.error(error);
+      console.error('Auth error:', error);
       let message = 'Erro na autenticação. Verifique os dados.';
-      if (error.code === 'auth/invalid-credential') message = 'E-mail ou senha inválidos.';
-      if (error.code === 'auth/email-already-in-use') message = 'E-mail já cadastrado.';
-      if (error.code === 'auth/weak-password') message = 'A senha deve ter pelo menos 6 caracteres.';
+      
+      const errorCode = error.code || (error.message && error.message.match(/\((auth\/[^)]+)\)/)?.[1]);
+      
+      if (errorCode === 'auth/invalid-credential') message = 'E-mail ou senha incorretos.';
+      if (errorCode === 'auth/user-not-found') message = 'E-mail não cadastrado.';
+      if (errorCode === 'auth/wrong-password') message = 'Senha incorreta.';
+      if (errorCode === 'auth/email-already-in-use') message = 'Este e-mail já está cadastrado. Tente fazer login ou use as ferramentas de recuperação.';
+      if (errorCode === 'auth/weak-password') message = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+      if (errorCode === 'auth/invalid-email') message = 'O e-mail digitado é inválido.';
+      if (errorCode === 'auth/too-many-requests') message = 'Muitas tentativas sem sucesso. Tente novamente mais tarde.';
+      if (error.message && error.message.includes('auth/email-already-in-use')) {
+        message = 'Este e-mail já está cadastrado. Tente entrar em vez de criar conta.';
+      }
+      
       toast.error(message);
     } finally {
       setLoading(false);
@@ -78,6 +92,19 @@ const Login = () => {
 
         <form onSubmit={handleEmailAuth} className="space-y-4">
           <div className="space-y-4">
+            {isRegister && (
+              <div className="relative">
+                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                <Input 
+                  type="text" 
+                  placeholder="Seu nome completo" 
+                  required 
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="pl-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
+                />
+              </div>
+            )}
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
               <Input 
@@ -92,17 +119,29 @@ const Login = () => {
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
               <Input 
-                type="password" 
+                type={showPassword ? "text" : "password"} 
                 placeholder="Senha de acesso" 
                 required 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
+                className="pl-12 pr-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+              >
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                )}
+              </button>
             </div>
           </div>
           
           <Button 
+            type="submit"
             disabled={loading}
             className="w-full h-14 bg-brand-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-brand-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
           >
@@ -244,10 +283,15 @@ const Dashboard = () => {
     if (!user?.clinicId) return;
 
     // Appointments Sub
-    const unsubAppts = appointmentService.subscribeToAppointments(user.clinicId, (appts) => {
-      const filtered = appts.filter(a => isToday(parseISO(a.date)));
-      setTodayAppointments(filtered);
-    });
+    const unsubAppts = appointmentService.subscribeToAppointments(
+      user.clinicId, 
+      user.role || 'member',
+      user.displayName || '',
+      (appts) => {
+        const filtered = appts.filter(a => isToday(parseISO(a.date)));
+        setTodayAppointments(filtered);
+      }
+    );
 
     return () => {
       unsubAppts();

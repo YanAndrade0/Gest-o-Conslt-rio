@@ -23,8 +23,9 @@ export interface Clinic {
 
 export interface UserProfile {
   uid: string;
+  email?: string;
   clinicId: string | null;
-  role: 'owner' | 'member';
+  role: 'owner' | 'member' | 'secretary';
   displayName?: string;
 }
 
@@ -88,6 +89,7 @@ export const clinicService = {
     // Also link the user to this clinic
     await setDoc(doc(db, USERS_COL, userId), {
       uid: userId,
+      email: userEmail || '',
       clinicId: clinicDoc.id,
       role: 'owner',
       displayName: displayName || userEmail?.split('@')[0] || 'Doutor(a)'
@@ -96,7 +98,7 @@ export const clinicService = {
     return clinicDoc.id;
   },
 
-  async joinClinic(userId: string, accessCode: string, displayName?: string): Promise<string> {
+  async joinClinic(userId: string, accessCode: string, displayName?: string, userEmail?: string, role: 'member' | 'secretary' = 'member'): Promise<string> {
     const q = query(
       collection(db, CLINICS_COL), 
       where('accessCode', '==', accessCode.toUpperCase()),
@@ -113,9 +115,10 @@ export const clinicService = {
     // Link user to this clinic
     await setDoc(doc(db, USERS_COL, userId), {
       uid: userId,
+      email: userEmail || '',
       clinicId,
-      role: 'member',
-      displayName: displayName || 'Doutor(a)'
+      role: role,
+      displayName: displayName || (role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)')
     });
 
     return clinicId;
@@ -151,6 +154,6 @@ export const clinicService = {
 
   async updateUserProfile(userId: string, data: Partial<UserProfile>): Promise<void> {
     const userRef = doc(db, USERS_COL, userId);
-    await updateDoc(userRef, data);
+    await setDoc(userRef, data, { merge: true });
   }
 };

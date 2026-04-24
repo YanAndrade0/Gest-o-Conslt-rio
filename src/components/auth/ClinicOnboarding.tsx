@@ -69,12 +69,14 @@ export function ClinicOnboarding() {
     }
   };
 
+  const [role, setRole] = useState<'member' | 'secretary'>('member');
+
   const handleJoinClinic = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !accessCode) return;
     setLoading(true);
     try {
-      await clinicService.joinClinic(user.uid, accessCode);
+      await clinicService.joinClinic(user.uid, accessCode, user.displayName || undefined, user.email || undefined, role);
       await refreshProfile(user.uid);
       toast.success('Vinculado à clínica com sucesso!');
     } catch (error: any) {
@@ -199,16 +201,49 @@ export function ClinicOnboarding() {
 
           {step === 'join' && (
             <form onSubmit={handleJoinClinic} className="space-y-6 max-w-md mx-auto">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Código de Acesso</Label>
-                <Input 
-                  placeholder="Digite o código da clínica" 
-                  value={accessCode}
-                  onChange={e => setAccessCode(e.target.value.toUpperCase())}
-                  required
-                  className="h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20 text-center tracking-[0.5em] text-lg uppercase"
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Código de Acesso</Label>
+                  <Input 
+                    placeholder="Digite o código da clínica" 
+                    value={accessCode}
+                    onChange={e => setAccessCode(e.target.value.toUpperCase())}
+                    required
+                    className="h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20 text-center tracking-[0.5em] text-lg uppercase"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Seu Papel na Clínica</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRole('member')}
+                      className={cn(
+                        "p-4 rounded-2xl border-2 transition-all font-bold text-sm",
+                        role === 'member' 
+                          ? "bg-brand-primary text-white border-brand-primary" 
+                          : "bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100"
+                      )}
+                    >
+                      Doutor(a)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('secretary')}
+                      className={cn(
+                        "p-4 rounded-2xl border-2 transition-all font-bold text-sm",
+                        role === 'secretary' 
+                          ? "bg-brand-primary text-white border-brand-primary" 
+                          : "bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100"
+                      )}
+                    >
+                      Secretário(a)
+                    </button>
+                  </div>
+                </div>
               </div>
+
               <div className="flex gap-4">
                 <Button 
                   type="button" 

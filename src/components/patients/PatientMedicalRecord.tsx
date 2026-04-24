@@ -414,8 +414,8 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                     <div className="flex items-center gap-2">
                                       <span className="block text-xs font-black text-brand-primary uppercase tracking-widest">{format(parseISO(evo.date), "dd 'de' MMM, yyyy", { locale: ptBR })}</span>
                                       {evo.recordedBy && (
-                                        <span className="text-[10px] font-black text-slate-100 uppercase tracking-widest bg-brand-primary/80 px-2 py-0.5 rounded-md">
-                                          {evo.recordedBy}
+                                        <span className="text-[10px] font-black text-slate-100 uppercase tracking-widest bg-brand-primary/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                          <UserIcon size={8} /> {evo.recordedBy}
                                         </span>
                                       )}
                                     </div>

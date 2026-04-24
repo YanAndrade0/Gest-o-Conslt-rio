@@ -42,16 +42,24 @@ export const appointmentService = {
     return deleteDoc(appointmentRef);
   },
 
-  subscribeToAppointments(clinicId: string, callback: (appointments: Appointment[]) => void) {
-    const q = query(
+  subscribeToAppointments(clinicId: string, role: string, displayName: string, callback: (appointments: Appointment[]) => void) {
+    let q = query(
       collection(db, COLLECTION_NAME), 
       where('clinicId', '==', clinicId)
     );
+
+    // If practitioner (member) and NOT admin/secretary, apply filter
+    if (role === 'member') {
+      q = query(q, where('doctorName', '==', displayName));
+    }
+
     return onSnapshot(q, (snapshot) => {
       const appointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Appointment[];
       // Client-side sort to avoid index requirements
       appointments.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       callback(appointments);
+    }, (error) => {
+      console.error("Appointments subscription error:", error);
     });
   },
 

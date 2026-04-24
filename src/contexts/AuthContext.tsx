@@ -25,7 +25,7 @@ interface AuthContextType {
   loading: boolean;
   login: () => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
-  registerWithEmail: (email: string, pass: string) => Promise<void>;
+  registerWithEmail: (email: string, pass: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: (userId: string) => Promise<void>;
 }
@@ -37,22 +37,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (firebaseUser: FirebaseUser) => {
-    const profile = await clinicService.getUserProfile(firebaseUser.uid);
-    const displayName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário';
-    
-    // If profile exists but lacks displayName, or if we want to ensure it's up to date
-    if (profile && !profile.displayName) {
-      await clinicService.updateUserProfile(firebaseUser.uid, { displayName });
-    }
+    try {
+      let profile = await clinicService.getUserProfile(firebaseUser.uid);
+      const displayName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário';
+      
+      // If profile doesn't exist, create a minimal one
+      if (!profile) {
+        console.log('No profile found for user, creating one...');
+        const newProfile: UserProfile = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          clinicId: null,
+          role: 'member',
+          displayName: displayName
+        };
+        await clinicService.updateUserProfile(firebaseUser.uid, newProfile);
+        profile = newProfile;
+      } else if (!profile.displayName || !profile.email) {
+        // If profile exists but lacks key data, update it
+        console.log('Profile incomplete, updating...');
+        await clinicService.updateUserProfile(firebaseUser.uid, { 
+          displayName: profile.displayName || displayName,
+          email: profile.email || firebaseUser.email || ''
+        });
+        // We might want to re-fetch or just update the variable
+        profile = {
+          ...profile,
+          displayName: profile.displayName || displayName,
+          email: profile.email || firebaseUser.email || ''
+        };
+      }
 
-    setUser({
-      uid: firebaseUser.uid,
-      email: firebaseUser.email,
-      displayName: displayName,
-      photoURL: firebaseUser.photoURL,
-      clinicId: profile?.clinicId || null,
-      role: profile?.role
-    });
+      setUser({
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: profile.displayName || displayName,
+        photoURL: firebaseUser.photoURL,
+        clinicId: profile?.clinicId || null,
+        role: profile?.role
+      });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      // Even if profile fails, set at least the basic firebase user info
+      setUser({
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        clinicId: null
+      });
+    }
   };
 
   useEffect(() => {
@@ -85,8 +119,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await signInWithEmailAndPassword(auth, email, pass);
   };
 
-  const registerWithEmail = async (email: string, pass: string) => {
-    await createUserWithEmailAndPassword(auth, email, pass);
+  const registerWithEmail = async (email: string, pass: string, name?: string) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    if (name && cred.user) {
+      await clinicService.updateUserProfile(cred.user.uid, { 
+        displayName: name,
+        email: email
+      });
+    }
   };
 
   const logout = async () => {

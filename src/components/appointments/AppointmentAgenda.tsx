@@ -68,6 +68,7 @@ export function AppointmentAgenda() {
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+
   const [selectedPatientRecord, setSelectedPatientRecord] = useState<Patient | null>(null);
   const [patientSearch, setPatientSearch] = useState('');
   const [isPatientListOpen, setIsPatientListOpen] = useState(false);
@@ -107,12 +108,18 @@ export function AppointmentAgenda() {
     const clinicId = user.clinicId;
 
     const unsubPatients = patientService.subscribeToPatients(clinicId, setPatients);
-    const unsubAppointments = appointmentService.subscribeToAppointments(clinicId, (data) => {
-      setAppointments(data);
-      setLoading(false);
-    });
+    const unsubAppointments = appointmentService.subscribeToAppointments(
+      clinicId, 
+      user?.role || 'member',
+      user?.displayName || '',
+      (data) => {
+        setAppointments(data);
+        setLoading(false);
+      }
+    );
 
     const unsubMembers = clinicService.subscribeToClinicMembers(clinicId, (members) => {
+      // Incluir todos os membros vinculados à clínica na pesquisa inteligente
       setDoctors(members);
     });
 
@@ -250,13 +257,15 @@ export function AppointmentAgenda() {
 
   const filteredDoctors = useMemo(() => {
     const search = doctorSearch.toLowerCase().trim();
-    // Se o campo estiver vazio ou for apenas o nome padrão, mostramos os primeiros 5 doutores
-    if (!search) return doctors.slice(0, 5);
+    
+    // If empty search, we show all members (up to 20)
+    if (!search) return doctors.slice(0, 20);
     
     return doctors.filter(d => {
-      const name = d.displayName || 'Doutor(a)';
-      return name.toLowerCase().includes(search);
-    }).slice(0, 8);
+      const name = (d.displayName || 'Doutor(a)').toLowerCase();
+      const email = (d.email || '').toLowerCase();
+      return name.includes(search) || email.includes(search);
+    }).slice(0, 30);
   }, [doctors, doctorSearch]);
 
   const handleSlotClick = (day: Date, timeStr: string) => {
@@ -457,9 +466,15 @@ export function AppointmentAgenda() {
                             }}
                             className="w-full text-left p-3 rounded-xl hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
                           >
-                            <div className="flex flex-col">
+                            <div className="flex flex-col gap-0.5">
                               <span className="font-bold">{d.displayName || 'Doutor(a)'}</span>
-                              <span className="text-[10px] text-slate-400 font-medium uppercase">{d.role === 'owner' ? 'Proprietário' : 'Equipe'}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">
+                                  {d.role === 'owner' ? 'Proprietário' : 
+                                   d.role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'}
+                                </span>
+                                {d.email && <span className="text-[10px] text-slate-300 font-mono lowercase">{d.email}</span>}
+                              </div>
                             </div>
                             <span className="text-[10px] font-black opacity-0 group-hover:opacity-100 uppercase">Selecionar</span>
                           </button>
