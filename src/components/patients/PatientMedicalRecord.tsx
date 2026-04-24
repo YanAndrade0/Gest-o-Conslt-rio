@@ -104,7 +104,9 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
         patientId: patient.id,
         description: evolutionDesc,
         date: new Date().toISOString(),
-        clinicId: cid
+        clinicId: cid,
+        recordedBy: user?.displayName || 'Doutor(a)',
+        recorderId: user?.uid
       });
 
       // Automatically finalize today's appointment if it exists
@@ -409,7 +411,14 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                               <>
                                 <div className="flex justify-between items-start mb-4">
                                   <div className="space-y-1">
-                                    <span className="block text-xs font-black text-brand-primary uppercase tracking-widest">{format(parseISO(evo.date), "dd 'de' MMM, yyyy", { locale: ptBR })}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="block text-xs font-black text-brand-primary uppercase tracking-widest">{format(parseISO(evo.date), "dd 'de' MMM, yyyy", { locale: ptBR })}</span>
+                                      {evo.recordedBy && (
+                                        <span className="text-[10px] font-black text-slate-100 uppercase tracking-widest bg-brand-primary/80 px-2 py-0.5 rounded-md">
+                                          {evo.recordedBy}
+                                        </span>
+                                      )}
+                                    </div>
                                     <span className="block text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-none">{format(parseISO(evo.date), "HH:mm")}</span>
                                   </div>
                                   <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">

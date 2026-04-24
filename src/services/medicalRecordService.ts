@@ -19,6 +19,8 @@ export interface Evolution {
   description: string;
   date: string;
   clinicId: string;
+  recordedBy?: string;
+  recorderId?: string;
 }
 
 export interface PatientPhoto {
