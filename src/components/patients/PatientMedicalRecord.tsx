@@ -421,7 +421,7 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                     </div>
                                     <span className="block text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-none">{format(parseISO(evo.date), "HH:mm")}</span>
                                   </div>
-                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                                  <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-2">
                                     <Button 
                                       variant="ghost" 
                                       size="icon" 
