@@ -38,10 +38,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = async (firebaseUser: FirebaseUser) => {
     const profile = await clinicService.getUserProfile(firebaseUser.uid);
+    const displayName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário';
+    
+    // If profile exists but lacks displayName, or if we want to ensure it's up to date
+    if (profile && !profile.displayName) {
+      await clinicService.updateUserProfile(firebaseUser.uid, { displayName });
+    }
+
     setUser({
       uid: firebaseUser.uid,
       email: firebaseUser.email,
-      displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuário',
+      displayName: displayName,
       photoURL: firebaseUser.photoURL,
       clinicId: profile?.clinicId || null,
       role: profile?.role

@@ -47,6 +47,7 @@ import { Card } from '../ui/card';
 import { useAuth } from '../../contexts/AuthContext';
 import { appointmentService, Appointment } from '../../services/appointmentService';
 import { patientService, Patient } from '../../services/patientService';
+import { clinicService, UserProfile } from '../../services/clinicService';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { PatientMedicalRecord } from '../patients/PatientMedicalRecord';
@@ -62,6 +63,7 @@ export function AppointmentAgenda() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [doctors, setDoctors] = useState<UserProfile[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +71,11 @@ export function AppointmentAgenda() {
   const [selectedPatientRecord, setSelectedPatientRecord] = useState<Patient | null>(null);
   const [patientSearch, setPatientSearch] = useState('');
   const [isPatientListOpen, setIsPatientListOpen] = useState(false);
+  const [doctorSearch, setDoctorSearch] = useState('');
+  const [isDoctorListOpen, setIsDoctorListOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const patientSearchRef = useRef<HTMLDivElement>(null);
+  const doctorSearchRef = useRef<HTMLDivElement>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -83,6 +89,20 @@ export function AppointmentAgenda() {
   });
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (patientSearchRef.current && !patientSearchRef.current.contains(event.target as Node)) {
+        setIsPatientListOpen(false);
+      }
+      if (doctorSearchRef.current && !doctorSearchRef.current.contains(event.target as Node)) {
+        setIsDoctorListOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     if (!user?.clinicId) return;
     const clinicId = user.clinicId;
 
@@ -91,6 +111,17 @@ export function AppointmentAgenda() {
       setAppointments(data);
       setLoading(false);
     });
+
+    const fetchDoctors = async () => {
+      try {
+        const members = await clinicService.getClinicMembers(clinicId);
+        setDoctors(members);
+      } catch (error) {
+        console.error("Error fetching doctors", error);
+      }
+    };
+
+    fetchDoctors();
 
     return () => {
       unsubPatients();
@@ -117,6 +148,8 @@ export function AppointmentAgenda() {
     });
     setPatientSearch('');
     setIsPatientListOpen(false);
+    setDoctorSearch(user?.displayName || '');
+    setIsDoctorListOpen(false);
     setEditingAppointment(null);
     setIsConfirmingDelete(false);
   };
@@ -135,6 +168,7 @@ export function AppointmentAgenda() {
       status: app.status
     });
     setPatientSearch(app.patientName);
+    setDoctorSearch(app.doctorName || '');
     setIsModalOpen(true);
   };
 
@@ -219,6 +253,13 @@ export function AppointmentAgenda() {
       p.name.toLowerCase().includes(patientSearch.toLowerCase())
     ).slice(0, 5);
   }, [patients, patientSearch]);
+
+  const filteredDoctors = useMemo(() => {
+    if (!doctorSearch) return doctors.slice(0, 5);
+    return doctors.filter(d => 
+      d.displayName?.toLowerCase().includes(doctorSearch.toLowerCase())
+    ).slice(0, 5);
+  }, [doctors, doctorSearch]);
 
   const handleSlotClick = (day: Date, timeStr: string) => {
     resetForm();
@@ -312,7 +353,7 @@ export function AppointmentAgenda() {
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-              <div className="space-y-2 relative">
+              <div className="space-y-2 relative" ref={patientSearchRef}>
                 <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Paciente</Label>
                 <div className="relative group">
                   <Input 
@@ -372,14 +413,46 @@ export function AppointmentAgenda() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 relative" ref={doctorSearchRef}>
                 <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Doutor(a) Responsável</Label>
-                <Input 
-                  placeholder="Nome do dentista" 
-                  value={formData.doctorName}
-                  onChange={(e) => setFormData({...formData, doctorName: e.target.value})}
-                  className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700"
-                />
+                <div className="relative group">
+                  <Input 
+                    placeholder="Nome do dentista..." 
+                    value={doctorSearch}
+                    onChange={(e) => {
+                      setDoctorSearch(e.target.value);
+                      setIsDoctorListOpen(true);
+                      setFormData({...formData, doctorName: e.target.value});
+                    }}
+                    onFocus={() => setIsDoctorListOpen(true)}
+                    className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 pr-10"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
+                    <Stethoscope size={20} />
+                  </div>
+                </div>
+
+                {isDoctorListOpen && filteredDoctors.length > 0 && (
+                  <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="p-2 space-y-1 bg-white">
+                      {filteredDoctors.map(d => (
+                        <button
+                          key={d.uid}
+                          type="button"
+                          onClick={() => {
+                            setFormData({...formData, doctorName: d.displayName || ''});
+                            setDoctorSearch(d.displayName || '');
+                            setIsDoctorListOpen(false);
+                          }}
+                          className="w-full text-left p-3 rounded-xl hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
+                        >
+                          <span className="font-bold">{d.displayName}</span>
+                          <span className="text-[10px] font-black opacity-0 group-hover:opacity-100 uppercase">Selecionar</span>
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

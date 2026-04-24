@@ -24,6 +24,7 @@ export interface UserProfile {
   uid: string;
   clinicId: string | null;
   role: 'owner' | 'member';
+  displayName?: string;
 }
 
 const CLINICS_COL = 'clinics';
@@ -52,7 +53,7 @@ export const clinicService = {
     return docSnap.exists() && docSnap.data()?.used === false;
   },
 
-  async createClinic(userId: string, name: string, licenseCode: string, userEmail?: string | null): Promise<string> {
+  async createClinic(userId: string, name: string, licenseCode: string, userEmail?: string | null, displayName?: string): Promise<string> {
     const isAdmin = userEmail?.toLowerCase() === 'yanandraderfo@gmail.com' || userEmail?.toLowerCase() === 'yandatafox@gmail.com';
     
     // Verify license code only if not admin
@@ -87,13 +88,14 @@ export const clinicService = {
     await setDoc(doc(db, USERS_COL, userId), {
       uid: userId,
       clinicId: clinicDoc.id,
-      role: 'owner'
+      role: 'owner',
+      displayName: displayName || userEmail?.split('@')[0] || 'Doutor(a)'
     });
 
     return clinicDoc.id;
   },
 
-  async joinClinic(userId: string, accessCode: string): Promise<string> {
+  async joinClinic(userId: string, accessCode: string, displayName?: string): Promise<string> {
     const q = query(
       collection(db, CLINICS_COL), 
       where('accessCode', '==', accessCode.toUpperCase()),
@@ -111,10 +113,20 @@ export const clinicService = {
     await setDoc(doc(db, USERS_COL, userId), {
       uid: userId,
       clinicId,
-      role: 'member'
+      role: 'member',
+      displayName: displayName || 'Doutor(a)'
     });
 
     return clinicId;
+  },
+
+  async getClinicMembers(clinicId: string): Promise<UserProfile[]> {
+    const q = query(
+      collection(db, USERS_COL),
+      where('clinicId', '==', clinicId)
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => doc.data() as UserProfile);
   },
 
   async getUserProfile(userId: string): Promise<UserProfile | null> {
@@ -124,5 +136,10 @@ export const clinicService = {
       return userSnap.data() as UserProfile;
     }
     return null;
+  },
+
+  async updateUserProfile(userId: string, data: Partial<UserProfile>): Promise<void> {
+    const userRef = doc(db, USERS_COL, userId);
+    await updateDoc(userRef, data);
   }
 };
