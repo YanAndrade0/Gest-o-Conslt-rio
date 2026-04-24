@@ -102,6 +102,23 @@ export function PatientManagement() {
     setEditingPatient(null);
   };
 
+  const maskCPF = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+      .replace(/(-\d{2})\d+?$/, '$1');
+  };
+
+  const maskPhone = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d)/, '$1-$2')
+      .replace(/(-\d{4})\d+?$/, '$1');
+  };
+
   const handleOpenModal = (patient?: Patient) => {
     if (patient) {
       setEditingPatient(patient);
@@ -212,7 +229,9 @@ export function PatientManagement() {
                     <Label className="text-xs font-bold text-slate-600">CPF</Label>
                     <Input 
                       value={formData.cpf} 
-                      onChange={e => setFormData({...formData, cpf: e.target.value})} 
+                      onChange={e => setFormData({...formData, cpf: maskCPF(e.target.value)})} 
+                      maxLength={14}
+                      placeholder="000.000.000-00"
                       className="bg-bg-main border-none rounded-xl h-12 focus-visible:ring-brand-primary"
                     />
                   </div>
@@ -236,7 +255,9 @@ export function PatientManagement() {
                     <Label className="text-xs font-bold text-slate-600">Telefone</Label>
                     <Input 
                       value={formData.phone} 
-                      onChange={e => setFormData({...formData, phone: e.target.value})} 
+                      onChange={e => setFormData({...formData, phone: maskPhone(e.target.value)})} 
+                      maxLength={15}
+                      placeholder="(00) 00000-0000"
                       className="bg-bg-main border-none rounded-xl h-12 focus-visible:ring-brand-primary"
                     />
                   </div>
