@@ -308,6 +308,71 @@ export function AppointmentAgenda() {
     return appointments.filter(app => isSameDay(parseISO(app.date), date));
   };
 
+  const positionedAppointments = useMemo(() => {
+    const dayAppts = appointments.filter(app => isSameDay(parseISO(app.date), selectedDate));
+    if (dayAppts.length === 0) return [];
+
+    // Sort by start time
+    const sorted = [...dayAppts].sort((a, b) => 
+      parseISO(a.date).getTime() - parseISO(b.date).getTime()
+    );
+
+    const result: (Appointment & { left: number; width: number })[] = [];
+    
+    // Group connected overlapping appointments
+    const groups: Appointment[][] = [];
+    let activeGroup: Appointment[] = [];
+    let groupEndTime = 0;
+
+    sorted.forEach(app => {
+      const startTime = parseISO(app.date).getTime();
+      const endTime = startTime + (app.duration || 30) * 60 * 1000;
+
+      if (activeGroup.length > 0 && startTime >= groupEndTime) {
+        groups.push(activeGroup);
+        activeGroup = [app];
+        groupEndTime = endTime;
+      } else {
+        activeGroup.push(app);
+        groupEndTime = Math.max(groupEndTime, endTime);
+      }
+    });
+    if (activeGroup.length > 0) groups.push(activeGroup);
+
+    groups.forEach(group => {
+      const columns: Appointment[][] = [];
+      group.forEach(app => {
+        const appStart = parseISO(app.date).getTime();
+        let placed = false;
+
+        for (let i = 0; i < columns.length; i++) {
+          const lastInCol = columns[i][columns[i].length - 1];
+          const lastEnd = parseISO(lastInCol.date).getTime() + (lastInCol.duration || 30) * 60 * 1000;
+          if (appStart >= lastEnd) {
+            columns[i].push(app);
+            placed = true;
+            break;
+          }
+        }
+
+        if (!placed) columns.push([app]);
+      });
+
+      const numCols = columns.length;
+      columns.forEach((col, colIndex) => {
+        col.forEach(app => {
+          result.push({
+            ...app,
+            left: (colIndex / numCols) * 100,
+            width: (1 / numCols) * 100
+          });
+        });
+      });
+    });
+
+    return result;
+  }, [appointments, selectedDate]);
+
   return (
     <div className="p-4 md:p-8 space-y-6 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-center bg-white/70 backdrop-blur-md p-5 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 gap-4">
@@ -648,7 +713,7 @@ export function AppointmentAgenda() {
                   ))}
 
                   {/* Absolute Appointments */}
-                  {getAppointmentsForDay(day).map((app) => {
+                  {positionedAppointments.map((app) => {
                     const pos = calculatePosition(app.date, app.duration || 30);
                     return (
                       <div 
@@ -660,9 +725,11 @@ export function AppointmentAgenda() {
                         style={{ 
                           top: `${pos.top}px`,
                           height: `${pos.height}px`,
+                          left: `${app.left}%`,
+                          width: `${app.width}%`,
                         }}
                         className={cn(
-                          "absolute left-1 right-1 p-2 rounded-xl text-[10px] font-bold border-l-4 shadow-md transition-all hover:scale-[1.01] active:scale-[0.98] z-30 overflow-hidden select-none",
+                          "absolute p-1.5 rounded-xl text-[10px] font-bold border-l-4 shadow-md transition-all hover:scale-[1.01] active:scale-[0.98] z-30 overflow-hidden select-none",
                           app.status === 'marcado' ? 'bg-blue-50 border-blue-400 text-blue-700' : 
                           app.status === 'confirmado' ? 'bg-green-50 border-green-400 text-green-700' : 
                           app.status === 'aguardando' ? 'bg-orange-50 border-orange-400 text-orange-700' : 
@@ -681,17 +748,17 @@ export function AppointmentAgenda() {
                           >
                             {app.patientName}
                           </span>
-                          <span className="text-[8px] opacity-70 shrink-0">{app.duration}m</span>
+                          <span className="text-[7px] opacity-70 shrink-0">{app.duration}m</span>
                         </div>
-                        <p className="opacity-70 flex items-center gap-1 text-[9px] truncate">
+                        <p className="opacity-70 flex items-center gap-1 text-[8px] truncate">
                            {app.procedure}
                         </p>
-                        {(app.duration || 0) >= 60 && (
+                        {(app.duration || 0) >= 30 && (
                           <div className="mt-1 pt-1 border-t border-black/5 flex items-center justify-between">
-                            <span className="text-[8px] opacity-60 flex items-center gap-1">
-                              <User size={8} /> {app.doctorName?.split(' ')[0]}
+                            <span className="text-[7px] opacity-60 flex items-center gap-1 truncate max-w-[60%]">
+                              <User size={8} className="shrink-0" /> {app.doctorName?.split(' ')[0]}
                             </span>
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 shrink-0">
                               {(app.status === 'marcado' || app.status === 'aguardando') && (
                                 <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'confirmado'); }} className="hover:text-green-600 transition-colors"><CheckCircle2 size={10} /></button>
                               )}
