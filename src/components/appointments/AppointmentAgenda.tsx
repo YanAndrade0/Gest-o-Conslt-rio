@@ -249,11 +249,14 @@ export function AppointmentAgenda() {
   }, [patients, patientSearch]);
 
   const filteredDoctors = useMemo(() => {
-    if (!doctorSearch) return doctors.slice(0, 5);
-    const search = doctorSearch.toLowerCase();
-    return doctors.filter(d => 
-      (d.displayName || '').toLowerCase().includes(search)
-    ).slice(0, 5);
+    const search = doctorSearch.toLowerCase().trim();
+    // Se o campo estiver vazio ou for apenas o nome padrão, mostramos os primeiros 5 doutores
+    if (!search) return doctors.slice(0, 5);
+    
+    return doctors.filter(d => {
+      const name = d.displayName || 'Doutor(a)';
+      return name.toLowerCase().includes(search);
+    }).slice(0, 8);
   }, [doctors, doctorSearch]);
 
   const handleSlotClick = (day: Date, timeStr: string) => {
@@ -428,7 +431,10 @@ export function AppointmentAgenda() {
                       setIsDoctorListOpen(true);
                       setFormData({...formData, doctorName: e.target.value});
                     }}
-                    onFocus={() => setIsDoctorListOpen(true)}
+                    onFocus={(e) => {
+                      setIsDoctorListOpen(true);
+                      e.target.select();
+                    }}
                     className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 pr-10"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
@@ -440,19 +446,23 @@ export function AppointmentAgenda() {
                   <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="p-2 space-y-1 bg-white">
                       {filteredDoctors.map(d => (
-                        <button
-                          key={d.uid}
-                          type="button"
-                          onClick={() => {
-                            setFormData({...formData, doctorName: d.displayName || ''});
-                            setDoctorSearch(d.displayName || '');
-                            setIsDoctorListOpen(false);
-                          }}
-                          className="w-full text-left p-3 rounded-xl hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
-                        >
-                          <span className="font-bold">{d.displayName}</span>
-                          <span className="text-[10px] font-black opacity-0 group-hover:opacity-100 uppercase">Selecionar</span>
-                        </button>
+                          <button
+                            key={d.uid}
+                            type="button"
+                            onClick={() => {
+                              const name = d.displayName || 'Doutor(a)';
+                              setFormData({...formData, doctorName: name});
+                              setDoctorSearch(name);
+                              setIsDoctorListOpen(false);
+                            }}
+                            className="w-full text-left p-3 rounded-xl hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-bold">{d.displayName || 'Doutor(a)'}</span>
+                              <span className="text-[10px] text-slate-400 font-medium uppercase">{d.role === 'owner' ? 'Proprietário' : 'Equipe'}</span>
+                            </div>
+                            <span className="text-[10px] font-black opacity-0 group-hover:opacity-100 uppercase">Selecionar</span>
+                          </button>
                       ))}
                     </div>
                   </Card>
