@@ -8,7 +8,8 @@ import {
   getDocs, 
   limit,
   setDoc,
-  getDoc
+  getDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../lib/firebase-config';
 
@@ -127,6 +128,16 @@ export const clinicService = {
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => doc.data() as UserProfile);
+  },
+
+  subscribeToClinicMembers(clinicId: string, callback: (members: UserProfile[]) => void) {
+    const q = query(
+      collection(db, USERS_COL),
+      where('clinicId', '==', clinicId)
+    );
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => doc.data() as UserProfile));
+    });
   },
 
   async getUserProfile(userId: string): Promise<UserProfile | null> {

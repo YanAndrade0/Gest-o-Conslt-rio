@@ -112,20 +112,14 @@ export function AppointmentAgenda() {
       setLoading(false);
     });
 
-    const fetchDoctors = async () => {
-      try {
-        const members = await clinicService.getClinicMembers(clinicId);
-        setDoctors(members);
-      } catch (error) {
-        console.error("Error fetching doctors", error);
-      }
-    };
-
-    fetchDoctors();
+    const unsubMembers = clinicService.subscribeToClinicMembers(clinicId, (members) => {
+      setDoctors(members);
+    });
 
     return () => {
       unsubPatients();
       unsubAppointments();
+      unsubMembers();
     };
   }, [user?.clinicId]);
 
@@ -256,19 +250,29 @@ export function AppointmentAgenda() {
 
   const filteredDoctors = useMemo(() => {
     if (!doctorSearch) return doctors.slice(0, 5);
+    const search = doctorSearch.toLowerCase();
     return doctors.filter(d => 
-      d.displayName?.toLowerCase().includes(doctorSearch.toLowerCase())
+      (d.displayName || '').toLowerCase().includes(search)
     ).slice(0, 5);
   }, [doctors, doctorSearch]);
 
   const handleSlotClick = (day: Date, timeStr: string) => {
-    resetForm();
-    setFormData({
-      ...formData,
-      date: format(day, 'yyyy-MM-dd'),
-      time: timeStr
-    });
     setEditingAppointment(null);
+    const newDate = format(day, 'yyyy-MM-dd');
+    setFormData({
+      patientId: '',
+      procedure: '',
+      doctorName: user?.displayName || '',
+      time: timeStr,
+      duration: '30',
+      date: newDate,
+      status: 'marcado'
+    });
+    setPatientSearch('');
+    setIsPatientListOpen(false);
+    setDoctorSearch(user?.displayName || '');
+    setIsDoctorListOpen(false);
+    setIsConfirmingDelete(false);
     setIsModalOpen(true);
   };
 
