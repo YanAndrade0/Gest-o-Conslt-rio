@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } f
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { db } from './lib/firebase-config';
 import { doc, getDoc } from 'firebase/firestore';
+import { Logo } from './components/ui/Logo';
 import { Toaster } from './components/ui/sonner';
 import { WhatsAppSettings } from './components/settings/WhatsAppSettings';
 import { PatientManagement } from './components/patients/PatientManagement';
@@ -80,16 +81,11 @@ const Login = () => {
   return (
     <div className="flex h-screen items-center justify-center bg-bg-main font-sans px-4">
       <div className="card-custom p-8 md:p-12 w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500 rounded-[2.5rem] border-none shadow-2xl">
-        <div className="text-center space-y-4">
-          <div className="w-20 h-20 bg-brand-primary rounded-3xl flex items-center justify-center text-white mx-auto shadow-2xl shadow-brand-primary/30">
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2a.3.3 0 0 0-.2.3Z"/><path d="M10 22v-6.5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1V22"/><path d="M7 10.8V4.5A2.5 2.5 0 1 1 12 4.5V10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2Z"/><path d="M17 10.8V4.5A2.5 2.5 0 0 0 12 4.5V10a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2Z"/><path d="M12 12v10"/></svg>
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-4xl font-black text-slate-800 tracking-tight">OdontoPro</h1>
-            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest leading-relaxed">
-              {isRegister ? 'Inicie seu cadastro gratuito' : 'Sistema de Gestão Odontológica'}
-            </p>
-          </div>
+        <div className="text-center">
+          <Logo 
+            className="flex-col gap-5" 
+            subtitle={isRegister ? 'Inicie seu cadastro gratuito' : 'Sistema de Gestão Odontológica'} 
+          />
         </div>
 
         <form onSubmit={handleEmailAuth} className="space-y-4">
@@ -479,7 +475,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="space-y-3">
             <h2 className="text-3xl font-black tracking-tight">Opa! Pagamento Pendente</h2>
             <p className="text-slate-400 font-medium leading-relaxed">
-              Detectamos uma pendência na sua assinatura. Para continuar usando o **OdontoPro**, você precisa regularizar seu plano.
+              Detectamos uma pendência na sua assinatura. Para continuar usando o **OralCloud**, você precisa regularizar seu plano.
             </p>
           </div>
           <div className="flex flex-col gap-4">
@@ -504,12 +500,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex flex-col lg:flex-row h-screen bg-bg-main overflow-hidden text-slate-700 font-sans">
       {/* Mobile Header */}
       <header className="lg:hidden bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 z-40 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-brand-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-brand-primary/20">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2a.3.3 0 0 0-.2.3Z"/><path d="M10 22v-6.5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1V22"/><path d="M7 10.8V4.5A2.5 2.5 0 1 1 12 4.5V10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2Z"/><path d="M17 10.8V4.5A2.5 2.5 0 0 0 12 4.5V10a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2Z"/><path d="M12 12v10"/></svg>
-          </div>
-          <h1 className="text-xl font-black text-slate-800 tracking-tight">OdontoPro</h1>
-        </div>
+        <Logo className="w-10 h-10" />
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600 transition-all active:scale-95"
@@ -531,12 +522,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         "w-72 bg-white border-r border-slate-200 flex flex-col items-stretch z-50 shadow-xl shadow-slate-200/20 transition-all duration-300 lg:static fixed inset-y-0 left-0 h-full",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        <div className="p-8 pb-12 hidden lg:flex items-center gap-4">
-          <div className="w-12 h-12 bg-brand-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand-primary/20">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2a.3.3 0 0 0-.2.3Z"/><path d="M10 22v-6.5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1V22"/><path d="M7 10.8V4.5A2.5 2.5 0 1 1 12 4.5V10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2Z"/><path d="M17 10.8V4.5A2.5 2.5 0 0 0 12 4.5V10a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2Z"/><path d="M12 12v10"/></svg>
-          </div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">OdontoPro</h1>
-        </div>
+        <Logo className="p-8 pb-12 hidden lg:flex" />
         
         <nav className="flex-1 px-6 space-y-2 mt-8 lg:mt-0">
           {navItems.map((item) => {
