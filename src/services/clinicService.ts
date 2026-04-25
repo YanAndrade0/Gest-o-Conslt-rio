@@ -12,6 +12,8 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from '../lib/firebase-config';
+import { auditService, AuditAction } from './auditService';
+import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
 export interface Clinic {
   id?: string;
@@ -40,19 +42,27 @@ export const clinicService = {
   },
 
   async generateLicenseCode(): Promise<string> {
-    const code = 'REG-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-    await setDoc(doc(db, LICENSE_COL, code), {
-      code,
-      used: false,
-      createdAt: new Date().toISOString()
-    });
-    return code;
+    try {
+      const code = 'REG-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      await setDoc(doc(db, LICENSE_COL, code), {
+        code,
+        used: false,
+        createdAt: new Date().toISOString()
+      });
+      return code;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, LICENSE_COL);
+    }
   },
 
   async validateLicenseCode(code: string): Promise<boolean> {
-    const docRef = doc(db, LICENSE_COL, code);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() && docSnap.data()?.used === false;
+    try {
+      const docRef = doc(db, LICENSE_COL, code);
+      const docSnap = await getDoc(docRef);
+      return docSnap.exists() && docSnap.data()?.used === false;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `${LICENSE_COL}/${code}`);
+    }
   },
 
   async createClinic(userId: string, name: string, licenseCode: string, userEmail?: string | null, displayName?: string): Promise<string> {
@@ -67,70 +77,86 @@ export const clinicService = {
       }
     }
 
-    const accessCode = this.generateCode();
-    const clinicDoc = await addDoc(collection(db, CLINICS_COL), {
-      name,
-      ownerId: userId,
-      accessCode,
-      createdAt: new Date().toISOString(),
-      isSystemAdminClinic: isAdmin
-    });
-
-    // Mark license code as used if not admin
-    if (!isAdmin && licenseCode) {
-      await updateDoc(doc(db, LICENSE_COL, licenseCode), {
-        used: true,
-        usedBy: userId,
-        usedAt: new Date().toISOString(),
-        clinicId: clinicDoc.id
+    try {
+      const accessCode = this.generateCode();
+      const clinicDoc = await addDoc(collection(db, CLINICS_COL), {
+        name,
+        ownerId: userId,
+        accessCode,
+        createdAt: new Date().toISOString(),
+        isSystemAdminClinic: isAdmin
       });
+
+      // Mark license code as used if not admin
+      if (!isAdmin && licenseCode) {
+        await updateDoc(doc(db, LICENSE_COL, licenseCode), {
+          used: true,
+          usedBy: userId,
+          usedAt: new Date().toISOString(),
+          clinicId: clinicDoc.id
+        });
+      }
+
+      // Also link the user to this clinic
+      await setDoc(doc(db, USERS_COL, userId), {
+        uid: userId,
+        email: userEmail || '',
+        clinicId: clinicDoc.id,
+        role: 'owner',
+        displayName: displayName || userEmail?.split('@')[0] || 'Doutor(a)'
+      });
+
+      await auditService.log(AuditAction.CLINIC_UPDATE, clinicDoc.id, clinicDoc.id, 'clinic', { name, action: 'create' });
+
+      return clinicDoc.id;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'clinic-creation');
     }
-
-    // Also link the user to this clinic
-    await setDoc(doc(db, USERS_COL, userId), {
-      uid: userId,
-      email: userEmail || '',
-      clinicId: clinicDoc.id,
-      role: 'owner',
-      displayName: displayName || userEmail?.split('@')[0] || 'Doutor(a)'
-    });
-
-    return clinicDoc.id;
   },
 
   async joinClinic(userId: string, accessCode: string, displayName?: string, userEmail?: string, role: 'member' | 'secretary' = 'member'): Promise<string> {
-    const q = query(
-      collection(db, CLINICS_COL), 
-      where('accessCode', '==', accessCode.toUpperCase()),
-      limit(1)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    if (querySnapshot.empty) {
-      throw new Error('Código de clínica inválido.');
+    try {
+      const q = query(
+        collection(db, CLINICS_COL), 
+        where('accessCode', '==', accessCode.toUpperCase()),
+        limit(1)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      if (querySnapshot.empty) {
+        throw new Error('Código de clínica inválido.');
+      }
+
+      const clinicId = querySnapshot.docs[0].id;
+
+      // Link user to this clinic
+      await setDoc(doc(db, USERS_COL, userId), {
+        uid: userId,
+        email: userEmail || '',
+        clinicId,
+        role: role,
+        displayName: displayName || (role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)')
+      });
+
+      await auditService.log(AuditAction.LOGIN, clinicId, userId, 'user', { action: 'join_clinic', role });
+
+      return clinicId;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'join-clinic');
     }
-
-    const clinicId = querySnapshot.docs[0].id;
-
-    // Link user to this clinic
-    await setDoc(doc(db, USERS_COL, userId), {
-      uid: userId,
-      email: userEmail || '',
-      clinicId,
-      role: role,
-      displayName: displayName || (role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)')
-    });
-
-    return clinicId;
   },
 
   async getClinicMembers(clinicId: string): Promise<UserProfile[]> {
-    const q = query(
-      collection(db, USERS_COL),
-      where('clinicId', '==', clinicId)
-    );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => doc.data() as UserProfile);
+    try {
+      const q = query(
+        collection(db, USERS_COL),
+        where('clinicId', '==', clinicId)
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => doc.data() as UserProfile);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, USERS_COL);
+    }
   },
 
   subscribeToClinicMembers(clinicId: string, callback: (members: UserProfile[]) => void) {
@@ -140,20 +166,33 @@ export const clinicService = {
     );
     return onSnapshot(q, (snapshot) => {
       callback(snapshot.docs.map(doc => doc.data() as UserProfile));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, USERS_COL);
     });
   },
 
   async getUserProfile(userId: string): Promise<UserProfile | null> {
-    const userRef = doc(db, USERS_COL, userId);
-    const userSnap = await getDoc(userRef);
-    if (userSnap.exists()) {
-      return userSnap.data() as UserProfile;
+    try {
+      const userRef = doc(db, USERS_COL, userId);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        return userSnap.data() as UserProfile;
+      }
+      return null;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `${USERS_COL}/${userId}`);
     }
-    return null;
   },
 
   async updateUserProfile(userId: string, data: Partial<UserProfile>): Promise<void> {
-    const userRef = doc(db, USERS_COL, userId);
-    await setDoc(userRef, data, { merge: true });
+    try {
+      const userRef = doc(db, USERS_COL, userId);
+      await setDoc(userRef, data, { merge: true });
+      if (data.clinicId) {
+        await auditService.log(AuditAction.LOGIN, data.clinicId, userId, 'user', { action: 'update_profile', fields: Object.keys(data) });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `${USERS_COL}/${userId}`);
+    }
   }
 };

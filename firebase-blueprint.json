@@ -135,6 +135,21 @@
         "whatsappReminderHoursBefore": { "type": "integer" },
         "automaticReminders": { "type": "boolean" }
       }
+    },
+    "AuditLog": {
+      "title": "Log de Auditoria",
+      "description": "Registro de ações sensíveis para conformidade LGPD",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "action": { "type": "string" },
+        "entityId": { "type": "string" },
+        "entityType": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "clinicId": { "type": "string" },
+        "details": { "type": "object" }
+      },
+      "required": ["userId", "action", "timestamp", "clinicId"]
     }
   },
   "firestore": {
@@ -145,6 +160,7 @@
     "evolutions": { "schema": "Evolution", "description": "Evoluções de tratamento dos pacientes" },
     "patientPhotos": { "schema": "PatientPhoto", "description": "Galeria de fotos/exames dos pacientes" },
     "transactions": { "schema": "Transaction", "description": "Movimentação financeira" },
-    "settings": { "schema": "Settings", "description": "Configurações gerais" }
+    "settings": { "schema": "Settings", "description": "Configurações gerais" },
+    "auditLogs": { "schema": "AuditLog", "description": "Logs de auditoria" }
   }
 }

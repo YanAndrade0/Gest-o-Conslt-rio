@@ -10,6 +10,8 @@ import {
   onSnapshot 
 } from 'firebase/firestore';
 import { db } from '../lib/firebase-config';
+import { auditService, AuditAction } from './auditService';
+import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
 export interface Patient {
   id?: string;
@@ -32,23 +34,43 @@ const COLLECTION_NAME = 'patients';
 
 export const patientService = {
   async addPatient(patient: Omit<Patient, 'id'>) {
-    return addDoc(collection(db, COLLECTION_NAME), patient);
+    try {
+      const docRef = await addDoc(collection(db, COLLECTION_NAME), patient);
+      await auditService.log(AuditAction.PATIENT_CREATE, patient.clinicId, docRef.id, 'patient', { name: patient.name });
+      return docRef;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, COLLECTION_NAME);
+    }
   },
 
-  async updatePatient(id: string, patient: Partial<Patient>) {
-    const patientRef = doc(db, COLLECTION_NAME, id);
-    return updateDoc(patientRef, patient);
+  async updatePatient(id: string, patient: Partial<Patient>, clinicId: string) {
+    try {
+      const patientRef = doc(db, COLLECTION_NAME, id);
+      await updateDoc(patientRef, patient);
+      await auditService.log(AuditAction.PATIENT_UPDATE, clinicId, id, 'patient', patient);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `${COLLECTION_NAME}/${id}`);
+    }
   },
 
-  async deletePatient(id: string) {
-    const patientRef = doc(db, COLLECTION_NAME, id);
-    return deleteDoc(patientRef);
+  async deletePatient(id: string, clinicId: string) {
+    try {
+      const patientRef = doc(db, COLLECTION_NAME, id);
+      await deleteDoc(patientRef);
+      await auditService.log(AuditAction.PATIENT_DELETE, clinicId, id, 'patient');
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `${COLLECTION_NAME}/${id}`);
+    }
   },
 
   async getPatientsByClinic(clinicId: string) {
-    const q = query(collection(db, COLLECTION_NAME), where('clinicId', '==', clinicId));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Patient[];
+    try {
+      const q = query(collection(db, COLLECTION_NAME), where('clinicId', '==', clinicId));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Patient[];
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
+    }
   },
 
   subscribeToPatients(clinicId: string, callback: (patients: Patient[]) => void) {
@@ -56,6 +78,8 @@ export const patientService = {
     return onSnapshot(q, (snapshot) => {
       const patients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Patient[];
       callback(patients);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
     });
   }
 };

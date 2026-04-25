@@ -35,6 +35,10 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
     function isClinicOwner(clinicId) {
       return isSignedIn() && getUserData().clinicId == clinicId && getUserData().role == 'owner';
     }
@@ -47,43 +51,61 @@ service cloud.firestore {
       return isSignedIn() && getUserData().clinicId == clinicId;
     }
 
+    function isVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
     // ---------------------------------------------------------
     // VALIDATION HELPERS
     // ---------------------------------------------------------
     function isValidUser(data) {
       return data.uid == request.auth.uid
         && (data.displayName == null || (data.displayName is string && data.displayName.size() <= 100))
-        && (data.email == null || (data.email is string && data.email.size() <= 100));
+        && (data.email == null || (data.email is string && data.email.size() <= 100))
+        && data.keys().hasAll(['uid', 'role']);
     }
 
     function isValidClinic(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.ownerId == request.auth.uid
-        && data.accessCode is string && data.accessCode.size() == 6;
+        && data.accessCode is string && data.accessCode.size() == 6
+        && data.keys().hasAll(['name', 'ownerId', 'accessCode']);
     }
 
     function isValidPatient(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 100
-        && data.clinicId is string && isValidId(data.clinicId);
+        && data.clinicId is string && isValidId(data.clinicId)
+        && data.keys().hasAll(['name', 'clinicId']);
     }
 
     function isValidAppointment(data) {
       return data.patientId is string && isValidId(data.patientId)
         && data.date is string && data.date.size() <= 50
-        && data.clinicId is string && isValidId(data.clinicId);
+        && data.clinicId is string && isValidId(data.clinicId)
+        && data.keys().hasAll(['patientId', 'date', 'clinicId']);
     }
 
     function isValidEvolution(data) {
       return data.patientId is string && isValidId(data.patientId)
-        && data.description is string && data.description.size() <= 5000
-        && data.clinicId is string && isValidId(data.clinicId);
+        && data.description is string && data.description.size() <= 10000
+        && data.clinicId is string && isValidId(data.clinicId)
+        && data.keys().hasAll(['patientId', 'description', 'date', 'clinicId']);
     }
 
     function isValidTransaction(data) {
       return data.type in ['receita', 'despesa']
         && data.amount is number
         && data.date is string
-        && data.clinicId is string && isValidId(data.clinicId);
+        && data.clinicId is string && isValidId(data.clinicId)
+        && data.keys().hasAll(['type', 'amount', 'date', 'clinicId']);
+    }
+
+    function isValidAuditLog(data) {
+      return data.userId == request.auth.uid
+        && data.action is string
+        && data.clinicId is string && isValidId(data.clinicId)
+        && data.timestamp is string
+        && data.keys().hasAll(['userId', 'action', 'timestamp', 'clinicId']);
     }
 
     // ---------------------------------------------------------
@@ -94,79 +116,85 @@ service cloud.firestore {
     match /users/{userId} {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow read: if isSignedIn(); // Allow reading profiles for collaboration
-      allow create: if isSignedIn() && request.auth.uid == userId && isValidUser(incoming());
-      allow update: if isSignedIn() && request.auth.uid == userId 
+      allow create: if isVerified() && request.auth.uid == userId && isValidUser(incoming());
+      allow update: if isVerified() && request.auth.uid == userId 
         && isValidUser(incoming())
-        && (incoming().role == existing().role || isClinicOwner(existing().clinicId)); // Owner can change roles
+        && (incoming().role == existing().role || isClinicOwner(existing().clinicId)); 
     }
 
     // Clinics
     match /clinics/{clinicId} {
       allow read: if isSignedIn();
-      allow list: if isSignedIn(); // Allow listing clinics during join
-      allow create: if isSignedIn() && isValidClinic(incoming());
-      allow update: if isClinicOwner(clinicId) && isValidClinic(incoming());
+      allow list: if isSignedIn(); 
+      allow create: if isVerified() && isValidClinic(incoming());
+      allow update: if isVerified() && isClinicOwner(clinicId) && isValidClinic(incoming())
+        && incoming().ownerId == existing().ownerId; // Immutable owner
     }
 
     // Patients
     match /patients/{patientId} {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow get: if isSignedIn() && isClinicMember(existing().clinicId);
-      allow create: if isSignedIn() && isClinicMember(incoming().clinicId) && isValidPatient(incoming());
-      allow update: if isSignedIn() && isClinicMember(existing().clinicId) && isValidPatient(incoming());
-      allow delete: if isClinicOwner(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidPatient(incoming());
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isValidPatient(incoming());
+      allow delete: if isVerified() && isClinicOwner(existing().clinicId);
     }
 
     // Appointments
     match /appointments/{appointmentId} {
-      // Secretary and Owner see all in their clinic
-      // Practitioner (member) ONLY sees their own appointments
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId
         && (getUserData().role in ['owner', 'secretary'] || resource.data.doctorName == getUserData().displayName);
       allow get: if isSignedIn() && isClinicMember(existing().clinicId)
         && (getUserData().role in ['owner', 'secretary'] || existing().doctorName == getUserData().displayName);
-      allow create: if isSignedIn() && isClinicMember(incoming().clinicId) && isValidAppointment(incoming());
-      allow update: if isSignedIn() && isClinicMember(existing().clinicId) && isValidAppointment(incoming());
-      allow delete: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidAppointment(incoming());
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isValidAppointment(incoming());
+      allow delete: if isVerified() && isClinicMember(existing().clinicId);
     }
 
     // Evolutions
     match /evolutions/{evolutionId} {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow get: if isSignedIn() && isClinicMember(existing().clinicId);
-      allow create: if isSignedIn() && isClinicMember(incoming().clinicId) && isValidEvolution(incoming());
-      allow update: if isSignedIn() && isClinicMember(existing().clinicId) && isValidEvolution(incoming());
-      allow delete: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidEvolution(incoming());
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isValidEvolution(incoming());
+      allow delete: if isVerified() && isClinicMember(existing().clinicId);
     }
 
     // Patient Photos
     match /patientPhotos/{photoId} {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow get: if isSignedIn() && isClinicMember(existing().clinicId);
-      allow create: if isSignedIn() && isClinicMember(incoming().clinicId);
-      allow update: if isSignedIn() && isClinicMember(existing().clinicId);
-      allow delete: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId);
+      allow update: if isVerified() && isClinicMember(existing().clinicId);
+      allow delete: if isVerified() && isClinicMember(existing().clinicId);
     }
 
     // Transactions
     match /transactions/{transactionId} {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow get: if isSignedIn() && isClinicMember(existing().clinicId);
-      allow create: if isSignedIn() && isClinicMember(incoming().clinicId) && isValidTransaction(incoming());
-      allow update: if isClinicOwner(existing().clinicId) && isValidTransaction(incoming());
-      allow delete: if isClinicOwner(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidTransaction(incoming());
+      allow update: if isVerified() && isClinicOwner(existing().clinicId) && isValidTransaction(incoming());
+      allow delete: if isVerified() && isClinicOwner(existing().clinicId);
     }
 
     // Settings
     match /settings/{settingId} {
       allow read: if isSignedIn() && isClinicMember(existing().clinicId);
-      allow write: if isClinicOwner(incoming().clinicId || existing().clinicId);
+      allow write: if isVerified() && isClinicOwner(incoming().clinicId || existing().clinicId);
     }
 
-    // Licenses (Activation codes)
+    // Audit Logs (Write Only, Immutable)
+    match /auditLogs/{logId} {
+      allow list: if isVerified() && isClinicOwner(getUserData().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidAuditLog(incoming());
+      allow read, update, delete: if false; 
+    }
+
+    // Licenses
     match /licenseCodes/{licenseId} {
       allow read: if isSignedIn();
-      allow create: if false; // Only via backend
+      allow create: if false; 
     }
   }
 }

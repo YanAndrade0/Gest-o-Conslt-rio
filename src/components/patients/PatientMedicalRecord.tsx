@@ -132,11 +132,14 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
 
   const handleUpdateEvolution = async (id: string) => {
     if (!editEvoData.description.trim()) return;
+    const cid = user?.clinicId || patient.clinicId;
+    if (!patient.id || !cid) return;
+
     try {
       await medicalRecordService.updateEvolution(id, {
         description: editEvoData.description,
         date: editEvoData.date
-      });
+      }, cid, patient.id);
       setEditingEvoId(null);
       toast.success('Evolução atualizada!');
     } catch (error) {
@@ -145,8 +148,11 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   };
 
   const handleDeleteEvolution = async (id: string) => {
+    const cid = user?.clinicId || patient.clinicId;
+    if (!patient.id || !cid) return;
+
     try {
-      await medicalRecordService.deleteEvolution(id);
+      await medicalRecordService.deleteEvolution(id, cid, patient.id);
       setEditingEvoId(null);
       toast.success('Evolução excluída.');
     } catch (error) {
@@ -212,11 +218,11 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   };
 
   const handleUpdateTotalValue = async () => {
-    if (!patient.id) return;
+    if (!patient.id || !user?.clinicId) return;
     setIsUpdatingTotal(true);
     try {
       const value = parseFloat(totalTreatmentValue) || 0;
-      await patientService.updatePatient(patient.id, { totalTreatmentValue: value });
+      await patientService.updatePatient(patient.id, { totalTreatmentValue: value }, user.clinicId);
       toast.success('Valor total do tratamento atualizado!');
     } catch (error) {
       toast.error('Erro ao atualizar valor do tratamento.');
@@ -234,8 +240,11 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   };
 
   const handleDeletePhoto = async (id: string) => {
+    const cid = user?.clinicId || patient.clinicId;
+    if (!patient.id || !cid) return;
+
     try {
-      await medicalRecordService.deletePhoto(id);
+      await medicalRecordService.deletePhoto(id, cid, patient.id);
       setPhotoToDelete(null);
       toast.success('Foto removida.');
     } catch (error) {

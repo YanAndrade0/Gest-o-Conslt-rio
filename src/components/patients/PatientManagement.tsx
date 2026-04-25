@@ -154,7 +154,7 @@ export function PatientManagement() {
       }
 
       if (editingPatient?.id) {
-        await patientService.updatePatient(editingPatient.id, dataToSave);
+        await patientService.updatePatient(editingPatient.id, dataToSave, user.clinicId);
         toast.success('Paciente atualizado com sucesso!');
       } else {
         await patientService.addPatient(dataToSave);
@@ -173,9 +173,10 @@ export function PatientManagement() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!user?.clinicId) return;
     if (window.confirm('Tem certeza que deseja excluir este paciente?')) {
       try {
-        await patientService.deletePatient(id);
+        await patientService.deletePatient(id, user.clinicId);
         toast.success('Paciente excluído com sucesso.');
       } catch (error) {
         toast.error('Erro ao excluir paciente.');

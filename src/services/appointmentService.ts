@@ -7,10 +7,10 @@ import {
   query, 
   where, 
   getDocs, 
-  onSnapshot,
-  orderBy
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../lib/firebase-config';
+import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
 export interface Appointment {
   id?: string;
@@ -29,17 +29,29 @@ const COLLECTION_NAME = 'appointments';
 
 export const appointmentService = {
   async addAppointment(appointment: Omit<Appointment, 'id'>) {
-    return addDoc(collection(db, COLLECTION_NAME), appointment);
+    try {
+      return await addDoc(collection(db, COLLECTION_NAME), appointment);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, COLLECTION_NAME);
+    }
   },
 
   async updateAppointment(id: string, appointment: Partial<Appointment>) {
-    const appointmentRef = doc(db, COLLECTION_NAME, id);
-    return updateDoc(appointmentRef, appointment);
+    try {
+      const appointmentRef = doc(db, COLLECTION_NAME, id);
+      return await updateDoc(appointmentRef, appointment);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `${COLLECTION_NAME}/${id}`);
+    }
   },
 
   async deleteAppointment(id: string) {
-    const appointmentRef = doc(db, COLLECTION_NAME, id);
-    return deleteDoc(appointmentRef);
+    try {
+      const appointmentRef = doc(db, COLLECTION_NAME, id);
+      return await deleteDoc(appointmentRef);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `${COLLECTION_NAME}/${id}`);
+    }
   },
 
   subscribeToAppointments(clinicId: string, role: string, displayName: string, callback: (appointments: Appointment[]) => void) {
@@ -59,17 +71,21 @@ export const appointmentService = {
       appointments.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       callback(appointments);
     }, (error) => {
-      console.error("Appointments subscription error:", error);
+      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
     });
   },
 
   async getAppointmentsByPatient(clinicId: string, patientId: string) {
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where('clinicId', '==', clinicId),
-      where('patientId', '==', patientId)
-    );
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Appointment[];
+    try {
+      const q = query(
+        collection(db, COLLECTION_NAME),
+        where('clinicId', '==', clinicId),
+        where('patientId', '==', patientId)
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Appointment[];
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
+    }
   }
 };
