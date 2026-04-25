@@ -11,20 +11,24 @@ import { clinicService, Clinic } from '../../services/clinicService';
 import { Key, ShieldCheck, Copy, RefreshCw, Plus, Building, Users } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { db } from '../../lib/firebase-config';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ClinicMembers } from './ClinicMembers';
+import { SubscriptionSettings } from './SubscriptionSettings';
+import { CreditCard as BillingIcon } from 'lucide-react';
 
 export function WhatsAppSettings() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'general' | 'members'>( 'general');
+  const [activeTab, setActiveTab] = useState<'general' | 'members' | 'subscription'>('general');
   const [template, setTemplate] = useState(DEFAULT_REMINDER_TEMPLATE);
   const [hoursBefore, setHoursBefore] = useState(24);
   const [enabled, setEnabled] = useState(true);
   const [generatedLicense, setGeneratedLicense] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [clinicData, setClinicData] = useState<Clinic | null>(null);
-
+  const [newClinicName, setNewClinicName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
   const isAdmin = user?.email?.toLowerCase() === 'yanandraderfo@gmail.com' || user?.email?.toLowerCase() === 'yandatafox@gmail.com';
+  const isOwner = user?.role === 'owner';
 
   useEffect(() => {
     const fetchClinic = async () => {
@@ -33,7 +37,9 @@ export function WhatsAppSettings() {
           const docRef = doc(db, 'clinics', user.clinicId);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setClinicData({ id: docSnap.id, ...docSnap.data() } as Clinic);
+            const data = { id: docSnap.id, ...docSnap.data() } as Clinic;
+            setClinicData(data);
+            setNewClinicName(data.name);
           }
         } catch (error) {
           console.error("Error fetching clinic:", error);
@@ -42,6 +48,19 @@ export function WhatsAppSettings() {
     };
     fetchClinic();
   }, [user?.clinicId]);
+
+  const handleUpdateClinicName = async () => {
+    if (!user?.clinicId || !newClinicName) return;
+    try {
+      const docRef = doc(db, 'clinics', user.clinicId);
+      await updateDoc(docRef, { name: newClinicName });
+      setClinicData(prev => prev ? { ...prev, name: newClinicName } : null);
+      setIsEditingName(false);
+      toast.success('Nome da clínica atualizado!');
+    } catch (error) {
+      toast.error('Erro ao atualizar nome.');
+    }
+  };
 
   const handleSave = () => {
     toast.success("Configurações salvas com sucesso!");
@@ -99,11 +118,24 @@ export function WhatsAppSettings() {
           >
             <Users size={14} /> Equipe
           </button>
+          {isOwner && (
+            <button 
+              onClick={() => setActiveTab('subscription')}
+              className={cn(
+                "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all gap-2 flex items-center",
+                activeTab === 'subscription' ? "bg-white text-brand-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              <BillingIcon size={14} /> Assinatura
+            </button>
+          )}
         </div>
       </header>
 
       {activeTab === 'members' ? (
         <ClinicMembers />
+      ) : activeTab === 'subscription' ? (
+        <SubscriptionSettings />
       ) : (
         <div className="space-y-12">
           {/* Clinic Details Card */}
@@ -114,10 +146,32 @@ export function WhatsAppSettings() {
             </div>
             <Card className="card-custom border-none overflow-hidden">
               <CardContent className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-1 text-center md:text-left">
-                  <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">
-                    {clinicData?.name || 'Carregando...'}
-                  </h4>
+                <div className="space-y-1 text-center md:text-left flex-1">
+                  {isEditingName ? (
+                    <div className="flex items-center gap-2">
+                       <Input 
+                        value={newClinicName}
+                        onChange={e => setNewClinicName(e.target.value)}
+                        className="h-10 bg-slate-50 border-slate-200 rounded-xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
+                      />
+                      <Button onClick={handleUpdateClinicName} size="sm" className="bg-brand-primary">Salvar</Button>
+                      <Button onClick={() => setIsEditingName(false)} variant="ghost" size="sm">Cancelar</Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 justify-center md:justify-start">
+                      <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                        {clinicData?.name || 'Carregando...'}
+                      </h4>
+                      {isOwner && (
+                        <button 
+                          onClick={() => setIsEditingName(true)}
+                          className="text-xs text-brand-primary font-bold hover:underline"
+                        >
+                          Editar
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome do Estabelecimento</p>
                 </div>
                 

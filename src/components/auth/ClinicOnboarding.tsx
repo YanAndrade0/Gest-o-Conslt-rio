@@ -44,7 +44,7 @@ export function ClinicOnboarding() {
 
     setLoading(true);
     try {
-      const clinicId = await clinicService.createClinic(user.uid, clinicName, licenseCode, user.email);
+      const clinicId = await clinicService.createClinic(user.uid, clinicName, licenseCode, user.email, user.displayName || undefined);
       console.log('Clinic created successfully:', clinicId);
       
       // Fetch profile to update clinicId in context
@@ -122,7 +122,7 @@ export function ClinicOnboarding() {
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-slate-800">Criar Clínica</h3>
-                  <p className="text-sm font-medium text-slate-400">Sou proprietário e quero gerenciar minha própria clínica.</p>
+                  <p className="text-sm font-medium text-slate-400">Sou proprietário e quero gerenciar minha própria clínica com dados 100% isolados.</p>
                 </div>
               </button>
 
@@ -135,7 +135,7 @@ export function ClinicOnboarding() {
                 </div>
                 <div>
                   <h3 className="text-lg font-black text-slate-800">Vincular-se</h3>
-                  <p className="text-sm font-medium text-slate-400">Já tenho um código de acesso de uma clínica existente.</p>
+                  <p className="text-sm font-medium text-slate-400">Trabalho em uma clínica e já tenho o código de acesso da unidade.</p>
                 </div>
               </button>
             </div>
