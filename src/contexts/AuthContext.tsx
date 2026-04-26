@@ -6,6 +6,8 @@ import {
   signOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendEmailVerification,
+  reload,
   User as FirebaseUser 
 } from 'firebase/auth';
 import { auth } from '../lib/firebase-config';
@@ -16,6 +18,7 @@ interface User {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  emailVerified: boolean;
   clinicId?: string | null;
   role?: string;
 }
@@ -26,6 +29,7 @@ interface AuthContextType {
   login: () => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   registerWithEmail: (email: string, pass: string, name?: string) => Promise<void>;
+  resendEmailVerification: () => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: (userId: string) => Promise<void>;
 }
@@ -73,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: firebaseUser.email,
         displayName: profile.displayName || displayName,
         photoURL: firebaseUser.photoURL,
+        emailVerified: firebaseUser.emailVerified,
         clinicId: profile?.clinicId || null,
         role: profile?.role
       });
@@ -84,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
+        emailVerified: firebaseUser.emailVerified,
         clinicId: null
       });
     }
@@ -106,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshProfile = async (userId: string) => {
     const firebaseUser = auth.currentUser;
     if (firebaseUser) {
+      await reload(firebaseUser);
       await fetchProfile(firebaseUser);
     }
   };
@@ -121,11 +128,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const registerWithEmail = async (email: string, pass: string, name?: string) => {
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
-    if (name && cred.user) {
-      await clinicService.updateUserProfile(cred.user.uid, { 
-        displayName: name,
-        email: email
-      });
+    if (cred.user) {
+      await sendEmailVerification(cred.user);
+      if (name) {
+        await clinicService.updateUserProfile(cred.user.uid, { 
+          displayName: name,
+          email: email
+        });
+      }
+    }
+  };
+
+  const resendEmailVerification = async () => {
+    if (auth.currentUser) {
+      await sendEmailVerification(auth.currentUser);
     }
   };
 
@@ -135,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithEmail, registerWithEmail, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithEmail, registerWithEmail, resendEmailVerification, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

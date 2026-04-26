@@ -13,7 +13,7 @@ import { medicalRecordService, PatientPayment } from './services/medicalRecordSe
 import { appointmentService, Appointment as AppointmentType } from './services/appointmentService';
 import { patientService } from './services/patientService';
 import { toast } from 'sonner';
-import { Mail, Lock, User as UserIcon, ArrowRight, History, Clock, CreditCard, PlusCircle, Menu, X as CloseIcon, AlertCircle } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, History, Clock, CreditCard, PlusCircle, Menu, X as CloseIcon, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { format, isToday, startOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from './components/ui/input';
@@ -22,12 +22,92 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './com
 import { cn } from './lib/utils';
 
 // Components
+const EmailVerificationScreen = () => {
+  const { user, logout, refreshProfile, resendEmailVerification } = useAuth();
+  const [checking, setChecking] = React.useState(false);
+  const [resending, setResending] = React.useState(false);
+
+  const handleRefresh = async () => {
+    setChecking(true);
+    try {
+      await refreshProfile(user?.uid || '');
+    } catch (error) {
+      toast.error('Erro ao verificar status.');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      await resendEmailVerification();
+      toast.success('E-mail de verificação reenviado!');
+    } catch (error) {
+      toast.error('Erro ao reenviar e-mail.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  return (
+    <div className="flex h-screen items-center justify-center bg-bg-main font-sans px-4 text-center">
+      <div className="card-custom p-8 md:p-12 w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500 rounded-[2.5rem] border-none shadow-2xl">
+        <div className="flex justify-center">
+          <div className="w-20 h-20 bg-brand-light rounded-3xl flex items-center justify-center text-brand-primary">
+            <Mail size={40} className="animate-bounce" />
+          </div>
+        </div>
+        
+        <div className="space-y-3">
+          <h2 className="text-3xl font-black tracking-tight">Verifique seu e-mail</h2>
+          <p className="text-slate-400 font-medium leading-relaxed">
+            Enviamos um link de confirmação para <strong className="text-slate-600">{user?.email}</strong>. 
+            Por favor, verifique sua caixa de entrada (e a pasta de spam) para ativar sua conta.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-4 pt-4">
+          <Button 
+            onClick={handleRefresh}
+            disabled={checking}
+            className="w-full h-14 bg-brand-primary font-black rounded-2xl shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            {checking ? 'Verificando...' : 'Já verifiquei meu e-mail'}
+          </Button>
+          
+          <button 
+            onClick={handleResend}
+            disabled={resending}
+            className="text-xs font-bold text-brand-primary uppercase tracking-widest hover:text-brand-dark transition-colors disabled:opacity-50"
+          >
+            {resending ? 'Reenviando...' : 'Não recebeu? Reenviar e-mail'}
+          </button>
+          
+          <button 
+            onClick={() => logout()}
+            className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-slate-700 transition-colors"
+          >
+            Sair e entrar com outra conta
+          </button>
+        </div>
+        
+        <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">
+          OralCloud Segurança & Privacidade
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const Login = () => {
   const { login, loginWithEmail, registerWithEmail, user } = useAuth();
   const [isRegister, setIsRegister] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [displayName, setDisplayName] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   
@@ -47,13 +127,19 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
+      if (isRegister && password !== confirmPassword) {
+        toast.error('As senhas não coincidem!');
+        setLoading(false);
+        return;
+      }
+
       const finalName = displayName || (email.toLowerCase() === 'yanandradeodt@gmail.com' ? 'Secretaria' : '');
       if (isRegister) {
         await registerWithEmail(email, password, finalName);
-        toast.success('Conta profissional criada!');
+        toast.success('Conta criada! Verifique seu e-mail para ativar.');
       } else {
         await loginWithEmail(email, password);
-        toast.success('Acesso autorizado!');
+        toast.success('Bem-vindo de volta!');
       }
     } catch (error: any) {
       console.error('Auth error:', error);
@@ -128,14 +214,33 @@ const Login = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                title={showPassword ? "Esconder senha" : "Mostrar senha"}
               >
-                {showPassword ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                )}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+
+            {isRegister && (
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                <Input 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  placeholder="Confirmar senha" 
+                  required 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-12 pr-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                  title={showConfirmPassword ? "Esconder senha" : "Mostrar senha"}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            )}
           </div>
           
           <Button 
@@ -578,6 +683,10 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   
   if (!user) {
     return <Navigate to="/login" />;
+  }
+
+  if (!user.emailVerified) {
+    return <EmailVerificationScreen />;
   }
 
   if (!user.clinicId) {
