@@ -147,7 +147,7 @@ export function WhatsAppSettings() {
             <Card className="card-custom border-none overflow-hidden">
               <CardContent className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1 text-center md:text-left flex-1">
-                  {isEditingName ? (
+                  {isEditingName && isAdmin ? (
                     <div className="flex items-center gap-2">
                        <Input 
                         value={newClinicName}
@@ -162,17 +162,22 @@ export function WhatsAppSettings() {
                       <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">
                         {clinicData?.name || 'Carregando...'}
                       </h4>
-                      {isOwner && (
+                      {isAdmin && (
                         <button 
                           onClick={() => setIsEditingName(true)}
                           className="text-xs text-brand-primary font-bold hover:underline"
                         >
-                          Editar
+                          Editar (Admin)
                         </button>
                       )}
                     </div>
                   )}
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome do Estabelecimento</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {clinicData?.taxId ? `CNPJ/CPF: ${clinicData.taxId}` : 'Nome do Estabelecimento'}
+                  </p>
+                  <p className="text-[9px] text-brand-primary font-bold uppercase tracking-tight mt-1">
+                    <ShieldCheck size={10} className="inline mr-1" /> Identidade Protegida
+                  </p>
                 </div>
                 
                 <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center justify-between md:justify-start gap-6 group hover:border-brand-primary transition-all text-left">

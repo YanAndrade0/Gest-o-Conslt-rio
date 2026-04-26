@@ -29,6 +29,8 @@ export interface UserProfile {
   clinicId: string | null;
   role: 'owner' | 'member' | 'secretary';
   displayName?: string;
+  lastAccess?: string;
+  userAgent?: string;
 }
 
 const CLINICS_COL = 'clinics';
@@ -65,7 +67,7 @@ export const clinicService = {
     }
   },
 
-  async createClinic(userId: string, name: string, licenseCode: string, userEmail?: string | null, displayName?: string): Promise<string> {
+  async createClinic(userId: string, name: string, licenseCode: string, userEmail?: string | null, displayName?: string, taxId?: string): Promise<string> {
     const isAdmin = userEmail?.toLowerCase() === 'yanandraderfo@gmail.com' || userEmail?.toLowerCase() === 'yandatafox@gmail.com';
     
     // Verify license code only if not admin
@@ -79,13 +81,19 @@ export const clinicService = {
 
     try {
       const accessCode = this.generateCode();
-      const clinicDoc = await addDoc(collection(db, CLINICS_COL), {
+      const clinicData = {
         name,
+        taxId: taxId || '', // CNPJ ou CPF
         ownerId: userId,
         accessCode,
         createdAt: new Date().toISOString(),
-        isSystemAdminClinic: isAdmin
-      });
+        isSystemAdminClinic: isAdmin,
+        settings: {
+          locked: true // Bloqueia edição de nome/taxId após criação
+        }
+      };
+
+      const clinicDoc = await addDoc(collection(db, CLINICS_COL), clinicData);
 
       // Mark license code as used if not admin
       if (!isAdmin && licenseCode) {
@@ -103,10 +111,12 @@ export const clinicService = {
         email: userEmail || '',
         clinicId: clinicDoc.id,
         role: 'owner',
-        displayName: displayName || userEmail?.split('@')[0] || 'Doutor(a)'
+        displayName: displayName || userEmail?.split('@')[0] || 'Doutor(a)',
+        lastAccess: new Date().toISOString(),
+        userAgent: navigator.userAgent
       });
 
-      await auditService.log(AuditAction.CLINIC_UPDATE, clinicDoc.id, clinicDoc.id, 'clinic', { name, action: 'create' });
+      await auditService.log(AuditAction.CLINIC_UPDATE, clinicDoc.id, clinicDoc.id, 'clinic', { name, taxId, action: 'create' });
 
       return clinicDoc.id;
     } catch (error) {
@@ -135,10 +145,12 @@ export const clinicService = {
         email: userEmail || '',
         clinicId,
         role: role,
-        displayName: displayName || (role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)')
+        displayName: displayName || (role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'),
+        lastAccess: new Date().toISOString(),
+        userAgent: navigator.userAgent
       });
 
-      await auditService.log(AuditAction.LOGIN, clinicId, userId, 'user', { action: 'join_clinic', role });
+      await auditService.log(AuditAction.LOGIN, clinicId, userId, 'user', { action: 'join_clinic', role, agent: navigator.userAgent });
 
       return clinicId;
     } catch (error) {
@@ -187,9 +199,14 @@ export const clinicService = {
   async updateUserProfile(userId: string, data: Partial<UserProfile>): Promise<void> {
     try {
       const userRef = doc(db, USERS_COL, userId);
-      await setDoc(userRef, data, { merge: true });
+      const updateData = {
+        ...data,
+        lastAccess: new Date().toISOString(),
+        userAgent: navigator.userAgent
+      };
+      await setDoc(userRef, updateData, { merge: true });
       if (data.clinicId) {
-        await auditService.log(AuditAction.LOGIN, data.clinicId, userId, 'user', { action: 'update_profile', fields: Object.keys(data) });
+        await auditService.log(AuditAction.LOGIN, data.clinicId, userId, 'user', { action: 'update_profile', fields: Object.keys(data), agent: navigator.userAgent });
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${USERS_COL}/${userId}`);

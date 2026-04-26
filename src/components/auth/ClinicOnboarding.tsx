@@ -23,6 +23,7 @@ export function ClinicOnboarding() {
   const isAdmin = user?.email?.toLowerCase() === 'yanandraderfo@gmail.com' || user?.email?.toLowerCase() === 'yandatafox@gmail.com';
   const [step, setStep] = useState<'choice' | 'create' | 'join' | 'success'>('choice');
   const [clinicName, setClinicName] = useState('');
+  const [taxId, setTaxId] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [licenseCode, setLicenseCode] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
@@ -30,10 +31,15 @@ export function ClinicOnboarding() {
 
   const handleCreateClinic = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submitting clinic creation:', { clinicName, licenseCode, isAdmin });
+    console.log('Submitting clinic creation:', { clinicName, taxId, licenseCode, isAdmin });
     
     if (!user || !clinicName) {
       toast.error('Preencha o nome da clínica.');
+      return;
+    }
+
+    if (!taxId) {
+      toast.error('O CPF ou CNPJ é obrigatório para identificação da clínica.');
       return;
     }
     
@@ -44,7 +50,7 @@ export function ClinicOnboarding() {
 
     setLoading(true);
     try {
-      const clinicId = await clinicService.createClinic(user.uid, clinicName, licenseCode, user.email, user.displayName || undefined);
+      const clinicId = await clinicService.createClinic(user.uid, clinicName, licenseCode, user.email, user.displayName || undefined, taxId);
       console.log('Clinic created successfully:', clinicId);
       
       // Fetch profile to update clinicId in context
@@ -150,6 +156,16 @@ export function ClinicOnboarding() {
                     placeholder="Ex: Consultório Dra. Ana" 
                     value={clinicName}
                     onChange={e => setClinicName(e.target.value)}
+                    required
+                    className="h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">CNPJ ou CPF (Responsável)</Label>
+                  <Input 
+                    placeholder="00.000.000/0000-00 ou 000.000.000-00" 
+                    value={taxId}
+                    onChange={e => setTaxId(e.target.value)}
                     required
                     className="h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
                   />
