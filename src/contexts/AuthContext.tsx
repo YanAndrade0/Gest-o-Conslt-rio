@@ -21,6 +21,7 @@ interface User {
   emailVerified: boolean;
   clinicId?: string | null;
   role?: string;
+  hasReadManual?: boolean;
 }
 
 interface AuthContextType {
@@ -79,7 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         photoURL: firebaseUser.photoURL,
         emailVerified: firebaseUser.emailVerified,
         clinicId: profile?.clinicId || null,
-        role: profile?.role
+        role: profile?.role,
+        hasReadManual: profile?.hasReadManual || false
       });
     } catch (error) {
       console.error('Error fetching profile:', error);

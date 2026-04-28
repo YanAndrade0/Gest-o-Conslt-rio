@@ -76,6 +76,29 @@ export function SubscriptionSettings() {
     return <div className="p-8 text-center animate-pulse font-bold text-slate-400">Carregando dados da assinatura...</div>;
   }
 
+  const handlePortal = async () => {
+    if (!user?.clinicId) return;
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/stripe/create-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clinicId: user.clinicId }),
+      });
+
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error(data.error || 'Erro ao abrir portal de faturamento.');
+      }
+    } catch (error) {
+      toast.error('Erro de conexão.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const getStatusColor = () => {
     switch (subscription.status) {
       case 'active': return 'text-green-500 bg-green-50 border-green-100';
@@ -126,7 +149,17 @@ export function SubscriptionSettings() {
                 </div>
               </div>
 
-              {subscription.status !== 'active' && (
+              {subscription.status === 'active' ? (
+                <Button 
+                  onClick={handlePortal}
+                  disabled={isProcessing}
+                  variant="outline"
+                  className="h-12 border-slate-200 rounded-xl font-bold flex items-center gap-2 hover:border-brand-primary"
+                >
+                  <CreditCard size={16} />
+                  Gerenciar Faturamento
+                </Button>
+              ) : subscription.status !== 'trialing' && (
                 <div className="flex items-center gap-2 bg-orange-50 p-4 rounded-2xl border border-orange-100">
                   <AlertCircle className="text-orange-500 shrink-0" size={20} />
                   <p className="text-xs font-bold text-orange-700 leading-tight">
@@ -170,7 +203,7 @@ export function SubscriptionSettings() {
               </ul>
 
               <Button 
-                onClick={() => handleSubscribe('price_monthly_id_placeholder')}
+                onClick={() => handleSubscribe((import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID || 'price_monthly_id_placeholder')}
                 disabled={isProcessing || subscription.status === 'active'}
                 className="w-full h-14 bg-brand-primary text-white rounded-2xl font-black shadow-lg shadow-brand-primary/20 hover:bg-brand-accent transition-all group"
               >
@@ -205,7 +238,7 @@ export function SubscriptionSettings() {
 
               <Button 
                 variant="outline"
-                onClick={() => handleSubscribe('price_yearly_id_placeholder')}
+                onClick={() => handleSubscribe((import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID || 'price_yearly_id_placeholder')}
                 disabled={isProcessing || subscription.status === 'active'}
                 className="w-full h-14 border-2 border-slate-200 rounded-2xl font-black text-slate-700 hover:bg-white hover:border-brand-primary transition-all group"
               >

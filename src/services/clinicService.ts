@@ -21,6 +21,7 @@ export interface Clinic {
   ownerId: string;
   accessCode: string;
   createdAt: string;
+  taxId?: string;
 }
 
 export interface UserProfile {
@@ -31,6 +32,7 @@ export interface UserProfile {
   displayName?: string;
   lastAccess?: string;
   userAgent?: string;
+  hasReadManual?: boolean;
 }
 
 const CLINICS_COL = 'clinics';

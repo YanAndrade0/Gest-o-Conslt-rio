@@ -9,6 +9,7 @@ import { WhatsAppSettings } from './components/settings/WhatsAppSettings';
 import { PatientManagement } from './components/patients/PatientManagement';
 import { AppointmentAgenda } from './components/appointments/AppointmentAgenda';
 import { ClinicOnboarding } from './components/auth/ClinicOnboarding';
+import { OnboardingManual } from './components/OnboardingManual';
 import { medicalRecordService, PatientPayment } from './services/medicalRecordService';
 import { appointmentService, Appointment as AppointmentType } from './services/appointmentService';
 import { patientService } from './services/patientService';
@@ -673,7 +674,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 };
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshProfile } = useAuth();
   
   if (loading) return (
     <div className="flex h-screen items-center justify-center bg-bg-main animate-pulse">
@@ -691,6 +692,10 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   if (!user.clinicId) {
     return <ClinicOnboarding />;
+  }
+
+  if (user.hasReadManual === false) {
+    return <OnboardingManual userId={user.uid} onComplete={() => refreshProfile(user.uid)} />;
   }
   
   return <Layout>{children}</Layout>;

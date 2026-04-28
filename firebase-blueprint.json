@@ -24,7 +24,8 @@
         "email": { "type": "string" },
         "clinicId": { "type": "string" },
         "role": { "type": "string", "enum": ["owner", "member", "secretary"] },
-        "displayName": { "type": "string" }
+        "displayName": { "type": "string" },
+        "hasReadManual": { "type": "boolean" }
       },
       "required": ["uid", "role"]
     },
