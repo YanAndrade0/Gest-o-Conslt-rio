@@ -3,10 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../lib/firebase-config';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { CheckCircle2, CreditCard, Clock, AlertCircle, ArrowRight, Zap } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, addMonths, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface SubscriptionData {
@@ -16,12 +16,23 @@ interface SubscriptionData {
 }
 
 export function SubscriptionSettings() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<SubscriptionData>({ status: 'none' });
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success')) {
+      toast.success('Parabéns! Sua assinatura foi processada e será ativada em instantes.');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    if (params.get('canceled')) {
+      toast.error('O processo de assinatura foi cancelado.');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     const fetchSubscription = async () => {
       if (!user?.clinicId) return;
       try {
@@ -45,17 +56,21 @@ export function SubscriptionSettings() {
     fetchSubscription();
   }, [user?.clinicId]);
 
-  const handleSubscribe = async (planId: string) => {
-    if (!user) return;
+  const handleSubscribe = async (priceId: string) => {
+    if (!user || !user.clinicId) {
+      toast.error('Usuário não identificado.');
+      return;
+    }
     setIsProcessing(true);
+
     try {
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clinicId: user.clinicId,
-          userEmail: user.email,
-          planId: planId, // This would be the Stripe Price ID
+          customerEmail: user.email,
+          priceId,
         }),
       });
 
@@ -66,6 +81,7 @@ export function SubscriptionSettings() {
         toast.error(data.error || 'Erro ao iniciar checkout.');
       }
     } catch (error) {
+      console.error('Checkout error:', error);
       toast.error('Erro de conexão com o servidor de pagamentos.');
     } finally {
       setIsProcessing(false);
@@ -190,7 +206,7 @@ export function SubscriptionSettings() {
             </CardHeader>
             <CardContent className="p-8 flex-1 flex flex-col gap-6">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-800 tracking-tight">R$ 149</span>
+                <span className="text-4xl font-black text-slate-800 tracking-tight">R$ 34,90</span>
                 <span className="text-lg font-bold text-slate-400">/mês</span>
               </div>
               
@@ -203,7 +219,7 @@ export function SubscriptionSettings() {
               </ul>
 
               <Button 
-                onClick={() => handleSubscribe((import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID || 'price_monthly_id_placeholder')}
+                onClick={() => handleSubscribe((import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID)}
                 disabled={isProcessing || subscription.status === 'active'}
                 className="w-full h-14 bg-brand-primary text-white rounded-2xl font-black shadow-lg shadow-brand-primary/20 hover:bg-brand-accent transition-all group"
               >
@@ -217,14 +233,14 @@ export function SubscriptionSettings() {
           <Card className="card-custom border-2 border-brand-primary/20 flex flex-col h-full bg-slate-50 shadow-none">
             <CardHeader className="p-8 pb-0">
               <div className="px-3 py-1 bg-green-100 rounded-lg w-fit mb-4">
-                <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Economize 20%</span>
+                <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Economize 14%</span>
               </div>
               <CardTitle className="text-2xl font-black text-slate-800">Plano Anual</CardTitle>
               <CardDescription className="text-slate-500 font-medium tracking-tight">Foco no crescimento</CardDescription>
             </CardHeader>
             <CardContent className="p-8 flex-1 flex flex-col gap-6">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-800 tracking-tight">R$ 1.490</span>
+                <span className="text-4xl font-black text-slate-800 tracking-tight">R$ 359,90</span>
                 <span className="text-lg font-bold text-slate-400">/ano</span>
               </div>
               
@@ -238,7 +254,7 @@ export function SubscriptionSettings() {
 
               <Button 
                 variant="outline"
-                onClick={() => handleSubscribe((import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID || 'price_yearly_id_placeholder')}
+                onClick={() => handleSubscribe((import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID)}
                 disabled={isProcessing || subscription.status === 'active'}
                 className="w-full h-14 border-2 border-slate-200 rounded-2xl font-black text-slate-700 hover:bg-white hover:border-brand-primary transition-all group"
               >

@@ -22,6 +22,8 @@ interface User {
   clinicId?: string | null;
   role?: string;
   hasReadManual?: boolean;
+  isClinicActive?: boolean;
+  trialEndsAt?: string;
 }
 
 interface AuthContextType {
@@ -73,6 +75,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
+      let isClinicActive = true;
+      let trialEndsAt = undefined;
+
+      if (profile.clinicId) {
+        const clinic = await clinicService.getClinic(profile.clinicId);
+        if (clinic) {
+          trialEndsAt = clinic.trialEndsAt;
+          const isTrialValid = clinic.trialEndsAt ? new Date() < new Date(clinic.trialEndsAt) : false;
+          const isSubsActive = clinic.subscription?.status === 'active';
+          isClinicActive = isTrialValid || isSubsActive;
+        }
+      }
+
       setUser({
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -81,7 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailVerified: firebaseUser.emailVerified,
         clinicId: profile?.clinicId || null,
         role: profile?.role,
-        hasReadManual: profile?.hasReadManual || false
+        hasReadManual: profile?.hasReadManual || false,
+        isClinicActive,
+        trialEndsAt
       });
     } catch (error) {
       console.error('Error fetching profile:', error);

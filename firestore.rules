@@ -35,6 +35,16 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
+    function getClinicData(clinicId) {
+      return get(/databases/$(database)/documents/clinics/$(clinicId)).data;
+    }
+
+    function isClinicActive(clinicId) {
+      let clinic = getClinicData(clinicId);
+      return clinic.subscription.status == 'active' 
+        || request.time < timestamp(clinic.trialEndsAt);
+    }
+
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
@@ -69,7 +79,8 @@ service cloud.firestore {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.ownerId == request.auth.uid
         && data.accessCode is string && data.accessCode.size() == 6
-        && data.keys().hasAll(['name', 'ownerId', 'accessCode']);
+        && data.userCount is int && data.userCount >= 1 && data.userCount <= 5
+        && data.keys().hasAll(['name', 'ownerId', 'accessCode', 'userCount']);
     }
 
     function isValidPatient(data) {
@@ -116,7 +127,8 @@ service cloud.firestore {
     match /users/{userId} {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow read: if isSignedIn(); // Allow reading profiles for collaboration
-      allow create: if isVerified() && request.auth.uid == userId && isValidUser(incoming());
+      allow create: if isVerified() && request.auth.uid == userId && isValidUser(incoming())
+        && get(/databases/$(database)/documents/clinics/$(incoming().clinicId)).data.userCount < 5;
       allow update: if isVerified() && request.auth.uid == userId 
         && isValidUser(incoming())
         && (incoming().role == existing().role || isClinicOwner(existing().clinicId)); 
@@ -135,9 +147,9 @@ service cloud.firestore {
     match /patients/{patientId} {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow get: if isSignedIn() && isClinicMember(existing().clinicId);
-      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidPatient(incoming());
-      allow update: if isVerified() && isClinicMember(existing().clinicId) && isValidPatient(incoming());
-      allow delete: if isVerified() && isClinicOwner(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidPatient(incoming());
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidPatient(incoming());
+      allow delete: if isVerified() && isClinicOwner(existing().clinicId) && isClinicActive(existing().clinicId);
     }
 
     // Appointments
@@ -146,18 +158,18 @@ service cloud.firestore {
         && (getUserData().role in ['owner', 'secretary'] || resource.data.doctorName == getUserData().displayName);
       allow get: if isSignedIn() && isClinicMember(existing().clinicId)
         && (getUserData().role in ['owner', 'secretary'] || existing().doctorName == getUserData().displayName);
-      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidAppointment(incoming());
-      allow update: if isVerified() && isClinicMember(existing().clinicId) && isValidAppointment(incoming());
-      allow delete: if isVerified() && isClinicMember(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidAppointment(incoming());
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidAppointment(incoming());
+      allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);
     }
 
     // Evolutions
     match /evolutions/{evolutionId} {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow get: if isSignedIn() && isClinicMember(existing().clinicId);
-      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidEvolution(incoming());
-      allow update: if isVerified() && isClinicMember(existing().clinicId) && isValidEvolution(incoming());
-      allow delete: if isVerified() && isClinicMember(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidEvolution(incoming());
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidEvolution(incoming());
+      allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);
     }
 
     // Patient Photos
@@ -173,9 +185,9 @@ service cloud.firestore {
     match /transactions/{transactionId} {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow get: if isSignedIn() && isClinicMember(existing().clinicId);
-      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidTransaction(incoming());
-      allow update: if isVerified() && isClinicOwner(existing().clinicId) && isValidTransaction(incoming());
-      allow delete: if isVerified() && isClinicOwner(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidTransaction(incoming());
+      allow update: if isVerified() && isClinicOwner(existing().clinicId) && isClinicActive(existing().clinicId) && isValidTransaction(incoming());
+      allow delete: if isVerified() && isClinicOwner(existing().clinicId) && isClinicActive(existing().clinicId);
     }
 
     // Settings

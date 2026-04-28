@@ -10,6 +10,8 @@ import { PatientManagement } from './components/patients/PatientManagement';
 import { AppointmentAgenda } from './components/appointments/AppointmentAgenda';
 import { ClinicOnboarding } from './components/auth/ClinicOnboarding';
 import { OnboardingManual } from './components/OnboardingManual';
+import { TrialBanner } from './components/TrialBanner';
+import { Legal } from './components/Legal';
 import { medicalRecordService, PatientPayment } from './services/medicalRecordService';
 import { appointmentService, Appointment as AppointmentType } from './services/appointmentService';
 import { patientService } from './services/patientService';
@@ -504,30 +506,7 @@ const Dashboard = () => {
       </section>
 
       <div className="lg:col-span-4 space-y-8">
-        <section className="card-custom p-6 space-y-6">
-          <h3 className="font-bold text-slate-700">Prontuário Rápido</h3>
-          <div className="bg-bg-main p-5 rounded-2xl border border-dashed border-brand-muted/50">
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Odontograma</p>
-              <button className="text-[9px] bg-white border border-slate-200 px-3 py-1 rounded-lg font-bold shadow-sm">Editar</button>
-            </div>
-            <div className="flex gap-1.5 justify-center flex-wrap">
-              {[18, 17, 16, 15, 14, 13, 12, 11].map(num => (
-                <div key={num} className={`w-8 h-10 border border-slate-200 rounded-lg flex items-center justify-center text-[10px] font-bold cursor-pointer transition-colors
-                  ${[16, 14].includes(num) ? 'bg-brand-secondary text-white border-brand-accent' : 'bg-white hover:bg-slate-50'}`}>
-                  {num}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-4">
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Alertas Críticos</p>
-             <div className="flex items-start gap-3 p-4 bg-red-50/50 rounded-2xl border border-red-100">
-               <div className="w-2 h-2 mt-1.5 rounded-full bg-red-500 flex-shrink-0"></div>
-               <p className="text-xs text-red-800 leading-relaxed font-medium"><b>Material em falta:</b> Resina Composta A2 (estoque crítico).</p>
-             </div>
-          </div>
-        </section>
+        {/* Prontuário Rápido e Alertas removidos conforme solicitação */}
       </div>
     </div>
     </div>
@@ -538,30 +517,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = React.useState<'active' | 'trialing' | 'blocked'>('active');
-  
-  React.useEffect(() => {
-    if (!user?.clinicId) return;
-    
-    const checkSub = async () => {
-      const docRef = doc(db, 'clinics', user.clinicId!);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const sub = data.subscription;
-        if (sub?.status === 'past_due' || sub?.status === 'canceled' || sub?.status === 'unpaid') {
-           setSubscriptionStatus('blocked');
-        } else if (sub?.status === 'trialing') {
-          setSubscriptionStatus('trialing');
-        } else {
-          setSubscriptionStatus('active');
-        }
-      }
-    };
-    checkSub();
-  }, [user?.clinicId]);
-
-  const isBlocked = subscriptionStatus === 'blocked' && location.pathname !== '/configuracoes';
   
   const navItems = [
     { name: 'Painel Geral', path: '/', id: 'nav-dashboard' },
@@ -571,40 +526,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { name: 'Configurações', path: '/configuracoes', id: 'nav-config' },
   ];
 
-  if (isBlocked) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-slate-900 p-6 text-white font-sans">
-        <div className="max-w-md w-full space-y-8 text-center animate-in zoom-in duration-500">
-          <div className="w-24 h-24 bg-red-500 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-red-500/20">
-            <AlertCircle size={48} />
-          </div>
-          <div className="space-y-3">
-            <h2 className="text-3xl font-black tracking-tight">Opa! Pagamento Pendente</h2>
-            <p className="text-slate-400 font-medium leading-relaxed">
-              Detectamos uma pendência na sua assinatura. Para continuar usando o **OralCloud**, você precisa regularizar seu plano.
-            </p>
-          </div>
-          <div className="flex flex-col gap-4">
-            <Link to="/configuracoes">
-              <Button className="w-full h-14 bg-brand-primary font-black rounded-2xl shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                Ir para Assinaturas
-              </Button>
-            </Link>
-            <button 
-              onClick={() => logout()}
-              className="text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-white transition-colors"
-            >
-              Sair da Conta
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-bg-main overflow-hidden text-slate-700 font-sans">
-      {/* Mobile Header */}
+    <div className="flex flex-col h-screen bg-bg-main overflow-hidden text-slate-700 font-sans">
+      <TrialBanner />
+      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden">
+        {/* Mobile Header */}
       <header className="lg:hidden bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 z-40 shrink-0">
         <Logo className="w-10 h-10" />
         <button 
@@ -668,7 +594,27 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto w-full">{children}</main>
+      <main className="flex-1 overflow-auto w-full">
+        <div className="flex flex-col min-h-full">
+          <div className="flex-1">{children}</div>
+          <footer className="p-8 border-t border-slate-100 bg-white/50 space-y-4">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-brand-primary rounded-xl flex items-center justify-center">
+                  <span className="text-[10px] font-black text-white">OC</span>
+                </div>
+                <p className="text-xs font-bold text-slate-400">© 2024 OralCloud - Gestão Inteligente</p>
+              </div>
+              <div className="flex items-center gap-6">
+                <Link to="/termos" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand-primary transition-colors">Termos</Link>
+                <Link to="/privacidade" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand-primary transition-colors">Privacidade</Link>
+                <button className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand-primary transition-colors">Suporte</button>
+              </div>
+            </div>
+          </footer>
+        </div>
+      </main>
+      </div>
     </div>
   );
 };
@@ -712,6 +658,8 @@ export default function App() {
           <Route path="/pacientes" element={<PrivateRoute><Patients /></PrivateRoute>} />
           <Route path="/financeiro" element={<PrivateRoute><Finance /></PrivateRoute>} />
           <Route path="/configuracoes" element={<PrivateRoute><Settings /></PrivateRoute>} />
+          <Route path="/termos" element={<Legal type="terms" />} />
+          <Route path="/privacidade" element={<Legal type="privacy" />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
         <Toaster />

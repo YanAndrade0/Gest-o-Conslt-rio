@@ -46,7 +46,7 @@ const steps: Step[] = [
       'Visualização das consultas de hoje',
       'Métricas de faturamento mensal',
       'Quantidade de pacientes ativos',
-      'Alertas de estoque e pendências'
+      'Fácil acesso aos principais módulos'
     ]
   },
   {
@@ -95,6 +95,18 @@ const steps: Step[] = [
       'Controle de formas de pagamento (PIX, Cartão, Dinheiro)',
       'Gestão da sua assinatura OralCloud',
       'Fluxo de caixa simplificado'
+    ]
+  },
+  {
+    title: 'Equipe e Colaboradores',
+    description: 'Adicione novos dentistas e secretárias à sua clínica de forma simples.',
+    icon: <Users size={40} />,
+    color: 'bg-indigo-500',
+    items: [
+      'Localize seu "Código de Acesso" em Configurações',
+      'Compartilhe o código com sua equipe',
+      'Eles devem escolher "Vincular a uma Clínica" ao entrar',
+      'Limite de até 5 usuários por clínica'
     ]
   }
 ];

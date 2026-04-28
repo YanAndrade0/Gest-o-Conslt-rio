@@ -21,55 +21,44 @@ import { collection, doc, getDoc } from 'firebase/firestore';
 export function ClinicOnboarding() {
   const { user, refreshProfile, logout } = useAuth();
   const isAdmin = user?.email?.toLowerCase() === 'yanandraderfo@gmail.com' || user?.email?.toLowerCase() === 'yandatafox@gmail.com';
-  const [step, setStep] = useState<'choice' | 'create' | 'join' | 'success'>('choice');
+  const [step, setStep] = useState<'choice' | 'create' | 'plans' | 'join' | 'success'>('choice');
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
   const [clinicName, setClinicName] = useState('');
   const [taxId, setTaxId] = useState('');
   const [accessCode, setAccessCode] = useState('');
-  const [licenseCode, setLicenseCode] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleCreateClinic = async (e: React.FormEvent) => {
+  const handleNextToPlans = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Submitting clinic creation:', { clinicName, taxId, licenseCode, isAdmin });
-    
-    if (!user || !clinicName) {
-      toast.error('Preencha o nome da clínica.');
+    if (!clinicName || !taxId) {
+      toast.error('Preencha os dados da clínica.');
       return;
     }
+    setStep('plans');
+  };
 
-    if (!taxId) {
-      toast.error('O CPF ou CNPJ é obrigatório para identificação da clínica.');
-      return;
-    }
-    
-    if (!isAdmin && !licenseCode) {
-      toast.error('Insira o código de ativação.');
-      return;
-    }
+  const handleCreateClinic = async () => {
+    if (!user || !clinicName) return;
 
     setLoading(true);
     try {
-      const clinicId = await clinicService.createClinic(user.uid, clinicName, licenseCode, user.email, user.displayName || undefined, taxId);
+      const clinicId = await clinicService.createClinic(user.uid, clinicName, user.email, user.displayName || undefined, taxId);
       console.log('Clinic created successfully:', clinicId);
       
-      // Fetch profile to update clinicId in context
       await refreshProfile(user.uid);
-
-      // Fetch the clinic details to get the accessCode
       const clinicsRef = collection(db, 'clinics');
       const clinicSnap = await getDoc(doc(clinicsRef, clinicId));
       if (clinicSnap.exists()) {
         const data = clinicSnap.data();
-        console.log('Clinic data:', data);
         setGeneratedCode(data.accessCode);
       }
 
       setStep('success');
-      toast.success('Clínica criada com sucesso!');
+      toast.success('Clínica criada e período de teste de 7 dias iniciado!');
     } catch (error: any) {
       console.error('Error creating clinic:', error);
-      toast.error(error.message || 'Erro ao criar clínica. Verifique o código de ativação.');
+      toast.error(error.message || 'Erro ao criar clínica.');
     } finally {
       setLoading(false);
     }
@@ -148,7 +137,7 @@ export function ClinicOnboarding() {
           )}
 
           {step === 'create' && (
-            <form onSubmit={handleCreateClinic} className="space-y-6 max-w-md mx-auto">
+            <form onSubmit={handleNextToPlans} className="space-y-6 max-w-md mx-auto">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Nome da Clínica</Label>
@@ -170,30 +159,6 @@ export function ClinicOnboarding() {
                     className="h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">
-                    Código de Ativação {isAdmin ? '(Opcional para Admin)' : '(Pago)'}
-                  </Label>
-                  {isAdmin ? (
-                    <div className="h-14 bg-green-50 border-2 border-dashed border-green-100 rounded-2xl flex items-center px-4 gap-3 text-green-600">
-                      <CheckCircle2 size={20} />
-                      <span className="text-sm font-bold">Ativação automática para administrador</span>
-                    </div>
-                  ) : (
-                    <>
-                      <Input 
-                        placeholder="Digite o código enviado pelo administrador" 
-                        value={licenseCode}
-                        onChange={e => setLicenseCode(e.target.value.toUpperCase())}
-                        required={!isAdmin}
-                        className="h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
-                      />
-                      <p className="text-[9px] text-slate-400 font-medium pl-1 italic">
-                        Este código é necessário para registrar uma nova clínica no sistema.
-                      </p>
-                    </>
-                  )}
-                </div>
               </div>
               <div className="flex gap-4">
                 <Button 
@@ -209,10 +174,64 @@ export function ClinicOnboarding() {
                   disabled={loading}
                   className="h-14 bg-brand-primary text-white rounded-2xl font-black flex-[2] shadow-xl shadow-brand-primary/20"
                 >
-                  {loading ? 'Criando...' : 'GERAR CÓDIGO E CRIAR'}
+                  PRÓXIMA ETAPA <ArrowRight size={18} className="ml-2" />
                 </Button>
               </div>
             </form>
+          )}
+
+          {step === 'plans' && (
+            <div className="space-y-8 animate-in fade-in duration-500">
+               <div className="text-center space-y-2">
+                 <h2 className="text-2xl font-black text-slate-800">Escolha seu Plano</h2>
+                 <p className="text-sm text-slate-500 font-medium">Todos os planos incluem **7 dias de teste grátis**.</p>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <button 
+                   onClick={() => setSelectedPlan('monthly')}
+                   className={cn(
+                     "p-6 rounded-3xl border-2 transition-all text-left relative",
+                     selectedPlan === 'monthly' ? "border-brand-primary bg-brand-light/10 shadow-lg shadow-brand-primary/5" : "border-slate-100 hover:border-slate-200"
+                   )}
+                 >
+                   <h4 className="font-black text-slate-800">Mensal</h4>
+                   <p className="text-2xl font-black text-brand-primary mt-2">R$ 34,90<span className="text-sm font-bold text-slate-400">/mês</span></p>
+                   {selectedPlan === 'monthly' && <div className="absolute top-4 right-4 w-6 h-6 bg-brand-primary rounded-full flex items-center justify-center text-white"><CheckCircle2 size={14} /></div>}
+                 </button>
+
+                 <button 
+                   onClick={() => setSelectedPlan('yearly')}
+                   className={cn(
+                     "p-6 rounded-3xl border-2 transition-all text-left relative",
+                     selectedPlan === 'yearly' ? "border-brand-primary bg-brand-light/10 shadow-lg shadow-brand-primary/5" : "border-slate-100 hover:border-slate-200"
+                   )}
+                 >
+                   <div className="absolute -top-3 right-4 bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-orange-500/20">Economize 14%</div>
+                   <h4 className="font-black text-slate-800">Anual</h4>
+                   <p className="text-2xl font-black text-brand-primary mt-2">R$ 359,90<span className="text-sm font-bold text-slate-400">/ano</span></p>
+                   {selectedPlan === 'yearly' && <div className="absolute top-4 right-4 w-6 h-6 bg-brand-primary rounded-full flex items-center justify-center text-white"><CheckCircle2 size={14} /></div>}
+                 </button>
+               </div>
+
+               <div className="flex gap-4">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={() => setStep('create')}
+                  className="h-14 rounded-2xl font-bold flex-1"
+                >
+                  Voltar
+                </Button>
+                <Button 
+                  onClick={handleCreateClinic}
+                  disabled={loading}
+                  className="h-14 bg-brand-primary text-white rounded-2xl font-black flex-[2] shadow-xl shadow-brand-primary/20"
+                >
+                  {loading ? 'Processando...' : 'INICIAR TESTE GRÁTIS'}
+                </Button>
+              </div>
+            </div>
           )}
 
           {step === 'join' && (

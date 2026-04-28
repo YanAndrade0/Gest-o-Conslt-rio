@@ -11,9 +11,19 @@
         "phone": { "type": "string" },
         "specialties": { "type": "array", "items": { "type": "string" } },
         "ownerId": { "type": "string" },
-        "accessCode": { "type": "string" }
+        "accessCode": { "type": "string" },
+        "userCount": { "type": "integer", "description": "Número de usuários vinculados à clínica (Limite de 5)" },
+        "trialEndsAt": { "type": "string", "format": "date-time" },
+        "subscription": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string" },
+            "planName": { "type": "string" },
+            "currentPeriodEnd": { "type": "object" }
+          }
+        }
       },
-      "required": ["name", "ownerId", "accessCode"]
+      "required": ["name", "ownerId", "accessCode", "userCount", "trialEndsAt", "subscription"]
     },
     "UserProfile": {
       "title": "Perfil de Usuário",

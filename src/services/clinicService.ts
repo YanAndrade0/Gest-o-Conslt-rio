@@ -9,7 +9,8 @@ import {
   limit,
   setDoc,
   getDoc,
-  onSnapshot
+  onSnapshot,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from '../lib/firebase-config';
 import { auditService, AuditAction } from './auditService';
@@ -22,6 +23,13 @@ export interface Clinic {
   accessCode: string;
   createdAt: string;
   taxId?: string;
+  userCount: number;
+  trialEndsAt: string;
+  subscription?: {
+    status: string;
+    planName: string;
+    currentPeriodEnd?: any;
+  };
 }
 
 export interface UserProfile {
@@ -69,26 +77,27 @@ export const clinicService = {
     }
   },
 
-  async createClinic(userId: string, name: string, licenseCode: string, userEmail?: string | null, displayName?: string, taxId?: string): Promise<string> {
+  async createClinic(userId: string, name: string, userEmail?: string | null, displayName?: string, taxId?: string): Promise<string> {
     const isAdmin = userEmail?.toLowerCase() === 'yanandraderfo@gmail.com' || userEmail?.toLowerCase() === 'yandatafox@gmail.com';
     
-    // Verify license code only if not admin
-    if (!isAdmin) {
-      if (!licenseCode) throw new Error('Código de ativação é obrigatório.');
-      const isValid = await this.validateLicenseCode(licenseCode);
-      if (!isValid) {
-        throw new Error('Código de ativação inválido ou já utilizado.');
-      }
-    }
-
     try {
       const accessCode = this.generateCode();
+      const trialDays = 7;
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
+
       const clinicData = {
         name,
         taxId: taxId || '', // CNPJ ou CPF
         ownerId: userId,
         accessCode,
+        userCount: 1,
         createdAt: new Date().toISOString(),
+        trialEndsAt: trialEndsAt.toISOString(),
+        subscription: {
+          status: 'trialing',
+          planName: 'Trial 7 Dias'
+        },
         isSystemAdminClinic: isAdmin,
         settings: {
           locked: true // Bloqueia edição de nome/taxId após criação
@@ -96,16 +105,6 @@ export const clinicService = {
       };
 
       const clinicDoc = await addDoc(collection(db, CLINICS_COL), clinicData);
-
-      // Mark license code as used if not admin
-      if (!isAdmin && licenseCode) {
-        await updateDoc(doc(db, LICENSE_COL, licenseCode), {
-          used: true,
-          usedBy: userId,
-          usedAt: new Date().toISOString(),
-          clinicId: clinicDoc.id
-        });
-      }
 
       // Also link the user to this clinic
       await setDoc(doc(db, USERS_COL, userId), {
@@ -139,17 +138,40 @@ export const clinicService = {
         throw new Error('Código de clínica inválido.');
       }
 
-      const clinicId = querySnapshot.docs[0].id;
+      const clinicDoc = querySnapshot.docs[0];
+      const clinicId = clinicDoc.id;
 
-      // Link user to this clinic
-      await setDoc(doc(db, USERS_COL, userId), {
-        uid: userId,
-        email: userEmail || '',
-        clinicId,
-        role: role,
-        displayName: displayName || (role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'),
-        lastAccess: new Date().toISOString(),
-        userAgent: navigator.userAgent
+      await runTransaction(db, async (transaction) => {
+        const clinicRef = doc(db, CLINICS_COL, clinicId);
+        const clinicSnap = await transaction.get(clinicRef);
+        
+        if (!clinicSnap.exists()) {
+          throw new Error('Clínica não encontrada.');
+        }
+
+        const data = clinicSnap.data();
+        const currentUserCount = data.userCount || 0;
+
+        if (currentUserCount >= 5) {
+          throw new Error('Limite de usuários (5) atingido para esta clínica. Entre em contato com o suporte para expandir seu plano.');
+        }
+
+        // Link user to this clinic
+        const userRef = doc(db, USERS_COL, userId);
+        transaction.set(userRef, {
+          uid: userId,
+          email: userEmail || '',
+          clinicId,
+          role: role,
+          displayName: displayName || (role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'),
+          lastAccess: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        });
+
+        // Update clinic user count
+        transaction.update(clinicRef, {
+          userCount: currentUserCount + 1
+        });
       });
 
       await auditService.log(AuditAction.LOGIN, clinicId, userId, 'user', { action: 'join_clinic', role, agent: navigator.userAgent });
@@ -157,6 +179,19 @@ export const clinicService = {
       return clinicId;
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'join-clinic');
+    }
+  },
+
+  async getClinic(clinicId: string): Promise<Clinic | null> {
+    try {
+      const clinicRef = doc(db, CLINICS_COL, clinicId);
+      const clinicSnap = await getDoc(clinicRef);
+      if (clinicSnap.exists()) {
+        return { id: clinicSnap.id, ...clinicSnap.data() } as Clinic;
+      }
+      return null;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, `${CLINICS_COL}/${clinicId}`);
     }
   },
 
