@@ -49,6 +49,10 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    function isMasterAdmin() {
+      return isSignedIn() && request.auth.token.email == 'yandatafox@gmail.com';
+    }
+
     function isClinicOwner(clinicId) {
       return isSignedIn() && getUserData().clinicId == clinicId && getUserData().role == 'owner';
     }
@@ -139,8 +143,8 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow list: if isSignedIn(); 
       allow create: if isVerified() && isValidClinic(incoming());
-      allow update: if isVerified() && isClinicOwner(clinicId) && isValidClinic(incoming())
-        && incoming().ownerId == existing().ownerId; // Immutable owner
+      allow update: if isVerified() && (isClinicOwner(clinicId) || isMasterAdmin()) && (isValidClinic(incoming()) || isMasterAdmin())
+        && (incoming().ownerId == existing().ownerId || isMasterAdmin()); // Immutable owner except for master
     }
 
     // Patients

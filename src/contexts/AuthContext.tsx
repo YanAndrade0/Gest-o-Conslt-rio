@@ -24,6 +24,7 @@ interface User {
   hasReadManual?: boolean;
   isClinicActive?: boolean;
   trialEndsAt?: string;
+  isMasterAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -98,7 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         role: profile?.role,
         hasReadManual: profile?.hasReadManual || false,
         isClinicActive,
-        trialEndsAt
+        trialEndsAt,
+        isMasterAdmin: firebaseUser.email === 'yandatafox@gmail.com'
       });
     } catch (error) {
       console.error('Error fetching profile:', error);

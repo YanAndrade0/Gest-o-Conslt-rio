@@ -12,6 +12,7 @@ import { ClinicOnboarding } from './components/auth/ClinicOnboarding';
 import { OnboardingManual } from './components/OnboardingManual';
 import { TrialBanner } from './components/TrialBanner';
 import { Legal } from './components/Legal';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 import { medicalRecordService, PatientPayment } from './services/medicalRecordService';
 import { appointmentService, Appointment as AppointmentType } from './services/appointmentService';
 import { patientService } from './services/patientService';
@@ -526,6 +527,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { name: 'Configurações', path: '/configuracoes', id: 'nav-config' },
   ];
 
+  if (user?.isMasterAdmin) {
+    navItems.push({ name: 'Admin Master', path: '/admin', id: 'nav-admin' });
+  }
+
   return (
     <div className="flex flex-col h-screen bg-bg-main overflow-hidden text-slate-700 font-sans">
       <TrialBanner />
@@ -647,6 +652,22 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return <Layout>{children}</Layout>;
 }
 
+function MasterAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center bg-bg-main animate-pulse">
+      <div className="w-16 h-16 bg-brand-primary/20 rounded-2xl"></div>
+    </div>
+  );
+  
+  if (!user || !user.isMasterAdmin) {
+    return <Navigate to="/" />;
+  }
+  
+  return <Layout>{children}</Layout>;
+}
+
 export default function App() {
   return (
     <Router>
@@ -658,6 +679,7 @@ export default function App() {
           <Route path="/pacientes" element={<PrivateRoute><Patients /></PrivateRoute>} />
           <Route path="/financeiro" element={<PrivateRoute><Finance /></PrivateRoute>} />
           <Route path="/configuracoes" element={<PrivateRoute><Settings /></PrivateRoute>} />
+          <Route path="/admin" element={<MasterAdminRoute><AdminDashboard /></MasterAdminRoute>} />
           <Route path="/termos" element={<Legal type="terms" />} />
           <Route path="/privacidade" element={<Legal type="privacy" />} />
           <Route path="*" element={<Navigate to="/" />} />
