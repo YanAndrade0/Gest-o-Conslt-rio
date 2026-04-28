@@ -79,11 +79,22 @@ service cloud.firestore {
         && data.keys().hasAll(['uid', 'role']);
     }
 
+    function isClinicUnlimited(clinicData) {
+      return clinicData.get('unlimitedUsers', false) == true || 
+             clinicData.name == "Andrade Odontologia" ||
+             clinicData.name == "Andrade Odontologia "; // Case sensitive and common variants
+    }
+
+    function canAddMoreUsers(clinicId) {
+      let clinic = get(/databases/$(database)/documents/clinics/$(clinicId)).data;
+      return isClinicUnlimited(clinic) || clinic.userCount < 5;
+    }
+
     function isValidClinic(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() <= 100
         && data.ownerId == request.auth.uid
         && data.accessCode is string && data.accessCode.size() == 6
-        && data.userCount is int && data.userCount >= 1 && data.userCount <= 5
+        && data.userCount is int && data.userCount >= 1 && (isClinicUnlimited(data) || data.userCount <= 5)
         && data.keys().hasAll(['name', 'ownerId', 'accessCode', 'userCount']);
     }
 
@@ -132,7 +143,7 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow read: if isSignedIn(); // Allow reading profiles for collaboration
       allow create: if isVerified() && request.auth.uid == userId && isValidUser(incoming())
-        && get(/databases/$(database)/documents/clinics/$(incoming().clinicId)).data.userCount < 5;
+        && canAddMoreUsers(incoming().clinicId);
       allow update: if isVerified() && request.auth.uid == userId 
         && isValidUser(incoming())
         && (incoming().role == existing().role || isClinicOwner(existing().clinicId)); 
@@ -143,8 +154,16 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow list: if isSignedIn(); 
       allow create: if isVerified() && isValidClinic(incoming());
-      allow update: if isVerified() && (isClinicOwner(clinicId) || isMasterAdmin()) && (isValidClinic(incoming()) || isMasterAdmin())
-        && (incoming().ownerId == existing().ownerId || isMasterAdmin()); // Immutable owner except for master
+      allow update: if isVerified() && (
+        isClinicOwner(clinicId) || 
+        isMasterAdmin() ||
+        (
+          // Action: Join - allows incrementing userCount by 1
+          incoming().diff(existing()).affectedKeys().hasOnly(['userCount', 'updatedAt']) &&
+          incoming().userCount == existing().userCount + 1 &&
+          (isClinicUnlimited(existing()) || existing().userCount < 5)
+        )
+      );
     }
 
     // Patients

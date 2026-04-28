@@ -54,14 +54,18 @@ async function startServer() {
         const session = event.data.object as Stripe.Checkout.Session;
         const clinicId = session.metadata?.clinicId;
         const customerId = session.customer as string;
+        const subscriptionId = session.subscription as string;
         
-        if (clinicId) {
+        if (clinicId && subscriptionId) {
+          const stripeClient = getStripe();
+          const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
+          
           await firestore.collection('clinics').doc(clinicId).update({
             'subscription.status': 'active',
             'subscription.stripeCustomerId': customerId,
-            'subscription.stripeSubscriptionId': session.subscription as string,
-            'subscription.planName': 'Plano Ativo', // You could detect plan from priceId
-            'subscription.currentPeriodEnd': admin.firestore.Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000) // Placeholder, better fetch from subscription
+            'subscription.stripeSubscriptionId': subscriptionId,
+            'subscription.planName': 'Plano OralCloud Ativo',
+            'subscription.currentPeriodEnd': admin.firestore.Timestamp.fromMillis(subscription.current_period_end * 1000)
           });
         }
         break;
@@ -140,26 +144,21 @@ async function startServer() {
 
   app.post("/api/stripe/create-portal", async (req, res) => {
     try {
-      const { clinicId } = req.body;
+      const { clinicId, customerId: providedCustomerId } = req.body;
       const stripeClient = getStripe();
 
-      // We need to find the Stripe Customer ID associated with this clinic
-      // For now, we'll try to find by email if we don't store it yet
-      // OR you should ideally store stripeCustomerId in the clinic document
-      // Let's assume we fetch the clinic first
-      
-      // Since I don't have direct firebase-admin access in this script easily without more setup
-      // I'll suggest a simpler way: the client should pass the customerId if it has it.
-      // But for the sake of the demo/MVP, let's find by email.
-      
-      // But wait, the better way is to pass the customerId from the client if available.
-      // For now, let's use a placeholder logic or find by email.
-      
-      // Let's assume the client might pass it, or we find it.
-      const { customerId } = req.body; 
+      let customerId = providedCustomerId;
+
+      // If customerId not provided, fetch from Firestore
+      if (!customerId && clinicId) {
+        const clinicDoc = await firestore.collection('clinics').doc(clinicId).get();
+        if (clinicDoc.exists) {
+          customerId = clinicDoc.data()?.subscription?.stripeCustomerId;
+        }
+      }
       
       if (!customerId) {
-        return res.status(400).json({ error: 'Customer ID is required for portal.' });
+        return res.status(400).json({ error: 'ID do cliente Stripe não encontrado para esta clínica.' });
       }
 
       const session = await stripeClient.billingPortal.sessions.create({
