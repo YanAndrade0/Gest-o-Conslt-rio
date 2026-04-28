@@ -23,6 +23,7 @@ interface ClinicData {
   email: string;
   phone: string;
   createdAt: any;
+  unlimitedUsers?: boolean;
   subscription?: {
     status: string;
     planName: string;
@@ -82,6 +83,23 @@ export const AdminDashboard = () => {
       ));
     } catch (error) {
       console.error('Error updating subscription:', error);
+    }
+  };
+
+  const toggleUnlimited = async (clinicId: string, currentVal: boolean) => {
+    try {
+      const clinicRef = doc(db, 'clinics', clinicId);
+      await updateDoc(clinicRef, {
+        unlimitedUsers: !currentVal
+      });
+      
+      setClinics(clinics.map(c => 
+        c.id === clinicId 
+        ? { ...c, unlimitedUsers: !currentVal } 
+        : c
+      ));
+    } catch (error) {
+      console.error('Error updating unlimited status:', error);
     }
   };
 
@@ -163,6 +181,7 @@ export const AdminDashboard = () => {
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Clínica / Contato</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Plano</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Usuários</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Expira em</th>
                 <th className="p-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Ações</th>
               </tr>
@@ -209,6 +228,18 @@ export const AdminDashboard = () => {
                       }`}>
                         {clinic.subscription?.status === 'active' ? 'Ativo' : 'Inativo'}
                       </span>
+                    </td>
+                    <td className="p-6">
+                      <button 
+                        onClick={() => toggleUnlimited(clinic.id, !!clinic.unlimitedUsers)}
+                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors ${
+                          clinic.unlimitedUsers 
+                            ? 'bg-purple-100 text-purple-600' 
+                            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                        }`}
+                      >
+                        {clinic.unlimitedUsers ? 'Sem Limite' : 'Limitado (5)'}
+                      </button>
                     </td>
                     <td className="p-6">
                       <p className="text-sm font-bold text-slate-500">

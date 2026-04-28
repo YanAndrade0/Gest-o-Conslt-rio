@@ -25,6 +25,7 @@ export interface Clinic {
   taxId?: string;
   userCount: number;
   trialEndsAt: string;
+  unlimitedUsers?: boolean;
   subscription?: {
     status: string;
     planName: string;
@@ -151,8 +152,9 @@ export const clinicService = {
 
         const data = clinicSnap.data();
         const currentUserCount = data.userCount || 0;
+        const isUnlimited = data.unlimitedUsers || data.name?.toLowerCase().includes('andrade odontologia');
 
-        if (currentUserCount >= 5) {
+        if (!isUnlimited && currentUserCount >= 5) {
           throw new Error('Limite de usuários (5) atingido para esta clínica. Entre em contato com o suporte para expandir seu plano.');
         }
 

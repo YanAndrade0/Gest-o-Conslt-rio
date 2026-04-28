@@ -111,12 +111,10 @@ async function startServer() {
         mode: 'subscription',
         subscription_data: {
           trial_period_days: 7,
-          description: 'Assinatura OralCloud - Gestão Inteligente para Clínicas Odontológicas',
           metadata: {
             clinicId,
           },
         },
-        statement_descriptor: 'ORALCLOUD GESTAO',
         success_url: `${req.headers.origin}/configuracoes?success=true&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.headers.origin}/configuracoes?canceled=true`,
         metadata: {
