@@ -1,11 +1,15 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import Stripe from 'stripe';
+import cors from 'cors';
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.use(cors());
 
   // Lazy initialize Stripe
   let stripeClient: Stripe | null = null;
@@ -13,6 +17,7 @@ async function startServer() {
     if (!stripeClient) {
       const key = process.env.STRIPE_SECRET_KEY;
       if (!key) {
+        console.warn('STRIPE_SECRET_KEY missing');
         throw new Error('STRIPE_SECRET_KEY environment variable is required');
       }
       stripeClient = new Stripe(key, {
@@ -21,6 +26,11 @@ async function startServer() {
     }
     return stripeClient;
   };
+
+  // Health check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
   // Middleware for JSON (except for webhook)
   app.use((req, res, next) => {
@@ -33,8 +43,14 @@ async function startServer() {
 
   // API Routes
   app.post('/api/stripe/create-checkout', async (req, res) => {
+    console.log('Received checkout request:', req.body);
     try {
       const { clinicId, customerEmail, priceId } = req.body;
+      
+      if (!priceId) {
+        return res.status(400).json({ error: 'Price ID is missing. Check your VITE_STRIPE_MONTHLY_PRICE_ID or VITE_STRIPE_YEARLY_PRICE_ID environment variables.' });
+      }
+
       const stripe = getStripe();
 
       const session = await stripe.checkout.sessions.create({

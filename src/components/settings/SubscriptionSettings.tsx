@@ -61,9 +61,18 @@ export function SubscriptionSettings() {
       toast.error('Usuário não identificado.');
       return;
     }
+    
+    if (!priceId || priceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || priceId === 'VITE_STRIPE_YEARLY_PRICE_ID') {
+      toast.error('ID de preço não configurado. Por favor, configure as variáveis de ambiente no menu Settings do AI Studio.', {
+        duration: 8000
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
+      console.log('Iniciando checkout com priceId:', priceId);
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -74,15 +83,20 @@ export function SubscriptionSettings() {
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro no servidor de checkout');
+      }
+
       const data = await response.json();
       if (data.url) {
         window.location.href = data.url;
       } else {
         toast.error(data.error || 'Erro ao iniciar checkout.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Checkout error:', error);
-      toast.error('Erro de conexão com o servidor de pagamentos.');
+      toast.error(`Erro: ${error.message || 'Conexão com o servidor falhou'}. Verifique se o servidor está rodando.`);
     } finally {
       setIsProcessing(false);
     }
