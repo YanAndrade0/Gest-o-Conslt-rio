@@ -49,12 +49,12 @@ function ToothItem({ num, teeth, selectedTooth, onToothClick }: ToothItemProps) 
     <button
       onClick={() => onToothClick(num)}
       className={cn(
-        "w-10 h-14 md:w-12 md:h-16 flex flex-col items-center justify-between p-1 rounded-lg border-2 transition-all relative group",
+        "w-9 h-12 md:w-12 md:h-16 flex flex-col items-center justify-between p-1 rounded-lg border-2 transition-all relative group",
         isSelected ? "border-brand-primary bg-brand-light ring-4 ring-brand-primary/10 scale-110 z-20" : "border-slate-100 bg-white hover:border-slate-200"
       )}
     >
       <span className={cn(
-        "text-[8px] font-black uppercase tracking-tighter",
+        "text-[7px] md:text-[8px] font-black uppercase tracking-tighter",
         isSelected ? "text-brand-primary" : "text-slate-400"
       )}>
         {num}
@@ -64,13 +64,13 @@ function ToothItem({ num, teeth, selectedTooth, onToothClick }: ToothItemProps) 
         status?.condition ? condition.color : "text-slate-200 group-hover:text-slate-300"
       )}>
         {status?.condition ? (
-          <condition.icon size={isSelected ? 24 : 20} className="drop-shadow-sm" />
+          <condition.icon size={isSelected ? 20 : 16} className="drop-shadow-sm md:size-[24px]" />
         ) : (
-          <CheckCircle2 size={18} className="opacity-40" />
+          <CheckCircle2 size={16} className="opacity-40 md:size-[18px]" />
         )}
       </div>
       {status?.treatmentPlanned && (
-        <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full animate-pulse border-2 border-white" />
+        <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 md:w-2 md:h-2 bg-orange-500 rounded-full animate-pulse border border-white" />
       )}
     </button>
   );
@@ -181,31 +181,31 @@ export function Odontogram({ patientId, clinicId }: OdontogramProps) {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col lg:flex-row gap-8">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
         {/* Odontogram Visual */}
         <Card className="flex-1 card-custom border-none shadow-sm overflow-hidden bg-white">
-          <CardHeader className="p-8 border-b border-slate-50">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-lg font-black text-slate-800">Odontograma Interativo</CardTitle>
-                <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Selecione os dentes para registrar diagnóstico</CardDescription>
+          <CardHeader className="p-5 md:p-8 border-b border-slate-50">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="text-center sm:text-left">
+                <CardTitle className="text-base md:text-lg font-black text-slate-800">Odontograma Interativo</CardTitle>
+                <CardDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Selecione os dentes para registrar diagnóstico</CardDescription>
               </div>
               <Button 
                 onClick={handleSave} 
                 disabled={saving}
-                className="bg-brand-primary text-white rounded-2xl h-11 px-6 font-black shadow-lg shadow-brand-primary/20 hover:scale-[1.02] transition-all gap-2"
+                className="w-full sm:w-auto bg-brand-primary text-white rounded-xl md:rounded-2xl h-11 px-6 font-black shadow-lg shadow-brand-primary/20 hover:scale-[1.02] transition-all gap-2"
               >
                 {saving ? <RotateCcw size={18} className="animate-spin" /> : <Save size={18} />}
                 SALVAR FICHA
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="p-8 space-y-12">
+          <CardContent className="p-4 md:p-8 space-y-8 md:space-y-12">
             {/* Upper Teeth */}
             <div className="space-y-4">
               <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block text-center">Arcada Superior</Label>
-              <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+              <div className="grid grid-cols-8 sm:flex sm:flex-wrap justify-center gap-1.5 md:gap-3">
                 {UPPER_TEETH.map(num => (
                   <ToothItem 
                     key={num} 
@@ -221,7 +221,7 @@ export function Odontogram({ patientId, clinicId }: OdontogramProps) {
             {/* Lower Teeth */}
             <div className="space-y-4">
               <Label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block text-center">Arcada Inferior</Label>
-              <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+              <div className="grid grid-cols-8 sm:flex sm:flex-wrap justify-center gap-1.5 md:gap-3">
                 {LOWER_TEETH.map(num => (
                   <ToothItem 
                     key={num} 
@@ -233,17 +233,16 @@ export function Odontogram({ patientId, clinicId }: OdontogramProps) {
                 ))}
               </div>
             </div>
-
           </CardContent>
         </Card>
 
         {/* Tooth Action Panel */}
         <div className="lg:w-80 space-y-6">
           <Card className={cn(
-            "card-custom border-none shadow-xl transition-all h-full sticky top-0",
-            selectedTooth ? "translate-y-0 opacity-100" : "translate-y-4 opacity-70 pointer-events-none"
+            "card-custom border-none shadow-xl transition-all h-full lg:sticky lg:top-0",
+            selectedTooth ? "translate-y-0 opacity-100" : "opacity-70 pointer-events-none hidden lg:block"
           )}>
-            <CardHeader className="p-6 md:p-8 bg-slate-50/50">
+            <CardHeader className="p-5 md:p-8 bg-slate-50/50">
               <CardTitle className="text-xl font-black text-slate-800 flex items-center justify-between">
                 Dente {selectedTooth || '--'}
                 {selectedTooth && <span className="text-[10px] font-black text-brand-primary bg-brand-light px-3 py-1 rounded-full uppercase tracking-widest">Selecionado</span>}

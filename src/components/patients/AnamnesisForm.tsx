@@ -139,34 +139,34 @@ export function AnamnesisForm({ patientId, clinicId }: AnamnesisFormProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+    <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
         <div>
-          <h2 className="text-2xl font-black text-slate-800">Anamnese Odontológica</h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Histórico completo de saúde do paciente</p>
+          <h2 className="text-xl md:text-2xl font-black text-slate-800">Anamnese Odontológica</h2>
+          <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Histórico completo de saúde do paciente</p>
         </div>
         <Button 
           onClick={handleSave} 
           disabled={saving}
-          className="bg-brand-primary text-white rounded-2xl h-12 px-8 font-black shadow-lg shadow-brand-primary/20 hover:scale-[1.02] transition-all gap-2"
+          className="w-full md:w-auto bg-brand-primary text-white rounded-xl md:rounded-2xl h-12 px-8 font-black shadow-lg shadow-brand-primary/20 hover:scale-[1.02] transition-all gap-2"
         >
           {saving ? <RotateCcw size={18} className="animate-spin" /> : <Save size={18} />}
           SALVAR ANAMNESE
         </Button>
       </div>
 
-      <div className="grid gap-8">
+      <div className="grid gap-6 md:gap-8">
         {/* Motivo Principal */}
         <Card className="card-custom border-none shadow-sm shadow-slate-100 overflow-hidden bg-white">
-          <CardHeader className="bg-brand-light p-6 border-b border-brand-primary/10">
+          <CardHeader className="bg-brand-light p-5 md:p-6 border-b border-brand-primary/10">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-brand-primary flex items-center justify-center text-white">
-                <FileText size={20} />
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-brand-primary flex items-center justify-center text-white">
+                <FileText size={18} />
               </div>
-              <CardTitle className="text-lg font-black text-slate-800">Queixa Principal</CardTitle>
+              <CardTitle className="text-base md:text-lg font-black text-slate-800">Queixa Principal</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-8">
+          <CardContent className="p-5 md:p-8">
             <QuestionItem 
               q={QUESTIONS.find(q => q.id === 'motivo')!} 
               formData={formData} 
@@ -178,16 +178,16 @@ export function AnamnesisForm({ patientId, clinicId }: AnamnesisFormProps) {
 
         {/* Saúde Geral */}
         <Card className="card-custom border-none shadow-sm shadow-slate-100 overflow-hidden bg-white">
-          <CardHeader className="bg-red-50 p-6 border-b border-red-100">
+          <CardHeader className="bg-red-50 p-5 md:p-6 border-b border-red-100">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-2xl bg-red-500 flex items-center justify-center text-white">
-                <HeartPulse size={20} />
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-red-500 flex items-center justify-center text-white">
+                <HeartPulse size={18} />
               </div>
-              <CardTitle className="text-lg font-black text-slate-800">Saúde Sistêmica</CardTitle>
+              <CardTitle className="text-base md:text-lg font-black text-slate-800">Saúde Sistêmica</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <CardContent className="p-5 md:p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 md:mb-8">
               {QUESTIONS.filter(q => q.category === 'saude_geral' && q.type === 'checkbox').map(q => (
                 <QuestionItem 
                   key={q.id} 
@@ -208,17 +208,17 @@ export function AnamnesisForm({ patientId, clinicId }: AnamnesisFormProps) {
         </Card>
 
         {/* Medicamentos e Histórico */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
           <Card className="card-custom border-none shadow-sm shadow-slate-100 overflow-hidden bg-white">
-            <CardHeader className="bg-blue-50 p-6 border-b border-blue-100">
+            <CardHeader className="bg-blue-50 p-5 md:p-6 border-b border-blue-100">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-blue-500 flex items-center justify-center text-white">
-                  <Activity size={20} />
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-blue-500 flex items-center justify-center text-white">
+                  <Activity size={18} />
                 </div>
-                <CardTitle className="text-lg font-black text-slate-800">Medicamentos</CardTitle>
+                <CardTitle className="text-base md:text-lg font-black text-slate-800">Medicamentos</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="p-8">
+            <CardContent className="p-5 md:p-8">
               <QuestionItem 
                 q={QUESTIONS.find(q => q.id === 'medicamentos')!} 
                 formData={formData} 
@@ -229,15 +229,15 @@ export function AnamnesisForm({ patientId, clinicId }: AnamnesisFormProps) {
           </Card>
 
           <Card className="card-custom border-none shadow-sm shadow-slate-100 overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50 p-6 border-b border-slate-100">
+            <CardHeader className="bg-slate-50 p-5 md:p-6 border-b border-slate-100">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-slate-500 flex items-center justify-center text-white">
-                  <ClipboardCheck size={20} />
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-slate-500 flex items-center justify-center text-white">
+                  <ClipboardCheck size={18} />
                 </div>
-                <CardTitle className="text-lg font-black text-slate-800">Hábitos</CardTitle>
+                <CardTitle className="text-base md:text-lg font-black text-slate-800">Hábitos</CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="p-8 space-y-6">
+            <CardContent className="p-5 md:p-8 space-y-6">
               <QuestionItem 
                 q={QUESTIONS.find(q => q.id === 'bruxismo')!} 
                 formData={formData} 
@@ -256,7 +256,7 @@ export function AnamnesisForm({ patientId, clinicId }: AnamnesisFormProps) {
 
         {/* Observações Finais */}
         <Card className="card-custom border-none shadow-sm shadow-slate-100 overflow-hidden bg-white">
-          <CardContent className="p-8">
+          <CardContent className="p-5 md:p-8">
             <QuestionItem 
               q={QUESTIONS.find(q => q.id === 'observacoes')!} 
               formData={formData} 
@@ -267,7 +267,7 @@ export function AnamnesisForm({ patientId, clinicId }: AnamnesisFormProps) {
         </Card>
       </div>
 
-      <div className="py-12 border-t border-slate-100 flex flex-col items-center gap-6">
+      <div className="py-8 md:py-12 border-t border-slate-100 flex flex-col items-center gap-6">
         <div className="flex items-center gap-2 px-6 py-2 rounded-full bg-orange-50 border border-orange-100">
           <AlertTriangle size={14} className="text-orange-500" />
           <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest">Informações Confidenciais</span>
