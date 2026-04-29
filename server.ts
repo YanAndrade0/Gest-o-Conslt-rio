@@ -20,6 +20,10 @@ async function startServer() {
         console.warn('STRIPE_SECRET_KEY missing');
         throw new Error('STRIPE_SECRET_KEY environment variable is required');
       }
+      
+      const isTest = key.startsWith('sk_test');
+      console.log(`Stripe client initialized in ${isTest ? 'TEST' : 'LIVE'} mode.`);
+      
       stripeClient = new Stripe(key, {
         apiVersion: '2023-10-16' as any,
       });
@@ -51,6 +55,12 @@ async function startServer() {
         return res.status(400).json({ error: 'Price ID is missing. Check your VITE_STRIPE_MONTHLY_PRICE_ID or VITE_STRIPE_YEARLY_PRICE_ID environment variables.' });
       }
 
+      if (String(priceId).startsWith('prod_')) {
+        return res.status(400).json({ 
+          error: `O ID "${priceId}" é um ID de PRODUTO. Para o checkout, você deve usar o ID do PREÇO (começa com "price_"). Verifique seu menu Settings.` 
+        });
+      }
+
       const stripe = getStripe();
 
       const session = await stripe.checkout.sessions.create({
@@ -69,6 +79,13 @@ async function startServer() {
       res.json({ url: session.url });
     } catch (error: any) {
       console.error('Stripe Error:', error);
+      
+      if (error.type === 'StripeAuthenticationError') {
+        return res.status(401).json({ 
+          error: 'Chave de API Inválida. Verifique o campo STRIPE_SECRET_KEY no menu Settings do AI Studio. A chave deve começar com "sk_test_" ou "sk_live_".' 
+        });
+      }
+      
       res.status(500).json({ error: error.message });
     }
   });

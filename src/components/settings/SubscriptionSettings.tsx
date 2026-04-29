@@ -62,9 +62,16 @@ export function SubscriptionSettings() {
       return;
     }
     
-    if (!priceId || priceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || priceId === 'VITE_STRIPE_YEARLY_PRICE_ID') {
-      toast.error('ID de preço não configurado. Por favor, configure as variáveis de ambiente no menu Settings do AI Studio.', {
-        duration: 8000
+    if (!priceId || priceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || priceId === 'VITE_STRIPE_YEARLY_PRICE_ID' || String(priceId).trim() === '') {
+      toast.error('ID de preço não encontrado! Por favor, acesse o menu "Settings" do AI Studio e insira o ID do produto Stripe em VITE_STRIPE_MONTHLY_PRICE_ID (ou YEARLY).', {
+        duration: 10000
+      });
+      return;
+    }
+
+    if (String(priceId).startsWith('prod_')) {
+      toast.error(`Você usou um ID de PRODUTO (${priceId}), mas precisa do ID do PREÇO que começa com "price_". Vá no Dashboard do Stripe > Produtos, clique no seu produto e copie o "API ID" do preço.`, {
+        duration: 12000
       });
       return;
     }
@@ -96,7 +103,20 @@ export function SubscriptionSettings() {
       }
     } catch (error: any) {
       console.error('Checkout error:', error);
-      toast.error(`Erro: ${error.message || 'Conexão com o servidor falhou'}. Verifique se o servidor está rodando.`);
+      const message = error.message || '';
+      if (message.includes('No such price')) {
+        toast.error(`ID de Preço Não Encontrado: O Stripe não reconheceu o ID "${priceId}". Certifique-se de que:
+        1. O ID começa com "price_".
+        2. Você está usando a Secret Key correta (sk_test_ ou sk_live_) no menu Settings.`, {
+          duration: 10000
+        });
+      } else if (message.includes('Chave de API Inválida') || message.includes('Invalid API Key')) {
+        toast.error(`Erro de Autenticação: A sua STRIPE_SECRET_KEY no menu Settings parece estar incorreta. Certifique-se de que ela comece com "sk_test_" ou "sk_live_".`, {
+          duration: 10000
+        });
+      } else {
+        toast.error(`Erro: ${message || 'Conexão com o servidor falhou'}. Verifique se o servidor está rodando.`);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -209,6 +229,17 @@ export function SubscriptionSettings() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {(!(import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID === 'VITE_STRIPE_MONTHLY_PRICE_ID') && (
+            <div className="md:col-span-2 bg-amber-50 border-2 border-dashed border-amber-200 p-6 rounded-[2rem] text-center space-y-3">
+              <AlertCircle size={32} className="mx-auto text-amber-500" />
+              <h4 className="font-black text-amber-900">Configuração do Stripe Pendente</h4>
+              <p className="text-sm text-amber-700 max-w-md mx-auto">
+                Para ativar os pagamentos, abra o menu <strong>Settings</strong> (engrenagem) no topo do AI Studio e preencha os campos <code>VITE_STRIPE_MONTHLY_PRICE_ID</code> e <code>VITE_STRIPE_YEARLY_PRICE_ID</code>.
+                <br /><br />
+                <strong>Importante:</strong> Use o ID que começa com <code className="bg-amber-100 px-1 rounded text-amber-900 font-bold">price_</code> (e não o do produto que começa com prod_).
+              </p>
+            </div>
+          )}
           {/* Monthly Plan */}
           <Card className="card-custom border-none flex flex-col h-full bg-white transition-all hover:scale-[1.01] hover:shadow-2xl">
             <CardHeader className="p-8 pb-0">
