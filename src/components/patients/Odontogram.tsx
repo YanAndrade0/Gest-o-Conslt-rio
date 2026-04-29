@@ -50,7 +50,9 @@ function ToothItem({ num, teeth, selectedTooth, onToothClick }: ToothItemProps) 
       onClick={() => onToothClick(num)}
       className={cn(
         "w-9 h-12 md:w-12 md:h-16 flex flex-col items-center justify-between p-1 rounded-lg border-2 transition-all relative group",
-        isSelected ? "border-brand-primary bg-brand-light ring-4 ring-brand-primary/10 scale-110 z-20" : "border-slate-100 bg-white hover:border-slate-200"
+        isSelected ? "border-brand-primary bg-brand-light ring-4 ring-brand-primary/10 scale-110 z-20" : 
+        status?.treatmentPlanned ? "border-green-500 bg-green-50/50 hover:bg-green-50" : 
+        "border-slate-100 bg-white hover:border-slate-200"
       )}
     >
       <span className={cn(
