@@ -6,7 +6,8 @@ import {
   where, 
   onSnapshot,
   deleteDoc,
-  doc
+  doc,
+  getDocs
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase-config';
@@ -43,7 +44,80 @@ export interface PatientPayment {
   clinicId: string;
 }
 
+export interface ToothStatus {
+  toothNumber: number;
+  condition: string; // e.g., 'healthy', 'decay', 'restored', 'missing', 'implant', 'canal'
+  notes?: string;
+  treatmentPlanned?: string;
+}
+
+export interface OdontogramData {
+  id?: string;
+  patientId: string;
+  clinicId: string;
+  teeth: { [key: number]: ToothStatus };
+  lastUpdated: string;
+}
+
+export interface AnamnesisData {
+  id?: string;
+  patientId: string;
+  clinicId: string;
+  questions: { [key: string]: any };
+  lastUpdated: string;
+}
+
 export const medicalRecordService = {
+  // ... existing items ...
+
+  // Anamnesis
+  async saveAnamnesis(data: AnamnesisData) {
+    try {
+      const q = query(
+        collection(db, 'anamneses'),
+        where('patientId', '==', data.patientId),
+        where('clinicId', '==', data.clinicId)
+      );
+      
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const docId = snapshot.docs[0].id;
+        await updateDoc(doc(db, 'anamneses', docId), {
+          questions: data.questions,
+          lastUpdated: new Date().toISOString()
+        });
+      } else {
+        await addDoc(collection(db, 'anamneses'), {
+          ...data,
+          lastUpdated: new Date().toISOString()
+        });
+      }
+      
+      await auditService.log(AuditAction.PATIENT_UPDATE, data.clinicId, data.patientId, 'patient', { type: 'anamnesis_update' });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'anamneses');
+    }
+  },
+
+  subscribeToAnamnesis(patientId: string, clinicId: string, callback: (data: AnamnesisData | null) => void) {
+    const q = query(
+      collection(db, 'anamneses'),
+      where('patientId', '==', patientId),
+      where('clinicId', '==', clinicId)
+    );
+    return onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        callback(null);
+      } else {
+        const data = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as AnamnesisData;
+        callback(data);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'anamneses');
+    });
+  },
+
   // Evolutions
   async addEvolution(evolution: Omit<Evolution, 'id'>) {
     try {
@@ -175,6 +249,58 @@ export const medicalRecordService = {
       callback(data);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, 'transactions');
+    });
+  },
+
+  // Odontogram
+  async saveOdontogram(data: OdontogramData) {
+    try {
+      const q = query(
+        collection(db, 'odontograms'),
+        where('patientId', '==', data.patientId),
+        where('clinicId', '==', data.clinicId)
+      );
+      
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const docId = snapshot.docs[0].id;
+        await updateDoc(doc(db, 'odontograms', docId), {
+          teeth: data.teeth,
+          lastUpdated: new Date().toISOString()
+        });
+      } else {
+        await addDoc(collection(db, 'odontograms'), {
+          ...data,
+          lastUpdated: new Date().toISOString()
+        });
+      }
+      
+      await auditService.log(AuditAction.PATIENT_UPDATE, data.clinicId, data.patientId, 'patient', { type: 'odontogram_update' });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, 'odontograms');
+    }
+  },
+
+  subscribeToOdontogram(patientId: string, clinicId: string, callback: (data: OdontogramData | null) => void, errorCallback?: (error: any) => void) {
+    const q = query(
+      collection(db, 'odontograms'),
+      where('patientId', '==', patientId),
+      where('clinicId', '==', clinicId)
+    );
+    return onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        callback(null);
+      } else {
+        const data = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as OdontogramData;
+        callback(data);
+      }
+    }, (error) => {
+      if (errorCallback) {
+        errorCallback(error);
+      } else {
+        handleFirestoreError(error, OperationType.GET, 'odontograms');
+      }
     });
   }
 };

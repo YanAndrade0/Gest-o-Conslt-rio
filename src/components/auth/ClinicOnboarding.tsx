@@ -197,6 +197,7 @@ export function ClinicOnboarding() {
                  >
                    <h4 className="font-black text-slate-800">Mensal</h4>
                    <p className="text-2xl font-black text-brand-primary mt-2">R$ 34,90<span className="text-sm font-bold text-slate-400">/mês</span></p>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Até 5 usuários por clínica</p>
                    {selectedPlan === 'monthly' && <div className="absolute top-4 right-4 w-6 h-6 bg-brand-primary rounded-full flex items-center justify-center text-white"><CheckCircle2 size={14} /></div>}
                  </button>
 
@@ -210,6 +211,7 @@ export function ClinicOnboarding() {
                    <div className="absolute -top-3 right-4 bg-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-orange-500/20">Economize 14%</div>
                    <h4 className="font-black text-slate-800">Anual</h4>
                    <p className="text-2xl font-black text-brand-primary mt-2">R$ 359,90<span className="text-sm font-bold text-slate-400">/ano</span></p>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Até 5 usuários por clínica</p>
                    {selectedPlan === 'yearly' && <div className="absolute top-4 right-4 w-6 h-6 bg-brand-primary rounded-full flex items-center justify-center text-white"><CheckCircle2 size={14} /></div>}
                  </button>
                </div>

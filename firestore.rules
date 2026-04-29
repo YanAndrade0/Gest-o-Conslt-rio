@@ -134,6 +134,20 @@ service cloud.firestore {
         && data.keys().hasAll(['userId', 'action', 'timestamp', 'clinicId']);
     }
 
+    function isValidOdontogram(data) {
+      return data.patientId is string && isValidId(data.patientId)
+        && data.clinicId is string && isValidId(data.clinicId)
+        && data.teeth is map
+        && data.keys().hasAll(['patientId', 'clinicId', 'teeth']);
+    }
+
+    function isValidAnamnesis(data) {
+      return data.patientId is string && isValidId(data.patientId)
+        && data.clinicId is string && isValidId(data.clinicId)
+        && data.questions is map
+        && data.keys().hasAll(['patientId', 'clinicId', 'questions']);
+    }
+
     // ---------------------------------------------------------
     // ENTITIES
     // ---------------------------------------------------------
@@ -193,6 +207,22 @@ service cloud.firestore {
       allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidEvolution(incoming());
       allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidEvolution(incoming());
       allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);
+    }
+
+    // Odontograms
+    match /odontograms/{odontogramId} {
+      allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
+      allow get: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidOdontogram(incoming());
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidOdontogram(incoming());
+    }
+
+    // Anamneses
+    match /anamneses/{anamnesisId} {
+      allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
+      allow get: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidAnamnesis(incoming());
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidAnamnesis(incoming());
     }
 
     // Patient Photos

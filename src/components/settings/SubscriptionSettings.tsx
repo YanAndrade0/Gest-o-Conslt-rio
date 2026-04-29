@@ -211,7 +211,7 @@ export function SubscriptionSettings() {
               </div>
               
               <ul className="space-y-3 flex-1">
-                {['Pacientes Ilimitados', 'Agenda Multiclínica', 'Financeiro Completo', 'Suporte WhatsApp', 'Backup em Tempo Real'].map(feat => (
+                {['Até 5 usuários por clínica', 'Pacientes Ilimitados', 'Agenda Multiclínica', 'Financeiro Completo', 'Suporte WhatsApp', 'Backup em Tempo Real'].map(feat => (
                   <li key={feat} className="flex items-center gap-2 text-sm font-medium text-slate-600">
                     <CheckCircle2 size={16} className="text-green-500" /> {feat}
                   </li>
@@ -245,7 +245,7 @@ export function SubscriptionSettings() {
               </div>
               
               <ul className="space-y-3 flex-1 opacity-70">
-                {['Todos os recursos Mensal', '2 meses de desconto', 'Faturamento anual por CNPJ', 'Gerente de Contas'].map(feat => (
+                {['Até 5 usuários por clínica', 'Todos os recursos Mensal', '2 meses de desconto', 'Faturamento anual por CNPJ', 'Gerente de Contas'].map(feat => (
                   <li key={feat} className="flex items-center gap-2 text-sm font-medium text-slate-600">
                     <CheckCircle2 size={16} className="text-green-500" /> {feat}
                   </li>

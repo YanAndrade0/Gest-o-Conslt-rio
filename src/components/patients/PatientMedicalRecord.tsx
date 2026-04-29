@@ -16,7 +16,9 @@ import {
   Save,
   RotateCcw,
   Upload,
-  Loader2
+  Loader2,
+  Stethoscope,
+  ClipboardList
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
@@ -36,6 +38,8 @@ import { format, parseISO, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import { appointmentService } from '../../services/appointmentService';
+import { Odontogram } from './Odontogram';
+import { AnamnesisForm } from './AnamnesisForm';
 
 interface PatientMedicalRecordProps {
   patient: Patient;
@@ -68,11 +72,6 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   // Editing state
   const [editingEvoId, setEditingEvoId] = useState<string | null>(null);
   const [editEvoData, setEditEvoData] = useState({ description: '', date: '' });
-  
-  // Appointments state
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [isEditingAppointment, setIsEditingAppointment] = useState(false);
-  const [editingApp, setEditingApp] = useState<any>(null);
 
   useEffect(() => {
     const cid = user?.clinicId || patient.clinicId;
@@ -88,17 +87,6 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
     const unsubPayments = medicalRecordService.subscribeToPayments(patient.id, cid, (data) => {
       if (isMounted) setPayments(data);
     });
-    
-    // Fetch appointments
-    const fetchAppointments = async () => {
-      try {
-        const apps = await appointmentService.getAppointmentsByPatient(cid, patient.id!);
-        if (isMounted) setAppointments(apps || []);
-      } catch (error) {
-        console.error('Error fetching appointments:', error);
-      }
-    };
-    fetchAppointments();
 
     return () => {
       isMounted = false;
@@ -298,14 +286,17 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
 
         {/* Content */}
         <div className="flex-1 overflow-hidden">
-          <Tabs defaultValue="evolution" className="h-full flex flex-col">
+          <Tabs defaultValue="ficha" className="h-full flex flex-col">
             <div className="bg-white px-4 md:px-8 pb-0 shrink-0 overflow-x-auto scrollbar-hide">
               <TabsList className="bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100 h-auto gap-1 w-max md:w-auto">
+                <TabsTrigger value="ficha" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
+                  <Stethoscope size={16} className="md:size-[18px]" /> Ficha Clínica
+                </TabsTrigger>
+                <TabsTrigger value="anamnese" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
+                  <ClipboardList size={16} className="md:size-[18px]" /> Anamnese
+                </TabsTrigger>
                 <TabsTrigger value="evolution" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
                   <History size={16} className="md:size-[18px]" /> Histórico & Evolução
-                </TabsTrigger>
-                <TabsTrigger value="appointments" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
-                  <Calendar size={16} className="md:size-[18px]" /> Consultas
                 </TabsTrigger>
                 <TabsTrigger value="payments" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
                   <DollarSign size={16} className="md:size-[18px]" /> Pagamentos
@@ -317,6 +308,16 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-6 bg-slate-50/30">
+              {/* Anamnese Tab */}
+              <TabsContent value="anamnese" className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <AnamnesisForm patientId={patient.id!} clinicId={user?.clinicId || patient.clinicId} />
+              </TabsContent>
+
+              {/* Ficha Clínica Tab */}
+              <TabsContent value="ficha" className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <Odontogram patientId={patient.id!} clinicId={user?.clinicId || patient.clinicId} />
+              </TabsContent>
+
               {/* Evolutions Tab */}
               <TabsContent value="evolution" className="m-0 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
                 <Card className="card-custom border-none shadow-sm overflow-hidden border border-white">
@@ -503,95 +504,6 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                         </Card>
                       </div>
                     ))
-                  )}
-                </div>
-              </TabsContent>
-
-              {/* Consultas Tab */}
-              <TabsContent value="appointments" className="m-0 space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Histórico de Agendamentos</h3>
-                  {appointments.length === 0 ? (
-                    <div className="py-12 text-center bg-white rounded-3xl border border-slate-100 italic text-slate-400 font-bold text-sm">
-                      Nenhuma consulta registrada para este paciente.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-4">
-                      {appointments.slice().sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((app) => (
-                        <Card key={app.id} className="card-custom border-none shadow-sm hover:shadow-md transition-all group overflow-hidden">
-                          <CardContent className="p-0">
-                            <div className="flex items-stretch">
-                              <div className={cn(
-                                "w-2 shrink-0",
-                                app.status === 'marcado' ? 'bg-blue-400' : 
-                                app.status === 'confirmado' ? 'bg-green-400' : 
-                                app.status === 'aguardando' ? 'bg-orange-400' : 
-                                app.status === 'desmarcado' ? 'bg-red-400' : 'bg-slate-400'
-                              )}></div>
-                              <div className="p-6 flex-1 flex flex-col md:flex-row justify-between items-center gap-4">
-                                <div className="flex items-center gap-4 flex-1">
-                                  <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-brand-primary transition-colors">
-                                    <Calendar size={20} />
-                                  </div>
-                                  <div>
-                                    <div className="flex items-center gap-3">
-                                      <p className="text-sm font-black text-slate-800">{format(parseISO(app.date), "dd 'de' MMMM, yyyy", { locale: ptBR })}</p>
-                                      <Badge variant="outline" className={cn(
-                                        "capitalize text-[9px] font-black tracking-widest px-2 py-0.5 rounded-md",
-                                        app.status === 'marcado' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
-                                        app.status === 'confirmado' ? 'bg-green-50 text-green-600 border-green-100' : 
-                                        app.status === 'aguardando' ? 'bg-orange-50 text-orange-600 border-orange-100' : 
-                                        app.status === 'desmarcado' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-slate-100 text-slate-600 border-slate-200'
-                                      )}>
-                                        {app.status}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-xs font-bold text-slate-400 flex items-center gap-2 mt-1">
-                                      <Clock size={12} /> {format(parseISO(app.date), "HH:mm")} • {app.procedure}
-                                    </p>
-                                    {app.doctorName && (
-                                       <p className="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-wider">Doutor(a): {app.doctorName}</p>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex gap-2">
-                                  <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-2">
-                                     {app.status !== 'finalizado' && (
-                                       <Button 
-                                         size="sm" 
-                                         className="bg-green-500 text-white rounded-xl font-bold h-9 shadow-md shadow-green-500/20 px-4"
-                                         onClick={async () => {
-                                           try {
-                                             await appointmentService.updateAppointment(app.id, { status: 'finalizado' });
-                                             setAppointments(appointments.map(a => a.id === app.id ? { ...a, status: 'finalizado' } : a));
-                                             toast.success('Consulta finalizada!');
-                                           } catch (e) {
-                                             toast.error('Erro ao atualizar status.');
-                                           }
-                                         }}
-                                       >
-                                         ATENDER
-                                       </Button>
-                                     )}
-                                     <Button 
-                                       variant="ghost" 
-                                       size="icon" 
-                                       className="h-9 w-9 rounded-xl text-slate-400 hover:text-brand-primary hover:bg-brand-light"
-                                       onClick={() => {
-                                          setEditingApp(app);
-                                          setIsEditingAppointment(true);
-                                       }}
-                                     >
-                                       <Edit2 size={16} />
-                                     </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
                   )}
                 </div>
               </TabsContent>
@@ -869,113 +781,6 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
           </Tabs>
         </div>
       </div>
-
-      {/* Appointment Edit Modal */}
-      {isEditingAppointment && editingApp && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white rounded-[2.5rem] border-none shadow-2xl p-8 animate-in zoom-in-95 duration-300">
-            <header className="mb-6">
-               <div className="w-14 h-14 bg-brand-light rounded-2xl flex items-center justify-center text-brand-primary mb-4">
-                <Calendar size={28} />
-              </div>
-              <h3 className="text-2xl font-black text-slate-800 tracking-tight">Editar Consulta</h3>
-              <p className="text-sm font-medium text-slate-400">Edite os detalhes desta consulta, mesmo após a data.</p>
-            </header>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Procedimento</Label>
-                <Input 
-                  value={editingApp.procedure}
-                  onChange={(e) => setEditingApp({...editingApp, procedure: e.target.value})}
-                  className="bg-bg-main border-none h-14 rounded-2xl font-bold text-slate-700"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Data</Label>
-                  <Input 
-                    type="date"
-                    value={format(parseISO(editingApp.date), 'yyyy-MM-dd')}
-                    onChange={(e) => {
-                      const newDate = parseISO(e.target.value);
-                      const current = parseISO(editingApp.date);
-                      newDate.setHours(current.getHours());
-                      newDate.setMinutes(current.getMinutes());
-                      setEditingApp({...editingApp, date: newDate.toISOString()});
-                    }}
-                    className="bg-bg-main border-none h-14 rounded-2xl font-bold"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Horário</Label>
-                  <Input 
-                    type="time"
-                    value={format(parseISO(editingApp.date), 'HH:mm')}
-                    onChange={(e) => {
-                      const [h, m] = e.target.value.split(':').map(Number);
-                      const newDate = parseISO(editingApp.date);
-                      newDate.setHours(h);
-                      newDate.setMinutes(m);
-                      setEditingApp({...editingApp, date: newDate.toISOString()});
-                    }}
-                    className="bg-bg-main border-none h-14 rounded-2xl font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Status</Label>
-                <select 
-                  className="w-full bg-bg-main border-none h-14 rounded-2xl px-4 font-bold text-sm"
-                  value={editingApp.status}
-                  onChange={(e) => setEditingApp({...editingApp, status: e.target.value as any})}
-                >
-                  <option value="marcado">Marcado</option>
-                  <option value="confirmado">Confirmado</option>
-                  <option value="aguardando">Aguardando</option>
-                  <option value="finalizado">Finalizado</option>
-                  <option value="desmarcado">Desmarcado</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-8 flex gap-3">
-              <Button 
-                variant="ghost" 
-                className="flex-1 rounded-2xl font-bold h-14"
-                onClick={() => {
-                  setIsEditingAppointment(false);
-                  setEditingApp(null);
-                }}
-              >
-                Voltar
-              </Button>
-              <Button 
-                className="flex-[2] bg-brand-primary text-white rounded-2xl font-black h-14 shadow-xl shadow-brand-primary/30"
-                onClick={async () => {
-                   try {
-                     await appointmentService.updateAppointment(editingApp.id, {
-                       procedure: editingApp.procedure,
-                       date: editingApp.date,
-                       status: editingApp.status
-                     });
-                     setAppointments(appointments.map(a => a.id === editingApp.id ? editingApp : a));
-                     setIsEditingAppointment(false);
-                     setEditingApp(null);
-                     toast.success('Agendamento atualizado!');
-                   } catch (e) {
-                     toast.error('Erro ao atualizar consulta.');
-                   }
-                }}
-              >
-                SALVAR ALTERAÇÕES
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }

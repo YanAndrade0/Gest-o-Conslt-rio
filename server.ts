@@ -58,7 +58,7 @@ async function startServer() {
         
         if (clinicId && subscriptionId) {
           const stripeClient = getStripe();
-          const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
+          const subscription = await stripeClient.subscriptions.retrieve(subscriptionId) as any;
           
           await firestore.collection('clinics').doc(clinicId).update({
             'subscription.status': 'active',
