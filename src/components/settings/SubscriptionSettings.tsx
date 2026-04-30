@@ -99,6 +99,7 @@ export function SubscriptionSettings() {
     }
 
     setIsProcessing(true);
+    const toastId = toast.loading('Preparando seu checkout...');
 
     try {
       console.log('Iniciando checkout com priceId final:', rawPriceId);
@@ -120,26 +121,22 @@ export function SubscriptionSettings() {
 
       if (data.url) {
         console.log('Redirecionando para:', data.url);
-        window.location.assign(data.url);
+        toast.success('Redirecionando para o Stripe...', { id: toastId });
+        
+        // Abrir em nova aba evita bloqueios de iFrame
+        const checkoutWindow = window.open(data.url, '_blank');
+        if (!checkoutWindow) {
+          window.location.assign(data.url);
+        }
       } else {
-        toast.error(data.error || 'Erro ao iniciar checkout: URL não retornada.');
+        throw new Error('URL de checkout não retornada pelo servidor.');
       }
     } catch (error: any) {
       console.error('Checkout error:', error);
-      const message = error.message || '';
-      if (message.includes('No such price')) {
-        toast.error(`ID de Preço Não Encontrado: O Stripe não reconheceu o ID "${priceId}". Certifique-se de que:
-        1. O ID começa com "price_".
-        2. Você está usando a Secret Key correta (sk_test_ ou sk_live_) no menu Settings.`, {
-          duration: 10000
-        });
-      } else if (message.includes('Chave de API Inválida') || message.includes('Invalid API Key')) {
-        toast.error(`Erro de Autenticação: A sua STRIPE_SECRET_KEY no menu Settings parece estar incorreta. Certifique-se de que ela comece com "sk_test_" ou "sk_live_".`, {
-          duration: 10000
-        });
-      } else {
-        toast.error(`Erro: ${message || 'Conexão com o servidor falhou'}. Verifique se o servidor está rodando.`);
-      }
+      toast.error('Erro no Checkout', {
+        id: toastId,
+        description: error.message || 'Verifique sua conexão e o ID no menu Settings.'
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -253,30 +250,36 @@ export function SubscriptionSettings() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {(() => {
-            const m = String(import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID || '').trim();
-            const y = String(import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID || '').trim();
-            const monthlyMissing = !m || m === 'VITE_STRIPE_MONTHLY_PRICE_ID';
-            const yearlyMissing = !y || y === 'VITE_STRIPE_YEARLY_PRICE_ID';
+            const m = String(import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID || '').trim().replace(/['"]/g, '');
+            const y = String(import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID || '').trim().replace(/['"]/g, '');
+            const pk = String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim().replace(/['"]/g, '');
+            
+            const monthlyMissing = !m || m === 'VITE_STRIPE_MONTHLY_PRICE_ID' || m === '';
+            const yearlyMissing = !y || y === 'VITE_STRIPE_YEARLY_PRICE_ID' || y === '';
+            const pkMissing = !pk || pk === 'VITE_STRIPE_PUBLISHABLE_KEY' || pk === '';
 
-            if (!monthlyMissing && !yearlyMissing) return null;
+            if (!monthlyMissing && !yearlyMissing && !pkMissing) return null;
 
             return (
-              <div className="md:col-span-2 bg-amber-50 border-2 border-dashed border-amber-200 p-6 rounded-[2rem] text-center space-y-3">
-                <AlertCircle size={32} className="mx-auto text-amber-500" />
-                <h4 className="font-black text-amber-900">Configuração do Stripe Incompleta</h4>
-                <p className="text-sm text-amber-700 max-w-xl mx-auto">
-                  Para ativar os planos, abra o menu <strong>Settings</strong> (engrenagem no topo) e preencha {monthlyMissing && yearlyMissing ? 'os IDs abaixo' : 'o ID que falta'}:
+              <div className="md:col-span-2 bg-red-50 border-2 border-dashed border-red-200 p-6 rounded-[2rem] text-center space-y-3">
+                <AlertCircle size={32} className="mx-auto text-red-500" />
+                <h4 className="font-black text-red-900">Erro de Configuração Detectado</h4>
+                <p className="text-sm text-red-700 max-w-xl mx-auto">
+                  Detectamos que algumas chaves no seu menu <strong>Settings</strong> ainda estão com o nome padrão ou vazias:
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
                   {monthlyMissing && (
-                    <span className="bg-white px-3 py-1 rounded-lg border border-amber-200 text-[10px] font-bold text-amber-800">VITE_STRIPE_MONTHLY_PRICE_ID (Mensal)</span>
+                    <span className="bg-white px-3 py-1 rounded-lg border border-red-200 text-[10px] font-bold text-red-800">VITE_STRIPE_MONTHLY_PRICE_ID</span>
                   )}
                   {yearlyMissing && (
-                    <span className="bg-white px-3 py-1 rounded-lg border border-amber-200 text-[10px] font-bold text-amber-800">VITE_STRIPE_YEARLY_PRICE_ID (Anual)</span>
+                    <span className="bg-white px-3 py-1 rounded-lg border border-red-200 text-[10px] font-bold text-red-800">VITE_STRIPE_YEARLY_PRICE_ID</span>
+                  )}
+                  {pkMissing && (
+                    <span className="bg-white px-3 py-1 rounded-lg border border-red-200 text-[10px] font-bold text-red-800">VITE_STRIPE_PUBLISHABLE_KEY</span>
                   )}
                 </div>
-                <p className="text-[10px] text-amber-600 font-medium pt-2">
-                  💡 Use o <strong>API ID</strong> (ex: <code className="font-bold underline">price_1Qxyz...</code>). Se já colou, tente atualizar a página (F5).
+                <p className="text-[10px] text-red-600 font-medium pt-2">
+                  💡 <strong>Como resolver:</strong> Vá na engrenagem ⚙️ (Settings) no topo da tela, apague o texto atual desses campos e cole o seu código do Stripe (ex: price_xxx ou pk_xxx). Depois de colar, clique fora do campo e <strong>recarregue a página do app (F5)</strong>.
                 </p>
               </div>
             );

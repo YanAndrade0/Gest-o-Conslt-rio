@@ -47,21 +47,26 @@ async function startServer() {
 
   // API Routes
   app.post('/api/stripe/create-checkout', async (req, res) => {
-    console.log('Received checkout request:', req.body);
     try {
       const { clinicId, customerEmail, priceId } = req.body;
       
+      console.log('[DEBUG] Checkout Request Body:', JSON.stringify(req.body));
+      console.log('[DEBUG] Secret Key Status:', !!process.env.STRIPE_SECRET_KEY ? 'Present' : 'MISSING');
+      
       if (!priceId) {
-        return res.status(400).json({ error: 'Price ID is missing. Check your VITE_STRIPE_MONTHLY_PRICE_ID or VITE_STRIPE_YEARLY_PRICE_ID environment variables.' });
+        console.error('[DEBUG] Missing Price ID');
+        return res.status(400).json({ error: 'ID de Preço (priceId) não recebido pelo servidor.' });
       }
 
       if (String(priceId).startsWith('prod_')) {
+        console.error('[DEBUG] Product ID instead of Price ID:', priceId);
         return res.status(400).json({ 
-          error: `O ID "${priceId}" é um ID de PRODUTO. Para o checkout, você deve usar o ID do PREÇO (começa com "price_"). Verifique seu menu Settings.` 
+          error: `O ID "${priceId}" é um ID de PRODUTO. Você deve usar o ID do PREÇO (API ID) que começa com "price_".` 
         });
       }
 
       const stripe = getStripe();
+      console.log('[DEBUG] Initializing checkout session with price:', priceId);
 
       const session = await stripe.checkout.sessions.create({
         customer_email: customerEmail,
@@ -76,17 +81,20 @@ async function startServer() {
         }
       });
 
+      console.log('[DEBUG] Session created:', session.id);
       res.json({ url: session.url });
     } catch (error: any) {
-      console.error('Stripe Error:', error);
+      console.error('[STRIPE SERVER ERROR]:', error);
+      
+      let clientMessage = error.message;
       
       if (error.type === 'StripeAuthenticationError') {
-        return res.status(401).json({ 
-          error: 'Chave de API Inválida. Verifique o campo STRIPE_SECRET_KEY no menu Settings do AI Studio. A chave deve começar com "sk_test_" ou "sk_live_".' 
-        });
+        clientMessage = 'Chave de API Inválida. Verifique o campo STRIPE_SECRET_KEY no menu Settings do AI Studio. A chave deve começar com "sk_test_" ou "sk_live_".';
+      } else if (error.message.includes('No such price')) {
+        clientMessage = `O ID de preço "${req.body.priceId}" não existe nesta conta Stripe.`;
       }
       
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: clientMessage });
     }
   });
 
