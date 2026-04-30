@@ -75,23 +75,24 @@ export function SubscriptionSettings() {
     
     const rawPriceId = String(priceId || '').trim().replace(/['"]/g, '');
     
-    console.log('Tentativa de assinatura:', { 
-      receivedId: priceId, 
-      cleanedId: rawPriceId,
-      isPlaceholder: rawPriceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || rawPriceId === 'VITE_STRIPE_YEARLY_PRICE_ID'
-    });
+    console.log('--- DEBUG SUBSCRIPTION ATTEMPT ---');
+    console.log('Received raw priceId:', priceId);
+    console.log('Cleaned priceId:', rawPriceId);
+    console.log('---------------------------------');
 
     if (!rawPriceId || rawPriceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || rawPriceId === 'VITE_STRIPE_YEARLY_PRICE_ID' || rawPriceId === '') {
-      toast.error('ID de preço não encontrado ou inválido no menu Settings!', {
-        description: `O app recebeu o valor: "${rawPriceId || 'vazio'}". Vá no menu Settings (engrenagem) e insira o ID que começa com price_.`,
+      console.error('Subscription blocked: Missing Price ID');
+      toast.error('Configuração do Stripe Ausente', {
+        description: 'Vá no menu Settings (engrenagem) no topo e preencha os IDs dos planos (price_...).',
         duration: 10000
       });
       return;
     }
 
     if (rawPriceId.startsWith('prod_')) {
-      toast.error(`ID de PRODUTO detectado (${rawPriceId})`, {
-        description: 'Você precisa usar o ID do PREÇO (price_...), não o do produto (prod_). Veja no Dashboard do Stripe > Produtos.',
+      console.error('Subscription blocked: Product ID used instead of Price ID');
+      toast.error('ID de Produto Detectado', {
+        description: 'Você colou o ID do produto (prod_...), mas o Stripe exige o ID do PREÇO (price_...). Procure pelo "API ID" na seção de preços do seu produto no Stripe.',
         duration: 12000
       });
       return;
