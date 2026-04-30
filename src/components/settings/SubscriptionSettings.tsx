@@ -90,16 +90,17 @@ export function SubscriptionSettings() {
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro no servidor de checkout');
+        throw new Error(data.error || 'Erro no servidor de checkout');
       }
 
-      const data = await response.json();
       if (data.url) {
-        window.location.href = data.url;
+        console.log('Redirecionando para:', data.url);
+        window.location.assign(data.url);
       } else {
-        toast.error(data.error || 'Erro ao iniciar checkout.');
+        toast.error(data.error || 'Erro ao iniciar checkout: URL não retornada.');
       }
     } catch (error: any) {
       console.error('Checkout error:', error);
