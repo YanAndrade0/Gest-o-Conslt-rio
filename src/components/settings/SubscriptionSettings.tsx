@@ -56,44 +56,25 @@ export function SubscriptionSettings() {
     fetchSubscription();
   }, [user?.clinicId]);
 
-  const handleSubscribe = async (priceId: string) => {
+  const handleSubscribe = async (planTitle: string, price: number) => {
     if (!user || !user.clinicId) {
       toast.error('Usuário não identificado.');
       return;
     }
     
-    const rawPriceId = String(priceId || '').trim().replace(/['"]/g, '');
-    
-    if (!rawPriceId || rawPriceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || rawPriceId === 'VITE_STRIPE_YEARLY_PRICE_ID' || rawPriceId === '') {
-      console.error('Subscription blocked: Missing Price ID');
-      toast.error('Configuração do Stripe Ausente', {
-        description: 'Vá no menu Settings (engrenagem) no topo e preencha os IDs dos planos (price_...).',
-        duration: 10000
-      });
-      return;
-    }
-
-    if (rawPriceId.startsWith('prod_')) {
-      console.error('Subscription blocked: Product ID used instead of Price ID');
-      toast.error('ID de Produto Detectado', {
-        description: 'Você colou o ID do produto (prod_...), mas o Stripe exige o ID do PREÇO (price_...). Procure pelo "API ID" na seção de preços do seu produto no Stripe.',
-        duration: 12000
-      });
-      return;
-    }
-
     setIsProcessing(true);
-    const toastId = toast.loading('Preparando seu checkout...');
+    const toastId = toast.loading('Preparando seu checkout no Mercado Pago...');
 
     try {
-      console.log('Iniciando checkout com priceId final:', rawPriceId);
-      const response = await fetch('/api/stripe/create-checkout', {
+      console.log('Iniciando checkout Mercado Pago:', { planTitle, price });
+      const response = await fetch('/api/mercadopago/create-preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clinicId: user.clinicId,
           customerEmail: user.email,
-          priceId: rawPriceId,
+          title: planTitle,
+          price: price,
         }),
       });
 
@@ -104,10 +85,7 @@ export function SubscriptionSettings() {
       }
 
       if (data.url) {
-        console.log('Redirecionando para:', data.url);
-        toast.success('Redirecionando para o Stripe...', { id: toastId });
-        
-        // Redirecionamento direto na mesma aba é mais seguro para domínios próprios
+        toast.success('Redirecionando...', { id: toastId });
         window.location.href = data.url;
       } else {
         throw new Error('URL de checkout não retornada pelo servidor.');
@@ -116,7 +94,7 @@ export function SubscriptionSettings() {
       console.error('Checkout error:', error);
       toast.error('Erro no Checkout', {
         id: toastId,
-        description: error.message || 'Verifique sua conexão e o ID no menu Settings.'
+        description: error.message || 'Verifique sua conexão e as chaves no menu Settings.'
       });
     } finally {
       setIsProcessing(false);
@@ -127,27 +105,8 @@ export function SubscriptionSettings() {
     return <div className="p-8 text-center animate-pulse font-bold text-slate-400">Carregando dados da assinatura...</div>;
   }
 
-  const handlePortal = async () => {
-    if (!user?.clinicId) return;
-    setIsProcessing(true);
-    try {
-      const response = await fetch('/api/stripe/create-portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clinicId: user.clinicId }),
-      });
-
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error(data.error || 'Erro ao abrir portal de faturamento.');
-      }
-    } catch (error) {
-      toast.error('Erro de conexão.');
-    } finally {
-      setIsProcessing(false);
-    }
+  const handlePortal = () => {
+    window.open('https://www.mercadopago.com.br/activities', '_blank');
   };
 
   const getStatusColor = () => {
@@ -247,7 +206,7 @@ export function SubscriptionSettings() {
               </ul>
 
               <Button 
-                onClick={() => handleSubscribe(import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID)}
+                onClick={() => handleSubscribe('Mensal', 34.90)}
                 disabled={isProcessing || subscription.status === 'active'}
                 className="w-full h-14 bg-brand-primary text-white rounded-2xl font-black shadow-lg shadow-brand-primary/20 hover:bg-brand-accent transition-all group"
               >
@@ -282,7 +241,7 @@ export function SubscriptionSettings() {
 
               <Button 
                 variant="outline"
-                onClick={() => handleSubscribe(import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID)}
+                onClick={() => handleSubscribe('Anual', 359.90)}
                 disabled={isProcessing || subscription.status === 'active'}
                 className="w-full h-14 border-2 border-slate-200 rounded-2xl font-black text-slate-700 hover:bg-white hover:border-brand-primary transition-all group"
               >
