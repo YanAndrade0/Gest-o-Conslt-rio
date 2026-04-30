@@ -22,6 +22,17 @@ export function SubscriptionSettings() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
+    // Debug helper for the user
+    // @ts-ignore
+    const monthly = import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
+    // @ts-ignore
+    const yearly = import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID;
+    
+    console.log('--- DEBUG STRIPE CONFIG ---');
+    console.log('Mensal:', monthly === 'VITE_STRIPE_MONTHLY_PRICE_ID' || !monthly ? 'PENDENTE' : monthly);
+    console.log('Anual:', yearly === 'VITE_STRIPE_YEARLY_PRICE_ID' || !yearly ? 'PENDENTE' : yearly);
+    console.log('---------------------------');
+
     const params = new URLSearchParams(window.location.search);
     if (params.get('success')) {
       toast.success('Parabéns! Sua assinatura foi processada e será ativada em instantes.');
@@ -240,27 +251,35 @@ export function SubscriptionSettings() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {((!(import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID === 'VITE_STRIPE_MONTHLY_PRICE_ID') || 
-            (!(import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID === 'VITE_STRIPE_YEARLY_PRICE_ID')) && (
-            <div className="md:col-span-2 bg-amber-50 border-2 border-dashed border-amber-200 p-6 rounded-[2rem] text-center space-y-3">
-              <AlertCircle size={32} className="mx-auto text-amber-500" />
-              <h4 className="font-black text-amber-900">Configuração do Stripe Incompleta</h4>
-              <p className="text-sm text-amber-700 max-w-xl mx-auto">
-                Para ativar os planos, abra o menu <strong>Settings</strong> (ícone de engrenagem no topo do AI Studio) e preencha estes campos:
-              </p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {(!(import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID === 'VITE_STRIPE_MONTHLY_PRICE_ID') && (
-                  <span className="bg-white px-3 py-1 rounded-lg border border-amber-200 text-[10px] font-bold text-amber-800">VITE_STRIPE_MONTHLY_PRICE_ID (Mensal)</span>
-                )}
-                {(!(import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID === 'VITE_STRIPE_YEARLY_PRICE_ID') && (
-                  <span className="bg-white px-3 py-1 rounded-lg border border-amber-200 text-[10px] font-bold text-amber-800">VITE_STRIPE_YEARLY_PRICE_ID (Anual)</span>
-                )}
+          {(() => {
+            const m = String(import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID || '').trim();
+            const y = String(import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID || '').trim();
+            const monthlyMissing = !m || m === 'VITE_STRIPE_MONTHLY_PRICE_ID';
+            const yearlyMissing = !y || y === 'VITE_STRIPE_YEARLY_PRICE_ID';
+
+            if (!monthlyMissing && !yearlyMissing) return null;
+
+            return (
+              <div className="md:col-span-2 bg-amber-50 border-2 border-dashed border-amber-200 p-6 rounded-[2rem] text-center space-y-3">
+                <AlertCircle size={32} className="mx-auto text-amber-500" />
+                <h4 className="font-black text-amber-900">Configuração do Stripe Incompleta</h4>
+                <p className="text-sm text-amber-700 max-w-xl mx-auto">
+                  Para ativar os planos, abra o menu <strong>Settings</strong> (engrenagem no topo) e preencha {monthlyMissing && yearlyMissing ? 'os IDs abaixo' : 'o ID que falta'}:
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {monthlyMissing && (
+                    <span className="bg-white px-3 py-1 rounded-lg border border-amber-200 text-[10px] font-bold text-amber-800">VITE_STRIPE_MONTHLY_PRICE_ID (Mensal)</span>
+                  )}
+                  {yearlyMissing && (
+                    <span className="bg-white px-3 py-1 rounded-lg border border-amber-200 text-[10px] font-bold text-amber-800">VITE_STRIPE_YEARLY_PRICE_ID (Anual)</span>
+                  )}
+                </div>
+                <p className="text-[10px] text-amber-600 font-medium pt-2">
+                  💡 Use o <strong>API ID</strong> (ex: <code className="font-bold underline">price_1Qxyz...</code>). Se já colou, tente atualizar a página (F5).
+                </p>
               </div>
-              <p className="text-[10px] text-amber-600 font-medium pt-2">
-                💡 Lembre-se: Use o <strong>API ID</strong> do preço (começa com <code className="font-bold underline">price_</code>) e não o do produto.
-              </p>
-            </div>
-          )}
+            );
+          })()}
           {/* Monthly Plan */}
           <Card className="card-custom border-none flex flex-col h-full bg-white transition-all hover:scale-[1.01] hover:shadow-2xl">
             <CardHeader className="p-8 pb-0">
@@ -285,7 +304,7 @@ export function SubscriptionSettings() {
               </ul>
 
               <Button 
-                onClick={() => handleSubscribe((import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID)}
+                onClick={() => handleSubscribe(import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID)}
                 disabled={isProcessing || subscription.status === 'active'}
                 className="w-full h-14 bg-brand-primary text-white rounded-2xl font-black shadow-lg shadow-brand-primary/20 hover:bg-brand-accent transition-all group"
               >
@@ -320,7 +339,7 @@ export function SubscriptionSettings() {
 
               <Button 
                 variant="outline"
-                onClick={() => handleSubscribe((import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID)}
+                onClick={() => handleSubscribe(import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID)}
                 disabled={isProcessing || subscription.status === 'active'}
                 className="w-full h-14 border-2 border-slate-200 rounded-2xl font-black text-slate-700 hover:bg-white hover:border-brand-primary transition-all group"
               >
