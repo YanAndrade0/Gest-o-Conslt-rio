@@ -66,15 +66,15 @@ async function startServer() {
       }
 
       const stripe = getStripe();
-      console.log('[DEBUG] Initializing checkout session with price:', priceId);
-
+      const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      
       const session = await stripe.checkout.sessions.create({
         customer_email: customerEmail,
         payment_method_types: ['card'],
         line_items: [{ price: priceId, quantity: 1 }],
         mode: 'subscription',
-        success_url: `${req.headers.origin}/#/configuracoes?success=true`,
-        cancel_url: `${req.headers.origin}/#/configuracoes?canceled=true`,
+        success_url: `${origin}/#/configuracoes?success=true`,
+        cancel_url: `${origin}/#/configuracoes?canceled=true`,
         metadata: { clinicId },
         subscription_data: {
           metadata: { clinicId }

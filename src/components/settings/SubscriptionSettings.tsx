@@ -107,11 +107,8 @@ export function SubscriptionSettings() {
         console.log('Redirecionando para:', data.url);
         toast.success('Redirecionando para o Stripe...', { id: toastId });
         
-        // Abrir em nova aba evita bloqueios de iFrame
-        const checkoutWindow = window.open(data.url, '_blank');
-        if (!checkoutWindow) {
-          window.location.assign(data.url);
-        }
+        // Redirecionamento direto na mesma aba é mais seguro para domínios próprios
+        window.location.href = data.url;
       } else {
         throw new Error('URL de checkout não retornada pelo servidor.');
       }
