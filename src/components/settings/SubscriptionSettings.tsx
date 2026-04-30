@@ -62,15 +62,25 @@ export function SubscriptionSettings() {
       return;
     }
     
-    if (!priceId || priceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || priceId === 'VITE_STRIPE_YEARLY_PRICE_ID' || String(priceId).trim() === '') {
-      toast.error('ID de preço não encontrado! Por favor, acesse o menu "Settings" do AI Studio e insira o ID do produto Stripe em VITE_STRIPE_MONTHLY_PRICE_ID (ou YEARLY).', {
+    const rawPriceId = String(priceId || '').trim().replace(/['"]/g, '');
+    
+    console.log('Tentativa de assinatura:', { 
+      receivedId: priceId, 
+      cleanedId: rawPriceId,
+      isPlaceholder: rawPriceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || rawPriceId === 'VITE_STRIPE_YEARLY_PRICE_ID'
+    });
+
+    if (!rawPriceId || rawPriceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || rawPriceId === 'VITE_STRIPE_YEARLY_PRICE_ID' || rawPriceId === '') {
+      toast.error('ID de preço não encontrado ou inválido no menu Settings!', {
+        description: `O app recebeu o valor: "${rawPriceId || 'vazio'}". Vá no menu Settings (engrenagem) e insira o ID que começa com price_.`,
         duration: 10000
       });
       return;
     }
 
-    if (String(priceId).startsWith('prod_')) {
-      toast.error(`Você usou um ID de PRODUTO (${priceId}), mas precisa do ID do PREÇO que começa com "price_". Vá no Dashboard do Stripe > Produtos, clique no seu produto e copie o "API ID" do preço.`, {
+    if (rawPriceId.startsWith('prod_')) {
+      toast.error(`ID de PRODUTO detectado (${rawPriceId})`, {
+        description: 'Você precisa usar o ID do PREÇO (price_...), não o do produto (prod_). Veja no Dashboard do Stripe > Produtos.',
         duration: 12000
       });
       return;
@@ -79,14 +89,14 @@ export function SubscriptionSettings() {
     setIsProcessing(true);
 
     try {
-      console.log('Iniciando checkout com priceId:', priceId);
+      console.log('Iniciando checkout com priceId final:', rawPriceId);
       const response = await fetch('/api/stripe/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clinicId: user.clinicId,
           customerEmail: user.email,
-          priceId,
+          priceId: rawPriceId,
         }),
       });
 
@@ -230,14 +240,24 @@ export function SubscriptionSettings() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {(!(import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID === 'VITE_STRIPE_MONTHLY_PRICE_ID') && (
+          {((!(import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID === 'VITE_STRIPE_MONTHLY_PRICE_ID') || 
+            (!(import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID === 'VITE_STRIPE_YEARLY_PRICE_ID')) && (
             <div className="md:col-span-2 bg-amber-50 border-2 border-dashed border-amber-200 p-6 rounded-[2rem] text-center space-y-3">
               <AlertCircle size={32} className="mx-auto text-amber-500" />
-              <h4 className="font-black text-amber-900">Configuração do Stripe Pendente</h4>
-              <p className="text-sm text-amber-700 max-w-md mx-auto">
-                Para ativar os pagamentos, abra o menu <strong>Settings</strong> (engrenagem) no topo do AI Studio e preencha os campos <code>VITE_STRIPE_MONTHLY_PRICE_ID</code> e <code>VITE_STRIPE_YEARLY_PRICE_ID</code>.
-                <br /><br />
-                <strong>Importante:</strong> Use o ID que começa com <code className="bg-amber-100 px-1 rounded text-amber-900 font-bold">price_</code> (e não o do produto que começa com prod_).
+              <h4 className="font-black text-amber-900">Configuração do Stripe Incompleta</h4>
+              <p className="text-sm text-amber-700 max-w-xl mx-auto">
+                Para ativar os planos, abra o menu <strong>Settings</strong> (ícone de engrenagem no topo do AI Studio) e preencha estes campos:
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {(!(import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_MONTHLY_PRICE_ID === 'VITE_STRIPE_MONTHLY_PRICE_ID') && (
+                  <span className="bg-white px-3 py-1 rounded-lg border border-amber-200 text-[10px] font-bold text-amber-800">VITE_STRIPE_MONTHLY_PRICE_ID (Mensal)</span>
+                )}
+                {(!(import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID || (import.meta as any).env.VITE_STRIPE_YEARLY_PRICE_ID === 'VITE_STRIPE_YEARLY_PRICE_ID') && (
+                  <span className="bg-white px-3 py-1 rounded-lg border border-amber-200 text-[10px] font-bold text-amber-800">VITE_STRIPE_YEARLY_PRICE_ID (Anual)</span>
+                )}
+              </div>
+              <p className="text-[10px] text-amber-600 font-medium pt-2">
+                💡 Lembre-se: Use o <strong>API ID</strong> do preço (começa com <code className="font-bold underline">price_</code>) e não o do produto.
               </p>
             </div>
           )}
