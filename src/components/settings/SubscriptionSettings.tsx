@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../lib/firebase-config';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { CheckCircle2, CreditCard, Clock, AlertCircle, ArrowRight, Zap } from 'lucide-react';
+import { CheckCircle2, CreditCard, Clock, ArrowRight, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, addMonths, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,17 +22,6 @@ export function SubscriptionSettings() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    // Debug helper for the user
-    // @ts-ignore
-    const monthly = import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
-    // @ts-ignore
-    const yearly = import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID;
-    
-    console.log('--- DEBUG STRIPE CONFIG ---');
-    console.log('Mensal:', monthly === 'VITE_STRIPE_MONTHLY_PRICE_ID' || !monthly ? 'PENDENTE' : monthly);
-    console.log('Anual:', yearly === 'VITE_STRIPE_YEARLY_PRICE_ID' || !yearly ? 'PENDENTE' : yearly);
-    console.log('---------------------------');
-
     const params = new URLSearchParams(window.location.search);
     if (params.get('success')) {
       toast.success('Parabéns! Sua assinatura foi processada e será ativada em instantes.');
@@ -75,11 +64,6 @@ export function SubscriptionSettings() {
     
     const rawPriceId = String(priceId || '').trim().replace(/['"]/g, '');
     
-    console.log('--- DEBUG SUBSCRIPTION ATTEMPT ---');
-    console.log('Received raw priceId:', priceId);
-    console.log('Cleaned priceId:', rawPriceId);
-    console.log('---------------------------------');
-
     if (!rawPriceId || rawPriceId === 'VITE_STRIPE_MONTHLY_PRICE_ID' || rawPriceId === 'VITE_STRIPE_YEARLY_PRICE_ID' || rawPriceId === '') {
       console.error('Subscription blocked: Missing Price ID');
       toast.error('Configuração do Stripe Ausente', {
@@ -229,14 +213,7 @@ export function SubscriptionSettings() {
                   <CreditCard size={16} />
                   Gerenciar Faturamento
                 </Button>
-              ) : subscription.status !== 'trialing' && (
-                <div className="flex items-center gap-2 bg-orange-50 p-4 rounded-2xl border border-orange-100">
-                  <AlertCircle className="text-orange-500 shrink-0" size={20} />
-                  <p className="text-xs font-bold text-orange-700 leading-tight">
-                    Sua demonstração expira em breve. <br /> Assine agora para não perder o acesso aos dados.
-                  </p>
-                </div>
-              )}
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -249,41 +226,6 @@ export function SubscriptionSettings() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {(() => {
-            const m = String(import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID || '').trim().replace(/['"]/g, '');
-            const y = String(import.meta.env.VITE_STRIPE_YEARLY_PRICE_ID || '').trim().replace(/['"]/g, '');
-            const pk = String(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '').trim().replace(/['"]/g, '');
-            
-            const monthlyMissing = !m || m === 'VITE_STRIPE_MONTHLY_PRICE_ID' || m === '';
-            const yearlyMissing = !y || y === 'VITE_STRIPE_YEARLY_PRICE_ID' || y === '';
-            const pkMissing = !pk || pk === 'VITE_STRIPE_PUBLISHABLE_KEY' || pk === '';
-
-            if (!monthlyMissing && !yearlyMissing && !pkMissing) return null;
-
-            return (
-              <div className="md:col-span-2 bg-red-50 border-2 border-dashed border-red-200 p-6 rounded-[2rem] text-center space-y-3">
-                <AlertCircle size={32} className="mx-auto text-red-500" />
-                <h4 className="font-black text-red-900">Erro de Configuração Detectado</h4>
-                <p className="text-sm text-red-700 max-w-xl mx-auto">
-                  Detectamos que algumas chaves no seu menu <strong>Settings</strong> ainda estão com o nome padrão ou vazias:
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {monthlyMissing && (
-                    <span className="bg-white px-3 py-1 rounded-lg border border-red-200 text-[10px] font-bold text-red-800">VITE_STRIPE_MONTHLY_PRICE_ID</span>
-                  )}
-                  {yearlyMissing && (
-                    <span className="bg-white px-3 py-1 rounded-lg border border-red-200 text-[10px] font-bold text-red-800">VITE_STRIPE_YEARLY_PRICE_ID</span>
-                  )}
-                  {pkMissing && (
-                    <span className="bg-white px-3 py-1 rounded-lg border border-red-200 text-[10px] font-bold text-red-800">VITE_STRIPE_PUBLISHABLE_KEY</span>
-                  )}
-                </div>
-                <p className="text-[10px] text-red-600 font-medium pt-2">
-                  💡 <strong>Como resolver:</strong> Vá na engrenagem ⚙️ (Settings) no topo da tela, apague o texto atual desses campos e cole o seu código do Stripe (ex: price_xxx ou pk_xxx). Depois de colar, clique fora do campo e <strong>recarregue a página do app (F5)</strong>.
-                </p>
-              </div>
-            );
-          })()}
           {/* Monthly Plan */}
           <Card className="card-custom border-none flex flex-col h-full bg-white transition-all hover:scale-[1.01] hover:shadow-2xl">
             <CardHeader className="p-8 pb-0">
