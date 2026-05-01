@@ -22,11 +22,11 @@ async function startServer() {
         throw new Error('MERCADOPAGO_ACCESS_TOKEN environment variable is required');
       }
       
-      // Clean token from accidental quotes or spaces
-      const token = rawToken.trim().replace(/['"]/g, '');
+      // Clean token from accidental quotes, spaces or brackets
+      const token = rawToken.trim().replace(/['"\[\]]/g, '');
       
       mpClient = new MercadoPagoConfig({ accessToken: token });
-      console.log('Mercado Pago client initialized (Token cleaned).');
+      console.log(`Mercado Pago client initialized. Token ends with: ...${token.slice(-4)}`);
     }
     return mpClient;
   };
@@ -61,7 +61,7 @@ async function startServer() {
       }
 
       const rawToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
-      const token = rawToken.trim().replace(/['"]/g, '');
+      const token = rawToken.trim().replace(/['"\[\]]/g, '');
       const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
 
       console.log('[DEBUG] Calling Mercado Pago API directly with token length:', token.length);

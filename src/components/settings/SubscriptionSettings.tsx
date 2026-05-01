@@ -85,13 +85,18 @@ export function SubscriptionSettings() {
       }
 
       const contentType = response.headers.get('content-type');
+      const text = await response.text();
+      
       if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
         console.error('Non-JSON response received:', text);
-        throw new Error('Resposta inválida do servidor (não é JSON). Verifique se o servidor está rodando.');
+        // Tenta extrair uma mensagem de erro amigável se for um erro de proxy comum
+        if (text.includes('The page cannot be found') || text.includes('404 Not Found')) {
+          throw new Error('Servidor não encontrou a rota. Tente recarregar a página e aguarde 5 segundos.');
+        }
+        throw new Error('O servidor enviou uma resposta inválida (HTML). Verifique se as chaves no menu Settings estão corretas.');
       }
 
-      const data = await response.json();
+      const data = JSON.parse(text);
       console.log('Server response data:', data);
 
       if (!response.ok) {
