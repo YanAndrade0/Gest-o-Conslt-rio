@@ -16,13 +16,17 @@ async function startServer() {
   let mpClient: MercadoPagoConfig | null = null;
   const getMPClient = () => {
     if (!mpClient) {
-      const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
-      if (!token) {
+      const rawToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+      if (!rawToken) {
         console.warn('MERCADOPAGO_ACCESS_TOKEN missing');
         throw new Error('MERCADOPAGO_ACCESS_TOKEN environment variable is required');
       }
+      
+      // Clean token from accidental quotes or spaces
+      const token = rawToken.trim().replace(/['"]/g, '');
+      
       mpClient = new MercadoPagoConfig({ accessToken: token });
-      console.log('Mercado Pago client initialized.');
+      console.log('Mercado Pago client initialized (Token cleaned).');
     }
     return mpClient;
   };
@@ -33,22 +37,40 @@ async function startServer() {
   });
 
   // API Routes
+  app.get('/api/debug-config', (req, res) => {
+    res.json({
+      hasMpToken: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
+      hasMpPublicKey: !!process.env.VITE_MERCADOPAGO_PUBLIC_KEY,
+      nodeEnv: process.env.NODE_ENV,
+      origin: req.headers.origin
+    });
+  });
+
   app.post('/api/mercadopago/create-preference', async (req, res) => {
     try {
       const { clinicId, customerEmail, title, price } = req.body;
       
-      console.log('[DEBUG] MP Preference Request:', { clinicId, customerEmail, title, price });
+      console.log('[DEBUG] MP Preference Request Incoming:', { clinicId, customerEmail, title, price });
       
-      if (!price || !title) {
-        return res.status(400).json({ error: 'Dados insuficientes para criar o pagamento.' });
+      if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
+        console.error('[ERROR] MERCADOPAGO_ACCESS_TOKEN missing');
+        return res.status(500).json({ 
+          error: 'Credenciais do Mercado Pago não configuradas no servidor. Verifique o menu Settings no AI Studio.' 
+        });
       }
 
-      const client = getMPClient();
-      const preference = new Preference(client);
+      const rawToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
+      const token = rawToken.trim().replace(/['"]/g, '');
       const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
 
-      const result = await preference.create({
-        body: {
+      console.log('[DEBUG] Calling Mercado Pago API directly...');
+      const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           items: [
             {
               id: title.toLowerCase().includes('anual') ? 'plan_yearly' : 'plan_monthly',
@@ -72,14 +94,26 @@ async function startServer() {
             customerEmail,
             planType: title
           }
-        }
+        })
       });
 
-      console.log('[DEBUG] Preference created:', result.id);
-      res.json({ url: result.init_point }); // init_point é o link de checkout
+      if (!mpResponse.ok) {
+        const errorText = await mpResponse.text();
+        console.error('[MERCADO PAGO API ERROR]:', mpResponse.status, errorText);
+        throw new Error(`MP API Error ${mpResponse.status}: ${errorText}`);
+      }
+
+      const result = await mpResponse.json();
+      console.log('[DEBUG] Preference created successfully:', result.id);
+      res.json({ url: result.init_point });
     } catch (error: any) {
-      console.error('[MERCADO PAGO SERVER ERROR]:', error);
-      res.status(500).json({ error: error.message || 'Erro ao processar pagamento com Mercado Pago.' });
+      console.error('[MERCADO PAGO SERVER EXCEPTION]:', error);
+      
+      const details = error.message || 'Unknown error';
+      res.status(500).json({ 
+        error: 'Erro ao processar pagamento com Mercado Pago.',
+        details: details
+      });
     }
   });
 

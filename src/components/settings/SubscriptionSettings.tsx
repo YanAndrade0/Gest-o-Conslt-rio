@@ -28,8 +28,8 @@ export function SubscriptionSettings() {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-    if (params.get('canceled')) {
-      toast.error('O processo de assinatura foi cancelado.');
+    if (params.get('canceled') || params.get('error')) {
+      toast.error('O processo de assinatura não foi concluído ou foi cancelado.');
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
@@ -67,6 +67,7 @@ export function SubscriptionSettings() {
 
     try {
       console.log('Iniciando checkout Mercado Pago:', { planTitle, price });
+      
       const response = await fetch('/api/mercadopago/create-preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,10 +79,18 @@ export function SubscriptionSettings() {
         }),
       });
 
+      // Handle unauthorized or blocked requests by proxy
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Acesso não autorizado pelo servidor. Tente abrir o aplicativo em uma nova aba ou recarregar a página (F5).');
+      }
+
       const data = await response.json();
+      console.log('Server response data:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro no servidor de checkout');
+        // If server provides details, use them
+        const detailMsg = data.details ? `\nDetalhes: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}` : '';
+        throw new Error((data.error || 'Erro no servidor de checkout') + detailMsg);
       }
 
       if (data.url) {
