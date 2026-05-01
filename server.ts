@@ -47,6 +47,7 @@ async function startServer() {
   });
 
   app.post('/api/mercadopago/create-preference', async (req, res) => {
+    console.log('[DEBUG] POST /api/mercadopago/create-preference hit');
     try {
       const { clinicId, customerEmail, title, price } = req.body;
       
@@ -63,7 +64,7 @@ async function startServer() {
       const token = rawToken.trim().replace(/['"]/g, '');
       const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
 
-      console.log('[DEBUG] Calling Mercado Pago API directly...');
+      console.log('[DEBUG] Calling Mercado Pago API directly with token length:', token.length);
       const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
         method: 'POST',
         headers: {
@@ -115,6 +116,12 @@ async function startServer() {
         details: details
       });
     }
+  });
+
+  // Catch-all for undefined API routes to prevent falling through to Vite (which returns HTML)
+  app.all('/api/*', (req, res) => {
+    console.warn(`[WARN] Unhandled API route: ${req.method} ${req.url}`);
+    res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
   });
 
   // Vite middleware for development

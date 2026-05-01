@@ -84,6 +84,13 @@ export function SubscriptionSettings() {
         throw new Error('Acesso não autorizado pelo servidor. Tente abrir o aplicativo em uma nova aba ou recarregar a página (F5).');
       }
 
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response received:', text);
+        throw new Error('Resposta inválida do servidor (não é JSON). Verifique se o servidor está rodando.');
+      }
+
       const data = await response.json();
       console.log('Server response data:', data);
 
