@@ -32,17 +32,21 @@ service cloud.firestore {
     // Auth tokens in this environment don't have custom claims
     // We must look up the user doc. This is the "Master Gate".
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userPath) ? get(userPath).data : null;
     }
 
     function getClinicData(clinicId) {
-      return get(/databases/$(database)/documents/clinics/$(clinicId)).data;
+      let clinicPath = /databases/$(database)/documents/clinics/$(clinicId);
+      return exists(clinicPath) ? get(clinicPath).data : null;
     }
 
     function isClinicActive(clinicId) {
       let clinic = getClinicData(clinicId);
-      return clinic.subscription.status == 'active' 
-        || request.time < timestamp(clinic.trialEndsAt);
+      return clinic != null && (
+        clinic.get(['subscription', 'status'], 'inactive') == 'active' 
+        || (clinic.get('trialEndsAt', '') != '' && request.time < timestamp(clinic.trialEndsAt))
+      );
     }
 
     function isAdmin() {
@@ -54,15 +58,18 @@ service cloud.firestore {
     }
 
     function isClinicOwner(clinicId) {
-      return isSignedIn() && getUserData().clinicId == clinicId && getUserData().role == 'owner';
+      let userData = getUserData();
+      return isSignedIn() && userData != null && userData.get('clinicId', '') == clinicId && userData.get('role', '') == 'owner';
     }
 
     function isClinicSecretary(clinicId) {
-      return isSignedIn() && getUserData().clinicId == clinicId && getUserData().role == 'secretary';
+      let userData = getUserData();
+      return isSignedIn() && userData != null && userData.get('clinicId', '') == clinicId && userData.get('role', '') == 'secretary';
     }
 
     function isClinicMember(clinicId) {
-      return isSignedIn() && getUserData().clinicId == clinicId;
+      let userData = getUserData();
+      return isSignedIn() && userData != null && userData.get('clinicId', '') == clinicId;
     }
 
     function isVerified() {
@@ -191,10 +198,11 @@ service cloud.firestore {
 
     // Appointments
     match /appointments/{appointmentId} {
-      allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId
-        && (getUserData().role in ['owner', 'secretary'] || resource.data.doctorName == getUserData().displayName);
+      allow list: if isSignedIn() && getUserData() != null
+        && resource.data.clinicId == getUserData().clinicId
+        && (getUserData().get('role', '') in ['owner', 'secretary'] || resource.data.get('doctorName', '') == getUserData().get('displayName', ''));
       allow get: if isSignedIn() && isClinicMember(existing().clinicId)
-        && (getUserData().role in ['owner', 'secretary'] || existing().doctorName == getUserData().displayName);
+        && (getUserData().get('role', '') in ['owner', 'secretary'] || existing().get('doctorName', '') == getUserData().get('displayName', ''));
       allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidAppointment(incoming());
       allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidAppointment(incoming());
       allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);

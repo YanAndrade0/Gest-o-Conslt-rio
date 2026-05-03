@@ -72,8 +72,8 @@
         "date": { "type": "string", "format": "date-time" },
         "duration": { "type": "integer", "description": "minutos" },
         "procedure": { "type": "string" },
-        "dentistId": { "type": "string" },
-        "status": { "type": "string", "enum": ["pendente", "confirmado", "cancelado", "finalizado"] },
+        "doctorName": { "type": "string" },
+        "status": { "type": "string", "enum": ["marcado", "confirmado", "aguardando", "desmarcado", "finalizado"] },
         "reminderSent": { "type": "boolean" },
         "clinicId": { "type": "string" }
       },
