@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasReadManual: profile?.hasReadManual || false,
         isClinicActive,
         trialEndsAt,
-        isMasterAdmin: firebaseUser.email === 'yandatafox@gmail.com'
+        isMasterAdmin: firebaseUser.email === 'yandatafox@gmail.com' || firebaseUser.email === 'yanandraderfo@gmail.com'
       });
     } catch (error) {
       console.error('Error fetching profile:', error);

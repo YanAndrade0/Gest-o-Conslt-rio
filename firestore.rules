@@ -41,20 +41,26 @@ service cloud.firestore {
       return exists(clinicPath) ? get(clinicPath).data : null;
     }
 
+    function isMasterAdmin() {
+      return isSignedIn() && (request.auth.token.email == 'yandatafox@gmail.com' || request.auth.token.email == 'yanandraderfo@gmail.com');
+    }
+
     function isClinicActive(clinicId) {
       let clinic = getClinicData(clinicId);
-      return clinic != null && (
-        clinic.get(['subscription', 'status'], 'inactive') == 'active' 
-        || (clinic.get('trialEndsAt', '') != '' && request.time < timestamp(clinic.trialEndsAt))
+      return isMasterAdmin() || (
+        clinic != null && (
+          clinic.get(['subscription', 'status'], 'inactive') == 'active' || 
+          clinic.get('trialEndsAt', '') == '' ||
+          request.time < (clinic.trialEndsAt is string ? timestamp(clinic.trialEndsAt) : clinic.trialEndsAt)
+        )
       );
     }
 
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-
-    function isMasterAdmin() {
-      return isSignedIn() && request.auth.token.email == 'yandatafox@gmail.com';
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        isMasterAdmin()
+      );
     }
 
     function isClinicOwner(clinicId) {
@@ -73,7 +79,11 @@ service cloud.firestore {
     }
 
     function isVerified() {
-      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+      return isSignedIn() && (
+        request.auth.token.email_verified == true || 
+        request.auth.token.firebase.sign_in_provider == 'google.com' ||
+        isMasterAdmin()
+      );
     }
 
     // ---------------------------------------------------------
@@ -112,10 +122,12 @@ service cloud.firestore {
     }
 
     function isValidAppointment(data) {
-      return data.patientId is string && isValidId(data.patientId)
-        && data.date is string && data.date.size() <= 50
-        && data.clinicId is string && isValidId(data.clinicId)
-        && data.keys().hasAll(['patientId', 'date', 'clinicId']);
+      return data.patientId is string 
+        && data.date is string 
+        && data.clinicId is string 
+        && (data.get('patientName', '') is string)
+        && (data.get('status', 'marcado') is string)
+        && data.keys().hasAll(['patientId', 'date', 'clinicId', 'patientName', 'status']);
     }
 
     function isValidEvolution(data) {
@@ -198,14 +210,14 @@ service cloud.firestore {
 
     // Appointments
     match /appointments/{appointmentId} {
-      allow list: if isSignedIn() && getUserData() != null
+      allow list: if isSignedIn() && (isMasterAdmin() || (getUserData() != null
         && resource.data.clinicId == getUserData().clinicId
-        && (getUserData().get('role', '') in ['owner', 'secretary'] || resource.data.get('doctorName', '') == getUserData().get('displayName', ''));
-      allow get: if isSignedIn() && isClinicMember(existing().clinicId)
-        && (getUserData().get('role', '') in ['owner', 'secretary'] || existing().get('doctorName', '') == getUserData().get('displayName', ''));
-      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidAppointment(incoming());
-      allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidAppointment(incoming());
-      allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);
+        && (getUserData().get('role', '') in ['owner', 'secretary'] || resource.data.get('doctorName', '') == getUserData().get('displayName', ''))));
+      allow get: if isSignedIn() && (isMasterAdmin() || (isClinicMember(existing().clinicId)
+        && (getUserData().get('role', '') in ['owner', 'secretary'] || existing().get('doctorName', '') == getUserData().get('displayName', ''))));
+      allow create: if isVerified() && (isMasterAdmin() || (isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidAppointment(incoming())));
+      allow update: if isVerified() && (isMasterAdmin() || (isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidAppointment(incoming())));
+      allow delete: if isVerified() && (isMasterAdmin() || (isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId)));
     }
 
     // Evolutions

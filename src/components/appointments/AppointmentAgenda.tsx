@@ -188,6 +188,11 @@ export function AppointmentAgenda() {
     const appointmentDate = setMinutes(setHours(baseDate, hours), minutes);
 
     try {
+      if (!user.clinicId) {
+        toast.error('Erro: Clínica não identificada no seu perfil.');
+        return;
+      }
+
       if (editingAppointment?.id) {
         await appointmentService.updateAppointment(editingAppointment.id, {
           patientId: formData.patientId,
@@ -208,16 +213,28 @@ export function AppointmentAgenda() {
           procedure: formData.procedure,
           doctorName: formData.doctorName,
           status: formData.status,
-          clinicId: user.clinicId!
+          clinicId: user.clinicId
         });
         toast.success('Consulta agendada com sucesso!');
       }
       
       setIsModalOpen(false);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error('Erro ao salvar agendamento.');
+      let errorMessage = 'Erro ao salvar agendamento.';
+      
+      try {
+        // Try to parse the enhanced error JSON
+        const errorInfo = JSON.parse(error.message);
+        if (errorInfo.error.includes('permission-denied') || errorInfo.error.includes('insufficient permissions')) {
+          errorMessage = 'Sem permissão para agendar. Verifique se sua conta está ativa.';
+        }
+      } catch (e) {
+        // Not a JSON error or other issue
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
