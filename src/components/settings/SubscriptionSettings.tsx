@@ -89,11 +89,15 @@ export function SubscriptionSettings() {
       
       if (!contentType || !contentType.includes('application/json')) {
         console.error('Non-JSON response received:', text);
-        // Tenta extrair uma mensagem de erro amigável se for um erro de proxy comum
-        if (text.includes('The page cannot be found') || text.includes('404 Not Found')) {
-          throw new Error('Servidor não encontrou a rota. Tente recarregar a página e aguarde 5 segundos.');
+        
+        // Se a resposta for HTML, provavelmente é um erro 404/502 do proxy ou servidor
+        if (text.includes('<!DOCTYPE html>') || text.includes('<html>')) {
+          const titleMatch = text.match(/<title>(.*?)<\/title>/i);
+          const title = titleMatch ? titleMatch[1] : 'Erro desconhecido';
+          throw new Error(`O servidor retornou uma página HTML (${title}). Isso geralmente indica que o servidor está reiniciando ou que as chaves no menu Settings precisam ser revisadas.`);
         }
-        throw new Error('O servidor enviou uma resposta inválida (HTML). Verifique se as chaves no menu Settings estão corretas.');
+        
+        throw new Error('O servidor enviou uma resposta inválida. Verifique sua conexão e se as chaves em Settings estão corretas.');
       }
 
       const data = JSON.parse(text);

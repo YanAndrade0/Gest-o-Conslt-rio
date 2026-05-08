@@ -12,6 +12,12 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
+  // Request logger for API calls
+  app.use('/api', (req, res, next) => {
+    console.log(`[API ${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
+
   // Lazy initialize Mercado Pago
   let mpClient: MercadoPagoConfig | null = null;
   const getMPClient = () => {
@@ -22,9 +28,7 @@ async function startServer() {
         throw new Error('MERCADOPAGO_ACCESS_TOKEN environment variable is required');
       }
       
-      // Clean token from accidental quotes, spaces or brackets
       const token = rawToken.trim().replace(/['"\[\]]/g, '');
-      
       mpClient = new MercadoPagoConfig({ accessToken: token });
       console.log(`Mercado Pago client initialized. Token ends with: ...${token.slice(-4)}`);
     }
@@ -36,96 +40,106 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
-  // API Routes
+  // Debug config (security: only check existence)
   app.get('/api/debug-config', (req, res) => {
     res.json({
       hasMpToken: !!process.env.MERCADOPAGO_ACCESS_TOKEN,
       hasMpPublicKey: !!process.env.VITE_MERCADOPAGO_PUBLIC_KEY,
       nodeEnv: process.env.NODE_ENV,
-      origin: req.headers.origin
+      origin: req.headers.origin,
+      timestamp: new Date().toISOString()
     });
   });
 
   app.post('/api/mercadopago/create-preference', async (req, res) => {
-    console.log('[DEBUG] POST /api/mercadopago/create-preference hit');
     try {
       const { clinicId, customerEmail, title, price } = req.body;
+      console.log('[DEBUG] Create Preference Start:', { clinicId, title, price });
       
-      console.log('[DEBUG] MP Preference Request Incoming:', { clinicId, customerEmail, title, price });
-      
-      if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
-        console.error('[ERROR] MERCADOPAGO_ACCESS_TOKEN missing');
+      const rawToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+      if (!rawToken) {
+        console.error('[ERROR] MERCADOPAGO_ACCESS_TOKEN is not defined in environment variables');
         return res.status(500).json({ 
-          error: 'Credenciais do Mercado Pago não configuradas no servidor. Verifique o menu Settings no AI Studio.' 
+          error: 'Credenciais do Mercado Pago ausentes.',
+          details: 'MERCADOPAGO_ACCESS_TOKEN não está definido no servidor.' 
         });
       }
 
-      const rawToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
       const token = rawToken.trim().replace(/['"\[\]]/g, '');
-      
-      // Determinando o origin corretamente para HTTPS (Cloud Run proxy)
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.get('host');
       const origin = req.headers.origin || `${protocol}://${host}`;
 
-      console.log('[DEBUG] Calling Mercado Pago API directly with token length:', token.length);
+      console.log('[DEBUG] Payload for MP API prepared. Origin:', origin);
+      
+      const preferenceData = {
+        items: [
+          {
+            id: title.toLowerCase().includes('anual') ? 'plan_yearly' : 'plan_monthly',
+            title: `Assinatura OralCloud - ${title}`,
+            quantity: 1,
+            unit_price: Number(price),
+            currency_id: 'BRL'
+          }
+        ],
+        payer: {
+          email: customerEmail,
+        },
+        back_urls: {
+          success: `${origin}/#/configuracoes?success=true`,
+          failure: `${origin}/#/configuracoes?error=true`,
+          pending: `${origin}/#/configuracoes?pending=true`,
+        },
+        auto_return: 'approved',
+        metadata: {
+          clinicId,
+          customerEmail,
+          planType: title
+        }
+      };
+
       const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          items: [
-            {
-              id: title.toLowerCase().includes('anual') ? 'plan_yearly' : 'plan_monthly',
-              title: `Assinatura OralCloud - ${title}`,
-              quantity: 1,
-              unit_price: Number(price),
-              currency_id: 'BRL'
-            }
-          ],
-          payer: {
-            email: customerEmail,
-          },
-          back_urls: {
-            success: `${origin}/#/configuracoes?success=true`,
-            failure: `${origin}/#/configuracoes?error=true`,
-            pending: `${origin}/#/configuracoes?pending=true`,
-          },
-          auto_return: 'approved',
-          metadata: {
-            clinicId,
-            customerEmail,
-            planType: title
-          }
-        })
+        body: JSON.stringify(preferenceData)
       });
 
       if (!mpResponse.ok) {
-        const errorText = await mpResponse.text();
-        console.error('[MERCADO PAGO API ERROR]:', mpResponse.status, errorText);
-        throw new Error(`MP API Error ${mpResponse.status}: ${errorText}`);
+        let errorData;
+        try {
+          errorData = await mpResponse.json();
+        } catch (e) {
+          errorData = await mpResponse.text();
+        }
+        console.error('[MERCADO PAGO API ERROR]:', mpResponse.status, JSON.stringify(errorData));
+        return res.status(mpResponse.status).json({ 
+          error: 'Erro na API do Mercado Pago.',
+          details: errorData 
+        });
       }
 
       const result = await mpResponse.json();
-      console.log('[DEBUG] Preference created successfully:', result.id);
+      console.log('[DEBUG] Preference created successfully ID:', result.id);
       res.json({ url: result.init_point });
     } catch (error: any) {
       console.error('[MERCADO PAGO SERVER EXCEPTION]:', error);
-      
-      const details = error.message || 'Unknown error';
       res.status(500).json({ 
-        error: 'Erro ao processar pagamento com Mercado Pago.',
-        details: details
+        error: 'Exceção interna no servidor ao processar pagamento.',
+        details: error.message || String(error)
       });
     }
   });
 
-  // Catch-all for undefined API routes to prevent falling through to Vite (which returns HTML)
+  // Catch-all for API routes
   app.all('/api/*', (req, res) => {
-    console.warn(`[WARN] Unhandled API route: ${req.method} ${req.url}`);
-    res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
+    console.warn(`[WARN] Unhandled API route requested: ${req.method} ${req.url}`);
+    res.status(404).json({ 
+      error: 'Endpoint da API não encontrado.',
+      path: req.url 
+    });
   });
 
   // Vite middleware for development
