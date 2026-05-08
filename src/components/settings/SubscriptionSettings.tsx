@@ -66,9 +66,10 @@ export function SubscriptionSettings() {
     const toastId = toast.loading('Preparando seu checkout no Mercado Pago...');
 
     try {
-      console.log('Iniciando checkout Mercado Pago:', { planTitle, price });
+      const apiUrl = '/api/mercadopago/create-preference';
+      console.log(`Enviando requisição para: ${apiUrl}`);
       
-      const response = await fetch('/api/mercadopago/create-preference', {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -87,17 +88,18 @@ export function SubscriptionSettings() {
       const contentType = response.headers.get('content-type');
       const text = await response.text();
       
+      console.log('Server response status:', response.status);
+      console.log('Server response body start:', text.substring(0, 200));
+      
       if (!contentType || !contentType.includes('application/json')) {
-        console.error('Non-JSON response received:', text);
-        
-        // Se a resposta for HTML, provavelmente é um erro 404/502 do proxy ou servidor
+        // Se a resposta for HTML, provavelmente é um erro 404/502 do proxy ou o SPA fallback
         if (text.includes('<!DOCTYPE html>') || text.includes('<html>')) {
           const titleMatch = text.match(/<title>(.*?)<\/title>/i);
-          const title = titleMatch ? titleMatch[1] : 'Erro desconhecido';
-          throw new Error(`O servidor retornou uma página HTML (${title}). Isso geralmente indica que o servidor está reiniciando ou que as chaves no menu Settings precisam ser revisadas.`);
+          const title = titleMatch ? titleMatch[1] : 'Sem título';
+          throw new Error(`O servidor retornou uma página HTML (${title}). Verifique se o backend está rodando e se a URL da API está correta.`);
         }
         
-        throw new Error('O servidor enviou uma resposta inválida. Verifique sua conexão e se as chaves em Settings estão corretas.');
+        throw new Error(`Resposta inválida do servidor (${response.status}). Conteúdo: ${text.substring(0, 50)}...`);
       }
 
       const data = JSON.parse(text);

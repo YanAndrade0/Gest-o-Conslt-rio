@@ -9,12 +9,17 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Let express know it's behind a proxy (Cloud Run)
+  app.set('trust proxy', true);
+
   app.use(cors());
   app.use(express.json());
 
-  // Request logger for API calls
-  app.use('/api', (req, res, next) => {
-    console.log(`[API ${new Date().toISOString()}] ${req.method} ${req.url}`);
+  // Request logger for ALL calls to debug routing
+  app.use((req, res, next) => {
+    if (!req.url.startsWith('/@vite') && !req.url.startsWith('/src')) {
+      console.log(`[REQ ${new Date().toISOString()}] ${req.method} ${req.url}`);
+    }
     next();
   });
 
