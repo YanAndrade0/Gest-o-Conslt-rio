@@ -62,7 +62,11 @@ async function startServer() {
 
       const rawToken = process.env.MERCADOPAGO_ACCESS_TOKEN || '';
       const token = rawToken.trim().replace(/['"\[\]]/g, '');
-      const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      
+      // Determinando o origin corretamente para HTTPS (Cloud Run proxy)
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.get('host');
+      const origin = req.headers.origin || `${protocol}://${host}`;
 
       console.log('[DEBUG] Calling Mercado Pago API directly with token length:', token.length);
       const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {

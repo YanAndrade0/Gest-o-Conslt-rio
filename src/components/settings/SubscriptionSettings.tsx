@@ -106,8 +106,15 @@ export function SubscriptionSettings() {
       }
 
       if (data.url) {
-        toast.success('Redirecionando...', { id: toastId });
-        window.location.href = data.url;
+        toast.success('Redirecionando para o pagamento...', { id: toastId });
+        
+        // Abrir em nova aba é mais seguro para evitar bloqueios de iframe/CSP
+        const checkoutWindow = window.open(data.url, '_blank');
+        
+        if (!checkoutWindow || checkoutWindow.closed || typeof checkoutWindow.closed === 'undefined') {
+          // Se o bloqueador de popups impedir, tenta redirecionar na mesma aba como fallback
+          window.location.href = data.url;
+        }
       } else {
         throw new Error('URL de checkout não retornada pelo servidor.');
       }
