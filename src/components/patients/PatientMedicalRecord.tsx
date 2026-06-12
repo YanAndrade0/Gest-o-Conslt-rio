@@ -508,7 +508,7 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                               </div>
                             ) : (
                               <>
-                                <div className="flex justify-between items-start mb-4">
+                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                                   <div className="space-y-1">
                                     <div className="flex items-center gap-2">
                                       <span className="block text-xs font-black text-brand-primary uppercase tracking-widest">{format(parseISO(evo.date), "dd 'de' MMM, yyyy", { locale: ptBR })}</span>
@@ -520,17 +520,17 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                     </div>
                                     <span className="block text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-none">{format(parseISO(evo.date), "HH:mm")}</span>
                                   </div>
-                                  <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-2">
+                                  <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t border-slate-50 sm:border-none w-full sm:w-auto justify-end">
                                     <Button 
                                       variant="ghost" 
-                                      size="icon" 
-                                      className="h-8 w-8 rounded-lg text-slate-400 hover:text-brand-primary hover:bg-brand-light"
+                                      className="h-10 px-4 md:h-8 md:w-8 md:px-0 rounded-xl md:rounded-lg border border-brand-primary/20 md:border-none bg-brand-light/20 md:bg-transparent text-brand-primary md:text-slate-400 hover:text-brand-primary hover:bg-brand-light flex items-center gap-2 md:gap-0 font-black text-xs md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                                       onClick={() => {
                                         setEditingEvoId(evo.id!);
                                         setEditEvoData({ description: evo.description, date: evo.date });
                                       }}
                                     >
                                       <Edit2 size={14} />
+                                      <span className="md:hidden">EDITAR</span>
                                     </Button>
                                     
                                     {evolutionToDelete === evo.id ? (
@@ -558,11 +558,11 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                     ) : (
                                       <Button 
                                         variant="ghost" 
-                                        size="icon" 
-                                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                        className="h-10 px-4 md:h-8 md:w-8 md:px-0 rounded-xl md:rounded-lg border border-red-100 md:border-none bg-red-50/50 md:bg-transparent text-red-500 md:text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 md:gap-0 font-black text-xs md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                                         onClick={() => setEvolutionToDelete(evo.id!)}
                                       >
                                         <Trash2 size={14} />
+                                        <span className="md:hidden">EXCLUIR</span>
                                       </Button>
                                     )}
                                   </div>
@@ -812,29 +812,28 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                   <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-500 group-hover:scale-110 transition-all">
+                                    <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-500 group-hover:scale-110 transition-all shrink-0">
                                       <CreditCard size={20} />
                                     </div>
                                     <div>
                                       <p className="text-sm font-black text-slate-800 tracking-tight">{p.description}</p>
-                                      <div className="flex gap-3 items-center">
+                                      <div className="flex gap-3 items-center flex-wrap">
                                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{format(parseISO(p.date), "dd/MM/yyyy HH:mm")}</span>
                                         <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest bg-brand-light/50 px-2 rounded-md">{p.paymentMethod}</span>
                                       </div>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-4">
-                                    <div className="text-right">
+                                  <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pt-3 sm:pt-0 border-t border-slate-100 sm:border-none">
+                                    <div className="text-left sm:text-right">
                                       <p className="text-xl font-black text-green-600 tracking-tight">R$ {p.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                                      <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Quitado</span>
+                                      <span className="text-[9px] font-black text-green-400 uppercase tracking-widest block sm:inline">Quitado</span>
                                     </div>
-                                    <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
+                                    <div className="flex gap-1">
                                       <Button 
                                         variant="ghost" 
-                                        size="icon" 
-                                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-brand-primary hover:bg-brand-light"
+                                        className="h-10 px-4 md:h-8 md:w-8 md:px-0 rounded-xl md:rounded-lg border border-brand-primary/20 md:border-none bg-brand-light/20 md:bg-transparent text-brand-primary md:text-slate-400 hover:text-brand-primary hover:bg-brand-light flex items-center gap-2 md:gap-0 font-black text-xs md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                                         onClick={() => {
                                           setEditingPaymentId(p.id!);
                                           setEditPaymentData({ 
@@ -847,6 +846,7 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                         type="button"
                                       >
                                         <Edit2 size={14} />
+                                        <span className="md:hidden">EDITAR</span>
                                       </Button>
                                     </div>
                                   </div>
