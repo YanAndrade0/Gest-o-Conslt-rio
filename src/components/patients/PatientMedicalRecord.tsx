@@ -73,6 +73,11 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   const [editingEvoId, setEditingEvoId] = useState<string | null>(null);
   const [editEvoData, setEditEvoData] = useState({ description: '', date: '' });
 
+  // Editing state for payments
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [editPaymentData, setEditPaymentData] = useState({ amount: '', description: '', paymentMethod: 'pix' as any, date: '' });
+  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+
   useEffect(() => {
     const cid = user?.clinicId || patient.clinicId;
     if (!patient || !patient.id || !cid) return;
@@ -183,6 +188,43 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
       toast.success('Pagamento registrado!');
     } catch (error) {
       toast.error('Erro ao salvar pagamento.');
+    }
+  };
+
+  const handleUpdatePayment = async (id: string) => {
+    const val = parseFloat(editPaymentData.amount);
+    if (isNaN(val) || val <= 0) {
+      toast.error('Informe um valor válido de recebimento.');
+      return;
+    }
+    const cid = user?.clinicId || patient.clinicId;
+    if (!patient.id || !cid) return;
+
+    try {
+      await medicalRecordService.updatePayment(id, {
+        amount: val,
+        description: editPaymentData.description || 'Consulta/Procedimento',
+        paymentMethod: editPaymentData.paymentMethod,
+        date: editPaymentData.date
+      }, cid);
+      setEditingPaymentId(null);
+      toast.success('Lançamento financeiro atualizado!');
+    } catch (error) {
+      toast.error('Erro ao atualizar lançamento financeiro.');
+    }
+  };
+
+  const handleDeletePayment = async (id: string) => {
+    const cid = user?.clinicId || patient.clinicId;
+    if (!patient.id || !cid) return;
+
+    try {
+      await medicalRecordService.deletePayment(id, cid, patient.id);
+      setPaymentToDelete(null);
+      setEditingPaymentId(null);
+      toast.success('Lançamento financeiro excluído.');
+    } catch (error) {
+      toast.error('Erro ao excluir lançamento financeiro.');
     }
   };
 
@@ -662,23 +704,154 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                       <div className="space-y-3">
                         {payments.map((p) => (
                           <Card key={p.id} className="card-custom border-none shadow-sm hover:shadow-md transition-all overflow-hidden group">
-                            <CardContent className="p-6 flex items-center justify-between">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-500 group-hover:scale-110 transition-all">
-                                  <CreditCard size={20} />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-black text-slate-800 tracking-tight">{p.description}</p>
-                                  <div className="flex gap-3 items-center">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{format(parseISO(p.date), "dd/MM/yyyy")}</span>
-                                    <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest bg-brand-light/50 px-2 rounded-md">{p.paymentMethod}</span>
+                            <CardContent className="p-6">
+                              {editingPaymentId === p.id ? (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                      <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Valor (R$)</Label>
+                                      <Input 
+                                        type="number" 
+                                        step="0.01"
+                                        value={editPaymentData.amount} 
+                                        onChange={(e) => setEditPaymentData({ ...editPaymentData, amount: e.target.value })}
+                                        className="rounded-xl bg-slate-50 border-slate-200 font-bold h-11"
+                                        required
+                                      />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Data e Hora</Label>
+                                      <Input 
+                                        type="datetime-local" 
+                                        value={editPaymentData.date.slice(0, 16)} 
+                                        onChange={(e) => setEditPaymentData({ ...editPaymentData, date: new Date(e.target.value).toISOString() })}
+                                        className="rounded-xl bg-slate-50 border-slate-200 font-bold h-11"
+                                        required
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                      <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Descrição</Label>
+                                      <Input 
+                                        type="text" 
+                                        value={editPaymentData.description} 
+                                        onChange={(e) => setEditPaymentData({ ...editPaymentData, description: e.target.value })}
+                                        className="rounded-xl bg-slate-50 border-slate-200 font-bold h-11"
+                                        placeholder="Consulta/Procedimento"
+                                      />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                      <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Forma de Pagamento</Label>
+                                      <select 
+                                        className="w-full bg-slate-50 border border-slate-200 h-11 rounded-xl px-3 font-bold text-sm"
+                                        value={editPaymentData.paymentMethod}
+                                        onChange={(e) => setEditPaymentData({ ...editPaymentData, paymentMethod: e.target.value as any })}
+                                      >
+                                        <option value="pix">Pix</option>
+                                        <option value="cartão">Cartão de Crédito/Débito</option>
+                                        <option value="dinheiro">Dinheiro</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="rounded-xl text-slate-400 font-bold hover:bg-slate-100 h-10"
+                                      onClick={() => setEditingPaymentId(null)}
+                                      type="button"
+                                    >
+                                      <RotateCcw size={16} className="mr-2" /> CANCELAR
+                                    </Button>
+
+                                    {paymentToDelete === p.id ? (
+                                      <div className="flex items-center gap-2 bg-red-50 p-1 rounded-xl animate-in fade-in zoom-in-95 duration-200 border border-red-100">
+                                        <span className="text-[10px] font-black text-red-600 uppercase px-2">Excluir?</span>
+                                        <Button 
+                                          size="sm" 
+                                          variant="destructive"
+                                          className="h-8 rounded-lg text-[10px] font-black px-3"
+                                          onClick={() => handleDeletePayment(p.id!)}
+                                          type="button"
+                                        >
+                                          SIM
+                                        </Button>
+                                        <Button 
+                                          size="sm" 
+                                          variant="ghost"
+                                          className="h-8 rounded-lg text-[10px] font-black text-slate-400 hover:bg-white"
+                                          onClick={() => setPaymentToDelete(null)}
+                                          type="button"
+                                        >
+                                          NÃO
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        className="rounded-xl border-red-200 text-red-500 font-bold hover:bg-red-50 h-10"
+                                        onClick={() => setPaymentToDelete(p.id!)}
+                                        type="button"
+                                      >
+                                        <Trash2 size={16} className="mr-2" /> EXCLUIR
+                                      </Button>
+                                    )}
+
+                                    <Button 
+                                      size="sm" 
+                                      className="rounded-xl bg-green-500 text-white font-bold shadow-lg shadow-green-500/20 h-10 px-4"
+                                      onClick={() => handleUpdatePayment(p.id!)}
+                                      type="button"
+                                    >
+                                      <Save size={16} className="mr-2" /> SALVAR
+                                    </Button>
                                   </div>
                                 </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-xl font-black text-green-600 tracking-tight">R$ {p.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                                <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Quitado</span>
-                              </div>
+                              ) : (
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-500 group-hover:scale-110 transition-all">
+                                      <CreditCard size={20} />
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-black text-slate-800 tracking-tight">{p.description}</p>
+                                      <div className="flex gap-3 items-center">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{format(parseISO(p.date), "dd/MM/yyyy HH:mm")}</span>
+                                        <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest bg-brand-light/50 px-2 rounded-md">{p.paymentMethod}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                      <p className="text-xl font-black text-green-600 tracking-tight">R$ {p.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                      <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">Quitado</span>
+                                    </div>
+                                    <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-8 w-8 rounded-lg text-slate-400 hover:text-brand-primary hover:bg-brand-light"
+                                        onClick={() => {
+                                          setEditingPaymentId(p.id!);
+                                          setEditPaymentData({ 
+                                            amount: p.amount.toString(), 
+                                            description: p.description, 
+                                            paymentMethod: p.paymentMethod, 
+                                            date: p.date 
+                                          });
+                                        }}
+                                        type="button"
+                                      >
+                                        <Edit2 size={14} />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
                             </CardContent>
                           </Card>
                         ))}

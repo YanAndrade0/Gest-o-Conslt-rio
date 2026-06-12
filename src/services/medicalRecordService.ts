@@ -298,6 +298,27 @@ export const medicalRecordService = {
     });
   },
 
+  async updatePayment(id: string, payment: Partial<Omit<PatientPayment, 'id'>>, clinicId: string) {
+    try {
+      await updateDoc(doc(db, 'transactions', id), {
+        ...payment,
+        type: 'receita'
+      });
+      await auditService.log(AuditAction.PATIENT_UPDATE, clinicId, id, 'transaction', { type: 'payment_update', payment });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `transactions/${id}`);
+    }
+  },
+
+  async deletePayment(id: string, clinicId: string, patientId: string) {
+    try {
+      await deleteDoc(doc(db, 'transactions', id));
+      await auditService.log(AuditAction.TRANSACTION_DELETE, clinicId, id, 'transaction', { patientId });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `transactions/${id}`);
+    }
+  },
+
   subscribeToClinicRevenue(clinicId: string, callback: (payments: PatientPayment[]) => void) {
     const q = query(
       collection(db, 'transactions'),

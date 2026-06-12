@@ -273,8 +273,8 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
       allow get: if isSignedIn() && isClinicMember(existing().clinicId);
       allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidTransaction(incoming());
-      allow update: if isVerified() && isClinicOwner(existing().clinicId) && isClinicActive(existing().clinicId) && isValidTransaction(incoming());
-      allow delete: if isVerified() && isClinicOwner(existing().clinicId) && isClinicActive(existing().clinicId);
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidTransaction(incoming());
+      allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);
     }
 
     // Settings
