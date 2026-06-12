@@ -73,38 +73,46 @@ async function compressAndEncodeToBase64(file: File): Promise<string> {
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
-        let width = img.width;
-        let height = img.height;
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 600;
+          const MAX_HEIGHT = 600;
+          let width = img.width;
+          let height = img.height;
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
           }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width = Math.round((width * MAX_HEIGHT) / height);
-            height = MAX_HEIGHT;
-          }
-        }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target?.result as string);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          // Compress heavily (0.5 quality) to keep size exceptionally small (~20KB - 40KB)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+          resolve(dataUrl);
+        } catch (err) {
+          console.warn('Canvas compression failed, falling back to raw Base64:', err);
           resolve(e.target?.result as string);
-          return;
         }
-
-        ctx.drawImage(img, 0, 0, width, height);
-        // Compress as JPEG with 0.7 quality to keep size around 30KB - 80KB
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        resolve(dataUrl);
       };
-      img.onerror = (err) => reject(err);
+      img.onerror = () => {
+        console.warn('Image load failed, falling back to raw Base64.');
+        resolve(e.target?.result as string);
+      };
       img.src = e.target?.result as string;
     };
     reader.onerror = (err) => reject(err);

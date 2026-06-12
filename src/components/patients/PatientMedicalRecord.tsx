@@ -189,8 +189,16 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   const handleAddPhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     const cid = user?.clinicId || patient.clinicId;
-    if (!photoFile || !cid || !patient.id) {
-      toast.error('Selecione um arquivo primeiro.');
+    if (!photoFile) {
+      toast.error('Selecione um arquivo de foto primeiro.');
+      return;
+    }
+    if (!cid) {
+      toast.error('Não foi possível identificar a clínica vinculada.');
+      return;
+    }
+    if (!patient.id) {
+      toast.error('Código identificador do paciente é inválido.');
       return;
     }
 
@@ -210,10 +218,30 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
     } catch (error: any) {
       console.error('Erro detalhado do upload:', error);
       let errorMessage = 'Erro ao realizar upload da foto.';
-      if (error.code === 'storage/unauthorized') {
+      const errMsg = error?.message || '';
+
+      if (
+        error.code === 'permission-denied' || 
+        errMsg.toLowerCase().includes('permission') || 
+        errMsg.toLowerCase().includes('denied') || 
+        errMsg.toLowerCase().includes('permiss')
+      ) {
+        errorMessage = 'Sem permissão para adicionar foto. Verifique se o seu período de teste expirou ou se precisa ativar sua assinatura.';
+      } else if (error.code === 'storage/unauthorized') {
         errorMessage = 'Erro de permissão no Firebase Storage. Verifique as regras de segurança.';
       } else if (error.code === 'storage/unknown') {
-        errorMessage = 'Erro desconhecido. O Firebase Storage foi ativado no console?';
+        errorMessage = 'Erro desconhecido no Firebase Storage.';
+      } else if (error.message) {
+        try {
+          const parsed = JSON.parse(error.message);
+          if (parsed.error && parsed.error.toLowerCase().includes('permission')) {
+            errorMessage = 'Sem permissão para salvar no banco de dados. Verifique o período de teste de sua clínica.';
+          } else if (parsed.error) {
+            errorMessage = parsed.error;
+          }
+        } catch {
+          errorMessage = error.message;
+        }
       }
       toast.error(errorMessage);
     } finally {
