@@ -165,8 +165,18 @@ export function PatientManagement() {
     } catch (error: any) {
       console.error('Error saving patient:', error);
       let message = 'Erro ao salvar paciente. Tente novamente.';
-      if (error.code === 'permission-denied') message = 'Sem permissão para salvar no banco de dados.';
-      if (error.code === 'unavailable') message = 'Parece que você está offline.';
+      const errMsg = error?.message || '';
+      
+      if (
+        error.code === 'permission-denied' || 
+        errMsg.toLowerCase().includes('permission') || 
+        errMsg.toLowerCase().includes('denied') || 
+        errMsg.toLowerCase().includes('permiss')
+      ) {
+        message = 'Sem permissão para salvar. Verifique se o seu período de teste expirou ou se precisa ativar sua assinatura.';
+      } else if (error.code === 'unavailable' || errMsg.toLowerCase().includes('unavailable')) {
+        message = 'Parece que você está offline.';
+      }
       
       toast.error(message);
     }

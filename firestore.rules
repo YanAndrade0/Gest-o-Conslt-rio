@@ -46,7 +46,7 @@ service cloud.firestore {
     }
 
     function parseTrialDate(trialStr) {
-      return trialStr.matches('.*\\..*') ? timestamp(trialStr.split('\\.')[0] + 'Z') : timestamp(trialStr);
+      return timestamp(trialStr.replace('[.][0-9]+', ''));
     }
 
     function isClinicActive(clinicId) {

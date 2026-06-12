@@ -67,6 +67,51 @@ export interface AnamnesisData {
   lastUpdated: string;
 }
 
+async function compressAndEncodeToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        // Compress as JPEG with 0.7 quality to keep size around 30KB - 80KB
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(dataUrl);
+      };
+      img.onerror = (err) => reject(err);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
 export const medicalRecordService = {
   // ... existing items ...
 
@@ -167,10 +212,17 @@ export const medicalRecordService = {
     try {
       const storageRef = ref(storage, `patients/${clinicId}/${Date.now()}_${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
-      return getDownloadURL(snapshot.ref);
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+      return downloadUrl;
     } catch (error) {
-      console.error('Storage error:', error);
-      throw error;
+      console.warn('Firebase Storage error, falling back to local compressed Base64:', error);
+      try {
+        const base64Url = await compressAndEncodeToBase64(file);
+        return base64Url;
+      } catch (fallbackError) {
+        console.error('Photo compression and Base64 encoding fallback failed:', fallbackError);
+        throw error; // If fallback fails too, throw the original Storage error
+      }
     }
   },
 
