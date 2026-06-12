@@ -45,13 +45,17 @@ service cloud.firestore {
       return isSignedIn() && (request.auth.token.email == 'yandatafox@gmail.com' || request.auth.token.email == 'yanandraderfo@gmail.com');
     }
 
+    function parseTrialDate(trialStr) {
+      return trialStr.matches('.*\\..*') ? timestamp(trialStr.split('\\.')[0] + 'Z') : timestamp(trialStr);
+    }
+
     function isClinicActive(clinicId) {
       let clinic = getClinicData(clinicId);
       return isMasterAdmin() || (
         clinic != null && (
           clinic.get(['subscription', 'status'], 'inactive') == 'active' || 
           clinic.get('trialEndsAt', '') == '' ||
-          request.time < (clinic.get('trialEndsAt', '') is string ? timestamp(clinic.get('trialEndsAt', '')) : clinic.get('trialEndsAt', request.time))
+          request.time < (clinic.get('trialEndsAt', '') is string ? parseTrialDate(clinic.get('trialEndsAt', '')) : clinic.get('trialEndsAt', request.time))
         )
       );
     }

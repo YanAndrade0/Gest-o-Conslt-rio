@@ -94,7 +94,7 @@ export const clinicService = {
         accessCode,
         userCount: 1,
         createdAt: new Date().toISOString(),
-        trialEndsAt: trialEndsAt.toISOString(),
+        trialEndsAt: trialEndsAt.toISOString().replace(/\.\d+Z$/, 'Z'),
         subscription: {
           status: 'trialing',
           planName: 'Trial 7 Dias'
