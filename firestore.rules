@@ -51,7 +51,7 @@ service cloud.firestore {
         clinic != null && (
           clinic.get(['subscription', 'status'], 'inactive') == 'active' || 
           clinic.get('trialEndsAt', '') == '' ||
-          request.time < (clinic.trialEndsAt is string ? timestamp(clinic.trialEndsAt) : clinic.trialEndsAt)
+          request.time < (clinic.get('trialEndsAt', '') is string ? timestamp(clinic.get('trialEndsAt', '')) : clinic.get('trialEndsAt', request.time))
         )
       );
     }
@@ -103,8 +103,11 @@ service cloud.firestore {
     }
 
     function canAddMoreUsers(clinicId) {
-      let clinic = get(/databases/$(database)/documents/clinics/$(clinicId)).data;
-      return isClinicUnlimited(clinic) || clinic.userCount < 5;
+      let clinicPath = /databases/$(database)/documents/clinics/$(clinicId);
+      return clinicId == null || clinicId == "" || !exists(clinicPath) || (
+        isClinicUnlimited(get(clinicPath).data) || 
+        get(clinicPath).data.get('userCount', 0) < 5
+      );
     }
 
     function isValidClinic(data) {

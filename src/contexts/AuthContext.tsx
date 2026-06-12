@@ -134,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const firebaseUser = auth.currentUser;
     if (firebaseUser) {
       await reload(firebaseUser);
+      await firebaseUser.getIdToken(true);
       await fetchProfile(firebaseUser);
     }
   };
