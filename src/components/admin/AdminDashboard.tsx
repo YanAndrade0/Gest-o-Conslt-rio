@@ -33,12 +33,14 @@ interface ClinicData {
 
 export const AdminDashboard = () => {
   const [clinics, setClinics] = useState<ClinicData[]>([]);
+  const [patientCounts, setPatientCounts] = useState<{ [clinicId: string]: number }>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({
     totalClinics: 0,
     activeSubscriptions: 0,
     monthlyGrowth: 0,
+    totalPatients: 0,
   });
 
   useEffect(() => {
@@ -51,12 +53,24 @@ export const AdminDashboard = () => {
         })) as ClinicData[];
 
         setClinics(clinicList);
+
+        // Fetch patients to count
+        const patientsSnapshot = await getDocs(collection(db, 'patients'));
+        const counts: { [clinicId: string]: number } = {};
+        patientsSnapshot.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.clinicId) {
+            counts[data.clinicId] = (counts[data.clinicId] || 0) + 1;
+          }
+        });
+        setPatientCounts(counts);
         
         const active = clinicList.filter(c => c.subscription?.status === 'active').length;
         setStats({
           totalClinics: clinicList.length,
           activeSubscriptions: active,
           monthlyGrowth: 15, // Mock data for now
+          totalPatients: patientsSnapshot.size,
         });
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -131,7 +145,7 @@ export const AdminDashboard = () => {
       </header>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="card-custom border-none bg-white p-6">
           <CardContent className="p-0 flex items-center gap-4">
             <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
@@ -152,6 +166,18 @@ export const AdminDashboard = () => {
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Assinaturas Ativas</p>
               <h3 className="text-2xl font-black text-slate-800">{stats.activeSubscriptions}</h3>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="card-custom border-none bg-white p-6">
+          <CardContent className="p-0 flex items-center gap-4">
+            <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600">
+              <Users size={28} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total de Pacientes</p>
+              <h3 className="text-2xl font-black text-slate-800">{stats.totalPatients}</h3>
             </div>
           </CardContent>
         </Card>
@@ -181,6 +207,7 @@ export const AdminDashboard = () => {
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Clínica / Contato</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Plano</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Pacientes</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Usuários</th>
                 <th className="p-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Expira em</th>
                 <th className="p-6 text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Ações</th>
@@ -189,14 +216,14 @@ export const AdminDashboard = () => {
             <tbody className="divide-y divide-slate-50">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="p-20 text-center">
+                  <td colSpan={7} className="p-20 text-center">
                     <div className="animate-spin w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full mx-auto mb-4"></div>
                     <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Carregando Clínicas...</p>
                   </td>
                 </tr>
               ) : filteredClinics.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-20 text-center">
+                  <td colSpan={7} className="p-20 text-center">
                     <AlertCircle className="mx-auto text-slate-300 mb-4" size={48} />
                     <p className="text-lg font-bold text-slate-400">Nenhuma clínica encontrada.</p>
                   </td>
@@ -228,6 +255,14 @@ export const AdminDashboard = () => {
                       }`}>
                         {clinic.subscription?.status === 'active' ? 'Ativo' : 'Inativo'}
                       </span>
+                    </td>
+                    <td className="p-6">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-black text-brand-primary bg-brand-light px-2.5 py-1 rounded-lg">
+                          {patientCounts[clinic.id] || 0}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">pacientes</span>
+                      </div>
                     </td>
                     <td className="p-6">
                       <button 
