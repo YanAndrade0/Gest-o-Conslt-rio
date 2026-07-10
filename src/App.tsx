@@ -17,7 +17,7 @@ import { medicalRecordService, PatientPayment } from './services/medicalRecordSe
 import { appointmentService, Appointment as AppointmentType } from './services/appointmentService';
 import { patientService } from './services/patientService';
 import { toast } from 'sonner';
-import { Mail, Lock, User as UserIcon, ArrowRight, History, Clock, CreditCard, PlusCircle, Menu, X as CloseIcon, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, History, Clock, CreditCard, PlusCircle, Menu, X as CloseIcon, AlertCircle, Eye, EyeOff, Calendar } from 'lucide-react';
 import { format, isToday, startOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from './components/ui/input';
@@ -534,7 +534,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex flex-col h-screen bg-bg-main overflow-hidden text-slate-700 font-sans">
       <TrialBanner />
-      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden">
+      <div className="flex flex-1 flex-col lg:flex-row overflow-hidden pb-16 lg:pb-0">
         {/* Mobile Header */}
       <header className="lg:hidden bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 z-40 shrink-0">
         <Logo className="w-10 h-10" />
@@ -619,6 +619,38 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </footer>
         </div>
       </main>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 z-[44] flex justify-around items-center shadow-lg px-2">
+        {navItems.slice(0, 4).map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full text-slate-400 hover:text-brand-primary transition-all ${
+                isActive ? 'text-brand-primary' : ''
+              }`}
+            >
+              {item.name === 'Painel Geral' && <Clock size={18} className={isActive ? 'text-brand-primary' : ''} />}
+              {item.name === 'Agenda' && <Calendar size={18} className={isActive ? 'text-brand-primary' : ''} />}
+              {item.name === 'Pacientes' && <UserIcon size={18} className={isActive ? 'text-brand-primary' : ''} />}
+              {item.name === 'Financeiro' && <CreditCard size={18} className={isActive ? 'text-brand-primary' : ''} />}
+              <span className={`text-[9px] font-black tracking-tight ${isActive ? 'text-brand-primary' : 'text-slate-400'}`}>
+                {item.name === 'Painel Geral' ? 'Painel' : item.name}
+              </span>
+            </Link>
+          );
+        })}
+        {/* Toggle Sidebar Button for remaining items / logout */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={`flex flex-col items-center justify-center gap-1 flex-1 h-full text-slate-400 hover:text-brand-primary transition-all`}
+        >
+          <Menu size={18} />
+          <span className="text-[9px] font-black text-slate-400 tracking-tight">Mais</span>
+        </button>
       </div>
     </div>
   );

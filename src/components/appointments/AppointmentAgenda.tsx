@@ -329,10 +329,12 @@ export function AppointmentAgenda() {
     const dayAppts = appointments.filter(app => isSameDay(parseISO(app.date), selectedDate));
     if (dayAppts.length === 0) return [];
 
-    // Sort by start time
-    const sorted = [...dayAppts].sort((a, b) => 
-      parseISO(a.date).getTime() - parseISO(b.date).getTime()
-    );
+    // Sort by start time (safe conversion)
+    const sorted = [...dayAppts].sort((a, b) => {
+      const timeA = parseISO(a.date).getTime();
+      const timeB = parseISO(b.date).getTime();
+      return (isNaN(timeA) ? 0 : timeA) - (isNaN(timeB) ? 0 : timeB);
+    });
 
     const result: (Appointment & { left: number; width: number })[] = [];
     
@@ -343,7 +345,8 @@ export function AppointmentAgenda() {
 
     sorted.forEach(app => {
       const startTime = parseISO(app.date).getTime();
-      const endTime = startTime + (app.duration || 30) * 60 * 1000;
+      const dur = typeof app.duration === 'number' ? app.duration : parseInt(app.duration as any) || 30;
+      const endTime = startTime + dur * 60 * 1000;
 
       if (activeGroup.length > 0 && startTime >= groupEndTime) {
         groups.push(activeGroup);
@@ -364,7 +367,9 @@ export function AppointmentAgenda() {
 
         for (let i = 0; i < columns.length; i++) {
           const lastInCol = columns[i][columns[i].length - 1];
-          const lastEnd = parseISO(lastInCol.date).getTime() + (lastInCol.duration || 30) * 60 * 1000;
+          const lastDur = typeof lastInCol.duration === 'number' ? lastInCol.duration : parseInt(lastInCol.duration as any) || 30;
+          const lastEnd = parseISO(lastInCol.date).getTime() + lastDur * 60 * 1000;
+          
           if (appStart >= lastEnd) {
             columns[i].push(app);
             placed = true;
@@ -387,6 +392,7 @@ export function AppointmentAgenda() {
       });
     });
 
+    console.log('[Agenda] Positioned overlapping appointments:', result);
     return result;
   }, [appointments, selectedDate]);
 
@@ -409,7 +415,7 @@ export function AppointmentAgenda() {
           <Button variant="ghost" size="icon" onClick={handlePrevDay} className="rounded-xl hover:bg-white transition-all h-10 w-10">
             <ChevronLeft size={18} />
           </Button>
-          <div className="px-4 py-1 flex items-center gap-3">
+          <div className="px-4 py-1 flex items-center gap-3 relative">
              <span className="text-sm font-black text-slate-700 capitalize">
               {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
             </span>
@@ -425,6 +431,41 @@ export function AppointmentAgenda() {
           </div>
           <Button variant="ghost" size="icon" onClick={handleNextDay} className="rounded-xl hover:bg-white transition-all h-10 w-10">
             <ChevronRight size={18} />
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-1 bg-slate-100/30 p-1 rounded-2xl border border-slate-100">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-500 hover:bg-white h-9 px-3 transition-all"
+            onClick={() => setSelectedDate(subDays(new Date(), 1))}
+            type="button"
+          >
+            Ontem
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className={cn(
+              "rounded-xl text-[11px] font-black uppercase tracking-wider h-9 px-3 transition-all",
+              isToday(selectedDate) 
+                ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20 hover:bg-brand-primary" 
+                : "text-brand-primary hover:bg-brand-light/40"
+            )}
+            onClick={() => setSelectedDate(new Date())}
+            type="button"
+          >
+            Hoje
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-500 hover:bg-white h-9 px-3 transition-all"
+            onClick={() => setSelectedDate(addDays(new Date(), 1))}
+            type="button"
+          >
+            Amanhã
           </Button>
         </div>
 
@@ -683,7 +724,7 @@ export function AppointmentAgenda() {
 
         {/* Scrollable Grid */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
-          <div className="grid grid-cols-[80px_1fr] relative">
+          <div className="grid grid-cols-[100px_1fr] relative">
             
             {/* Time Indicators Column */}
             <div className="flex flex-col">
@@ -742,8 +783,8 @@ export function AppointmentAgenda() {
                         style={{ 
                           top: `${pos.top}px`,
                           height: `${pos.height}px`,
-                          left: `${app.left}%`,
-                          width: `${app.width}%`,
+                          left: app.width < 100 ? `calc(${app.left}% + 2px)` : `${app.left}%`,
+                          width: app.width < 100 ? `calc(${app.width}% - 4px)` : `${app.width}%`,
                         }}
                         className={cn(
                           "absolute p-1.5 rounded-xl text-[10px] font-bold border-l-4 shadow-md transition-all hover:scale-[1.01] active:scale-[0.98] z-30 overflow-hidden select-none",

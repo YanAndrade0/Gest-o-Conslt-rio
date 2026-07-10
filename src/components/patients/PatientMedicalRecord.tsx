@@ -832,8 +832,8 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                     </div>
                                     <div className="flex gap-1">
                                       <Button 
-                                        variant="ghost" 
-                                        className="h-10 px-4 md:h-8 md:w-8 md:px-0 rounded-xl md:rounded-lg border border-brand-primary/20 md:border-none bg-brand-light/20 md:bg-transparent text-brand-primary md:text-slate-400 hover:text-brand-primary hover:bg-brand-light flex items-center gap-2 md:gap-0 font-black text-xs md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                                        variant="outline" 
+                                        className="h-9 px-3 rounded-xl border border-brand-primary/20 bg-brand-light/10 text-brand-primary hover:bg-brand-light flex items-center gap-2 font-black text-xs transition-all active:scale-95"
                                         onClick={() => {
                                           setEditingPaymentId(p.id!);
                                           setEditPaymentData({ 
@@ -845,8 +845,8 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                         }}
                                         type="button"
                                       >
-                                        <Edit2 size={14} />
-                                        <span className="md:hidden">EDITAR</span>
+                                        <Edit2 size={13} />
+                                        <span>EDITAR</span>
                                       </Button>
                                     </div>
                                   </div>
