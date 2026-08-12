@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { db } from '../../lib/firebase-config';
-import { collection, query, getDocs, doc, updateDoc, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, orderBy, onSnapshot } from 'firebase/firestore';
 import { 
   Users, 
   Building2, 
@@ -54,8 +54,43 @@ export const AdminDashboard = () => {
     return countById + countByOwner;
   };
 
+  const fetchPatientsByClinics = async (currentClinics: ClinicData[]) => {
+    try {
+      const counts: { [key: string]: number } = {};
+      const uniquePatientIds = new Set<string>();
+
+      await Promise.all(
+        currentClinics.map(async (c) => {
+          const idsToQuery = Array.from(new Set([c.id, c.ownerId].filter(Boolean)));
+          for (const cid of idsToQuery) {
+            try {
+              const q = query(collection(db, 'patients'), where('clinicId', '==', cid));
+              const snap = await getDocs(q);
+              snap.docs.forEach(d => {
+                uniquePatientIds.add(d.id);
+                const pData = d.data();
+                const clinicKey = pData.clinicId || cid;
+                counts[clinicKey] = (counts[clinicKey] || 0) + 1;
+              });
+            } catch (err) {
+              console.warn(`Error querying patients for clinic ${cid}:`, err);
+            }
+          }
+        })
+      );
+
+      if (uniquePatientIds.size > 0) {
+        setPatientCounts(prev => ({ ...prev, ...counts }));
+        setTotalPatients(uniquePatientIds.size);
+      }
+    } catch (err) {
+      console.error('Error fetching patients by clinics fallback:', err);
+    }
+  };
+
   const loadData = () => {
     setRefreshing(true);
+    let latestClinics: ClinicData[] = [];
     
     // Subscribe to clinics in real-time
     const qClinics = query(collection(db, 'clinics'), orderBy('createdAt', 'desc'));
@@ -65,6 +100,7 @@ export const AdminDashboard = () => {
         ...doc.data()
       })) as ClinicData[];
 
+      latestClinics = clinicList;
       setClinics(clinicList);
       const active = clinicList.filter(c => c.subscription?.status === 'active').length;
       setStats(prev => ({
@@ -74,6 +110,11 @@ export const AdminDashboard = () => {
       }));
       setLoading(false);
       setRefreshing(false);
+
+      // If patient counts are 0, attempt fallback per-clinic query
+      if (clinicList.length > 0) {
+        fetchPatientsByClinics(clinicList);
+      }
     }, (error) => {
       console.error('Error listening to clinics:', error);
       setLoading(false);
@@ -95,8 +136,15 @@ export const AdminDashboard = () => {
 
       setPatientCounts(counts);
       setTotalPatients(total);
+
+      if (total === 0 && latestClinics.length > 0) {
+        fetchPatientsByClinics(latestClinics);
+      }
     }, (error) => {
-      console.error('Error listening to patients:', error);
+      console.error('Error listening to patients globally:', error);
+      if (latestClinics.length > 0) {
+        fetchPatientsByClinics(latestClinics);
+      }
     });
 
     return () => {
@@ -125,12 +173,22 @@ export const AdminDashboard = () => {
         }
       });
 
-      setPatientCounts(counts);
-      setTotalPatients(total);
-      toast.success(`Contagem de pacientes atualizada! Total de ${total} paciente(s) no sistema.`);
+      if (total === 0 && clinics.length > 0) {
+        await fetchPatientsByClinics(clinics);
+      } else {
+        setPatientCounts(counts);
+        setTotalPatients(total);
+      }
+      
+      toast.success('Contagem de pacientes atualizada com sucesso!');
     } catch (err) {
-      console.error('Erro ao atualizar contagem:', err);
-      toast.error('Erro ao atualizar dados.');
+      console.error('Erro ao atualizar contagem global, tentando por clínica:', err);
+      if (clinics.length > 0) {
+        await fetchPatientsByClinics(clinics);
+        toast.success('Contagem por clínica atualizada com sucesso!');
+      } else {
+        toast.error('Erro ao atualizar dados.');
+      }
     } finally {
       setRefreshing(false);
     }

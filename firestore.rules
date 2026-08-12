@@ -42,7 +42,21 @@ service cloud.firestore {
     }
 
     function isMasterAdmin() {
-      return isSignedIn() && (request.auth.token.email == 'yandatafox@gmail.com' || request.auth.token.email == 'yanandraderfo@gmail.com');
+      let userData = getUserData();
+      return isSignedIn() && (
+        (request.auth.token.keys().hasAll(['email']) && (
+          request.auth.token.email.lower() == 'yandatafox@gmail.com' || 
+          request.auth.token.email.lower() == 'yanandraderfo@gmail.com'
+        )) ||
+        (userData != null && (
+          userData.get('role', '') == 'admin' ||
+          userData.get('isMasterAdmin', false) == true ||
+          (userData.get('email', '') is string && (
+            userData.get('email', '').lower() == 'yandatafox@gmail.com' ||
+            userData.get('email', '').lower() == 'yanandraderfo@gmail.com'
+          ))
+        ))
+      );
     }
 
     function parseTrialDate(trialStr) {
@@ -236,8 +250,8 @@ service cloud.firestore {
 
     // Evolutions
     match /evolutions/{evolutionId} {
-      allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
-      allow get: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow list: if isSignedIn() && (isMasterAdmin() || resource.data.clinicId == getUserData().clinicId);
+      allow get: if isSignedIn() && (isMasterAdmin() || isClinicMember(existing().clinicId));
       allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidEvolution(incoming());
       allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidEvolution(incoming());
       allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);
@@ -245,24 +259,24 @@ service cloud.firestore {
 
     // Odontograms
     match /odontograms/{odontogramId} {
-      allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
-      allow get: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow list: if isSignedIn() && (isMasterAdmin() || resource.data.clinicId == getUserData().clinicId);
+      allow get: if isSignedIn() && (isMasterAdmin() || isClinicMember(existing().clinicId));
       allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidOdontogram(incoming());
       allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidOdontogram(incoming());
     }
 
     // Anamneses
     match /anamneses/{anamnesisId} {
-      allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
-      allow get: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow list: if isSignedIn() && (isMasterAdmin() || resource.data.clinicId == getUserData().clinicId);
+      allow get: if isSignedIn() && (isMasterAdmin() || isClinicMember(existing().clinicId));
       allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidAnamnesis(incoming());
       allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidAnamnesis(incoming());
     }
 
     // Patient Photos
     match /patientPhotos/{photoId} {
-      allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
-      allow get: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow list: if isSignedIn() && (isMasterAdmin() || resource.data.clinicId == getUserData().clinicId);
+      allow get: if isSignedIn() && (isMasterAdmin() || isClinicMember(existing().clinicId));
       allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidPhoto(incoming());
       allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidPhoto(incoming());
       allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);
@@ -270,8 +284,8 @@ service cloud.firestore {
 
     // Transactions
     match /transactions/{transactionId} {
-      allow list: if isSignedIn() && resource.data.clinicId == getUserData().clinicId;
-      allow get: if isSignedIn() && isClinicMember(existing().clinicId);
+      allow list: if isSignedIn() && (isMasterAdmin() || resource.data.clinicId == getUserData().clinicId);
+      allow get: if isSignedIn() && (isMasterAdmin() || isClinicMember(existing().clinicId));
       allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidTransaction(incoming());
       allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidTransaction(incoming());
       allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);

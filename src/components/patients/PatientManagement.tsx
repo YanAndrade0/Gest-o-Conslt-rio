@@ -146,7 +146,8 @@ export function PatientManagement() {
     if (!user) return;
 
     try {
-      const dataToSave = { ...formData, clinicId: user.clinicId };
+      const activeClinicId = user.clinicId || user.uid;
+      const dataToSave = { ...formData, clinicId: activeClinicId };
       
       // Clean up empty medical history to avoid sending empty objects to Firestore
       if (!dataToSave.medicalHistory.allergies && !dataToSave.medicalHistory.diseases && !dataToSave.medicalHistory.medications) {
