@@ -7,6 +7,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
+  sendPasswordResetEmail,
   reload,
   User as FirebaseUser 
 } from 'firebase/auth';
@@ -33,6 +34,7 @@ interface AuthContextType {
   login: () => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   registerWithEmail: (email: string, pass: string, name?: string) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
   resendEmailVerification: () => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: (userId: string) => Promise<void>;
@@ -151,7 +153,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerWithEmail = async (email: string, pass: string, name?: string) => {
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
     if (cred.user) {
-      await sendEmailVerification(cred.user);
+      try {
+        await sendEmailVerification(cred.user);
+      } catch (err) {
+        console.warn('E-mail de verificação não enviado:', err);
+      }
       if (name) {
         await clinicService.updateUserProfile(cred.user.uid, { 
           displayName: name,
@@ -159,6 +165,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
     }
+  };
+
+  const sendPasswordReset = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
   };
 
   const resendEmailVerification = async () => {
@@ -173,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithEmail, registerWithEmail, resendEmailVerification, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithEmail, registerWithEmail, sendPasswordReset, resendEmailVerification, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

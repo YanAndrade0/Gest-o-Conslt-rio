@@ -105,8 +105,9 @@ const EmailVerificationScreen = () => {
 };
 
 const Login = () => {
-  const { login, loginWithEmail, registerWithEmail, user } = useAuth();
+  const { login, loginWithEmail, registerWithEmail, sendPasswordReset, user } = useAuth();
   const [isRegister, setIsRegister] = React.useState(false);
+  const [isForgotPassword, setIsForgotPassword] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
@@ -114,6 +115,7 @@ const Login = () => {
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [displayName, setDisplayName] = React.useState('');
   const [loading, setLoading] = React.useState(false);
+  const [resetSent, setResetSent] = React.useState(false);
   
   if (user) return <Navigate to="/" />;
 
@@ -127,20 +129,46 @@ const Login = () => {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error('Informe seu e-mail para receber as instruções.');
+      return;
+    }
+    setLoading(true);
+    try {
+      await sendPasswordReset(email);
+      setResetSent(true);
+      toast.success('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+    } catch (error: any) {
+      console.error(error);
+      toast.error('Erro ao enviar e-mail. Verifique se o e-mail está correto.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isRegister && password !== confirmPassword) {
-        toast.error('As senhas não coincidem!');
-        setLoading(false);
-        return;
+      if (isRegister) {
+        if (password.length < 6) {
+          toast.error('A senha deve ter pelo menos 6 caracteres.');
+          setLoading(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          toast.error('As senhas não coincidem!');
+          setLoading(false);
+          return;
+        }
       }
 
       const finalName = displayName || (email.toLowerCase() === 'yanandradeodt@gmail.com' ? 'Secretaria' : '');
       if (isRegister) {
         await registerWithEmail(email, password, finalName);
-        toast.success('Conta criada! Verifique seu e-mail para ativar.');
+        toast.success('Conta criada com sucesso! Verifique seu e-mail para ativar.');
       } else {
         await loginWithEmail(email, password);
         toast.success('Bem-vindo de volta!');
@@ -154,12 +182,12 @@ const Login = () => {
       if (errorCode === 'auth/invalid-credential') message = 'E-mail ou senha incorretos.';
       if (errorCode === 'auth/user-not-found') message = 'E-mail não cadastrado.';
       if (errorCode === 'auth/wrong-password') message = 'Senha incorreta.';
-      if (errorCode === 'auth/email-already-in-use') message = 'Este e-mail já está cadastrado. Tente fazer login ou use as ferramentas de recuperação.';
+      if (errorCode === 'auth/email-already-in-use') message = 'Este e-mail já está cadastrado. Tente entrar na sua conta.';
       if (errorCode === 'auth/weak-password') message = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
       if (errorCode === 'auth/invalid-email') message = 'O e-mail digitado é inválido.';
-      if (errorCode === 'auth/too-many-requests') message = 'Muitas tentativas sem sucesso. Tente novamente mais tarde.';
+      if (errorCode === 'auth/too-many-requests') message = 'Muitas tentativas sem sucesso. Aguarde um momento.';
       if (error.message && error.message.includes('auth/email-already-in-use')) {
-        message = 'Este e-mail já está cadastrado. Tente entrar em vez de criar conta.';
+        message = 'Este e-mail já está cadastrado. Tente entrar na sua conta.';
       }
       
       toast.error(message);
@@ -169,120 +197,206 @@ const Login = () => {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-bg-main font-sans px-4">
-      <div className="card-custom p-8 md:p-12 w-full max-w-md space-y-8 animate-in fade-in zoom-in duration-500 rounded-[2.5rem] border-none shadow-2xl">
+    <div className="flex min-h-screen items-center justify-center bg-bg-main font-sans px-4 py-8">
+      <div className="card-custom p-6 md:p-10 w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500 rounded-[2.5rem] border-none shadow-2xl">
         <div className="text-center">
           <Logo 
-            className="flex-col gap-5" 
-            subtitle={isRegister ? 'Inicie seu cadastro gratuito' : 'Sistema de Gestão Odontológica'} 
+            className="flex-col gap-4" 
+            subtitle={
+              isForgotPassword 
+                ? 'Recuperação de Acesso' 
+                : isRegister 
+                  ? 'Cadastre sua clínica gratuitamente' 
+                  : 'Acesse seu consultório'
+            } 
           />
         </div>
 
-        <form onSubmit={handleEmailAuth} className="space-y-4">
-          <div className="space-y-4">
-            {isRegister && (
+        {!isForgotPassword && (
+          <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200/60">
+            <button
+              type="button"
+              onClick={() => setIsRegister(false)}
+              className={cn(
+                "flex-1 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all",
+                !isRegister 
+                  ? "bg-white text-brand-primary shadow-md shadow-slate-200/50" 
+                  : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Entrar
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsRegister(true)}
+              className={cn(
+                "flex-1 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all",
+                isRegister 
+                  ? "bg-white text-brand-primary shadow-md shadow-slate-200/50" 
+                  : "text-slate-400 hover:text-slate-600"
+              )}
+            >
+              Criar Conta
+            </button>
+          </div>
+        )}
+
+        {isForgotPassword ? (
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                Digite seu e-mail cadastrado e enviaremos um link seguro para você redefinir sua senha.
+              </p>
               <div className="relative">
-                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
                 <Input 
-                  type="text" 
-                  placeholder="Seu nome completo" 
+                  type="email" 
+                  placeholder="Seu e-mail cadastrado" 
                   required 
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
                 />
               </div>
-            )}
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
-              <Input 
-                type="email" 
-                placeholder="E-mail profissional" 
-                required 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
-              />
-            </div>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
-              <Input 
-                type={showPassword ? "text" : "password"} 
-                placeholder="Senha de acesso" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-12 pr-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
-                title={showPassword ? "Esconder senha" : "Mostrar senha"}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
             </div>
 
-            {isRegister && (
+            {resetSent && (
+              <p className="text-xs font-bold text-emerald-600 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                ✓ Instruções enviadas! Verifique sua caixa de e-mail ou spam.
+              </p>
+            )}
+
+            <Button 
+              type="submit"
+              disabled={loading}
+              className="w-full h-14 bg-brand-primary text-white rounded-2xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
+            >
+              {loading ? 'Enviando...' : 'Enviar link de recuperação'}
+            </Button>
+
+            <button 
+              type="button"
+              onClick={() => { setIsForgotPassword(false); setResetSent(false); }}
+              className="w-full text-center text-xs font-black text-slate-400 uppercase tracking-widest hover:text-brand-primary transition-colors py-2"
+            >
+              ← Voltar para o login
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleEmailAuth} className="space-y-4">
+            <div className="space-y-3">
+              {isRegister && (
+                <div className="relative">
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                  <Input 
+                    type="text" 
+                    placeholder="Seu nome completo" 
+                    required 
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className="pl-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20 text-slate-700"
+                  />
+                </div>
+              )}
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                <Input 
+                  type="email" 
+                  placeholder="E-mail profissional" 
+                  required 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20 text-slate-700"
+                />
+              </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
                 <Input 
-                  type={showConfirmPassword ? "text" : "password"} 
-                  placeholder="Confirmar senha" 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder={isRegister ? "Senha de acesso (mín. 6 chars)" : "Senha de acesso"} 
                   required 
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pl-12 pr-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-12 pr-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20 text-slate-700"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
-                  title={showConfirmPassword ? "Esconder senha" : "Mostrar senha"}
+                  title={showPassword ? "Esconder senha" : "Mostrar senha"}
                 >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            )}
-          </div>
-          
-          <Button 
-            type="submit"
-            disabled={loading}
-            className="w-full h-14 bg-brand-primary text-white rounded-2xl font-black text-lg shadow-xl shadow-brand-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
-          >
-            {loading ? 'Processando...' : (isRegister ? 'Criar minha conta' : 'Entrar no sistema')}
-          </Button>
 
-          <p className="text-center">
+              {isRegister && (
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={18} />
+                  <Input 
+                    type={showConfirmPassword ? "text" : "password"} 
+                    placeholder="Confirmar senha" 
+                    required 
+                    minLength={6}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-12 pr-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20 text-slate-700"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors"
+                    title={showConfirmPassword ? "Esconder senha" : "Mostrar senha"}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              )}
+
+              {!isRegister && (
+                <div className="flex justify-end pr-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPassword(true)}
+                    className="text-[11px] font-extrabold text-slate-400 hover:text-brand-primary transition-colors"
+                  >
+                    Esqueceu sua senha?
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            <Button 
+              type="submit"
+              disabled={loading}
+              className="w-full h-14 bg-brand-primary text-white rounded-2xl font-black text-base shadow-xl shadow-brand-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all"
+            >
+              {loading ? 'Processando...' : (isRegister ? 'Criar minha conta' : 'Entrar no sistema')}
+            </Button>
+          </form>
+        )}
+
+        {!isForgotPassword && (
+          <>
+            <div className="relative py-1">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-100"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white px-3 text-[10px] font-black text-slate-300 uppercase tracking-wider">ou entre com</span>
+              </div>
+            </div>
+
             <button 
               type="button"
-              onClick={() => setIsRegister(!isRegister)}
-              className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-brand-primary transition-colors py-2"
+              onClick={handleGoogleLogin}
+              className="w-full h-12 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-brand-primary/20 transition-all font-bold text-xs text-slate-700 shadow-sm active:scale-[0.98]"
             >
-              {isRegister ? 'Já tenho acesso profissional' : 'Não tem conta? Cadastre sua clínica'}
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
+              Continuar com Google
             </button>
-          </p>
-        </form>
-
-        <div className="relative py-2">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-100"></div>
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-4 text-[10px] font-black text-slate-300 uppercase tracking-wider">ou</span>
-          </div>
-        </div>
-
-        <button 
-          type="button"
-          onClick={handleGoogleLogin}
-          className="w-full h-14 bg-white border-2 border-slate-100 rounded-2xl flex items-center justify-center gap-4 hover:bg-slate-50 hover:border-brand-primary/20 transition-all font-bold text-slate-700 shadow-sm active:scale-[0.98]"
-        >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" alt="Google" />
-          Acessar com Google
-        </button>
+          </>
+        )}
         
         <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] text-center opacity-60">Segurança de alto nível • Criptografia ponta a ponta</p>
       </div>
