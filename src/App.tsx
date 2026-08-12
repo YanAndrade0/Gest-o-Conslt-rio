@@ -176,13 +176,12 @@ const Login = () => {
         } catch (loginErr: any) {
           const code = loginErr.code || (loginErr.message && loginErr.message.match(/\((auth\/[^)]+)\)/)?.[1]);
           // If account doesn't exist yet, automatically create account with password provided
-          if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+          if (code === 'auth/user-not-found') {
             try {
               await registerWithEmail(email, password, finalName || 'Dr. Yan Andrade');
-              toast.success('Conta vinculada e criada com sucesso! Bem-vindo.');
+              toast.success('Conta criada e vinculada com sucesso!');
               return;
             } catch (regErr: any) {
-              // If registration failed because email is already registered, original error was wrong password
               throw loginErr;
             }
           }
@@ -195,18 +194,21 @@ const Login = () => {
       
       const errorCode = error.code || (error.message && error.message.match(/\((auth\/[^)]+)\)/)?.[1]);
       
-      if (errorCode === 'auth/invalid-credential') message = 'E-mail ou senha incorretos.';
-      if (errorCode === 'auth/user-not-found') message = 'E-mail não cadastrado.';
-      if (errorCode === 'auth/wrong-password') message = 'Senha incorreta.';
-      if (errorCode === 'auth/email-already-in-use') message = 'Este e-mail já está cadastrado. Tente entrar na sua conta.';
-      if (errorCode === 'auth/weak-password') message = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
-      if (errorCode === 'auth/invalid-email') message = 'O e-mail digitado é inválido.';
-      if (errorCode === 'auth/too-many-requests') message = 'Muitas tentativas sem sucesso. Aguarde um momento.';
-      if (error.message && error.message.includes('auth/email-already-in-use')) {
-        message = 'Este e-mail já está cadastrado. Tente entrar na sua conta.';
+      if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/wrong-password') {
+        message = 'Senha incorreta para este e-mail. Se a conta já existia ou foi criada via Google, clique em "Esqueceu sua senha?" para cadastrar a nova senha.';
+      } else if (errorCode === 'auth/user-not-found') {
+        message = 'E-mail não cadastrado. Mude para a aba "Criar Conta".';
+      } else if (errorCode === 'auth/email-already-in-use') {
+        message = 'Este e-mail já possui cadastro. Faça login ou clique em "Esqueceu sua senha?".';
+      } else if (errorCode === 'auth/weak-password') {
+        message = 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+      } else if (errorCode === 'auth/invalid-email') {
+        message = 'O e-mail digitado é inválido.';
+      } else if (errorCode === 'auth/too-many-requests') {
+        message = 'Muitas tentativas sem sucesso. Aguarde alguns instantes ou redefina sua senha.';
       }
       
-      toast.error(message);
+      toast.error(message, { duration: 6000 });
     } finally {
       setLoading(false);
     }

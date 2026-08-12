@@ -75,8 +75,8 @@ async function compressAndEncodeToBase64(file: File): Promise<string> {
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 600;
-          const MAX_HEIGHT = 600;
+          const MAX_WIDTH = 900;
+          const MAX_HEIGHT = 900;
           let width = img.width;
           let height = img.height;
 
@@ -101,8 +101,8 @@ async function compressAndEncodeToBase64(file: File): Promise<string> {
           }
 
           ctx.drawImage(img, 0, 0, width, height);
-          // Compress heavily (0.5 quality) to keep size exceptionally small (~20KB - 40KB)
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+          // Compress quality (0.65) to keep crisp detail and small size (~40KB - 80KB)
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
           resolve(dataUrl);
         } catch (err) {
           console.warn('Canvas compression failed, falling back to raw Base64:', err);
@@ -218,18 +218,25 @@ export const medicalRecordService = {
   // Photos
   async uploadPhoto(file: File, clinicId: string) {
     try {
-      const storageRef = ref(storage, `patients/${clinicId}/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(snapshot.ref);
-      return downloadUrl;
+      const storagePromise = (async () => {
+        const storageRef = ref(storage, `patients/${clinicId}/${Date.now()}_${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        return await getDownloadURL(snapshot.ref);
+      })();
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Storage timeout')), 1500);
+      });
+
+      return await Promise.race([storagePromise, timeoutPromise]);
     } catch (error) {
-      console.warn('Firebase Storage error, falling back to local compressed Base64:', error);
+      console.warn('Firebase Storage indisponível ou lento, usando compressão local Base64:', error);
       try {
         const base64Url = await compressAndEncodeToBase64(file);
         return base64Url;
       } catch (fallbackError) {
-        console.error('Photo compression and Base64 encoding fallback failed:', fallbackError);
-        throw error; // If fallback fails too, throw the original Storage error
+        console.error('Falha na compressão local da imagem:', fallbackError);
+        throw error;
       }
     }
   },
