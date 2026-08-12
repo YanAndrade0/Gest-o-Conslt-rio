@@ -478,208 +478,212 @@ export function AppointmentAgenda() {
               </Button>
             }
           />
-          <DialogContent className="max-w-md bg-white rounded-[2.5rem] border-none shadow-2xl p-8">
-            <DialogHeader>
-              <div className="w-14 h-14 bg-brand-light rounded-2xl flex items-center justify-center text-brand-primary mb-4">
-                <Stethoscope size={28} />
+          <DialogContent className="max-w-md w-[calc(100%-1.5rem)] bg-white rounded-[2rem] sm:rounded-[2.5rem] border-none shadow-2xl p-4 sm:p-6 md:p-8 max-h-[90dvh] flex flex-col overflow-hidden">
+            <DialogHeader className="shrink-0 mb-1 sm:mb-2">
+              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-brand-light rounded-2xl flex items-center justify-center text-brand-primary mb-2 sm:mb-4">
+                <Stethoscope size={22} className="sm:w-7 sm:h-7" />
               </div>
-              <DialogTitle className="text-2xl font-black text-slate-800 tracking-tight">
+              <DialogTitle className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
                 {editingAppointment ? 'Editar Consulta' : 'Agendar Consulta'}
               </DialogTitle>
-              <DialogDescription className="font-medium text-slate-400">
+              <DialogDescription className="font-medium text-slate-400 text-xs sm:text-sm">
                 {editingAppointment ? 'Altere os detalhes ou desmarque este horário.' : 'Preencha os detalhes para reservar o horário.'}
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-              <div className="space-y-2 relative" ref={patientSearchRef}>
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Paciente</Label>
-                <div className="relative group">
-                  <Input 
-                    placeholder="Comece a digitar o nome do paciente..."
-                    value={patientSearch}
-                    onChange={(e) => {
-                      setPatientSearch(e.target.value);
-                      setIsPatientListOpen(true);
-                      if (formData.patientId) setFormData({...formData, patientId: ''});
-                    }}
-                    onFocus={() => setIsPatientListOpen(true)}
-                    className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 pr-10"
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
-                    <User size={20} />
-                  </div>
-                </div>
-
-                {isPatientListOpen && filteredPatients.length > 0 && (
-                  <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="p-2 space-y-1 bg-white">
-                      {filteredPatients.map(p => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => {
-                            setFormData({...formData, patientId: p.id!});
-                            setPatientSearch(p.name);
-                            setIsPatientListOpen(false);
-                          }}
-                          className="w-full text-left p-3 rounded-xl hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
-                        >
-                          <span className="font-bold">{p.name}</span>
-                          <span className="text-[10px] font-black opacity-0 group-hover:opacity-100 uppercase">Selecionar</span>
-                        </button>
-                      ))}
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+              <div className="flex-1 overflow-y-auto space-y-3 sm:space-y-4 px-1 py-2 scrollbar-thin">
+                <div className="space-y-1.5 sm:space-y-2 relative" ref={patientSearchRef}>
+                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Paciente</Label>
+                  <div className="relative group">
+                    <Input 
+                      placeholder="Comece a digitar o nome do paciente..."
+                      value={patientSearch}
+                      onChange={(e) => {
+                        setPatientSearch(e.target.value);
+                        setIsPatientListOpen(true);
+                        if (formData.patientId) setFormData({...formData, patientId: ''});
+                      }}
+                      onFocus={() => setIsPatientListOpen(true)}
+                      className="bg-bg-main border-none h-12 sm:h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 pr-10 text-sm"
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
+                      <User size={18} />
                     </div>
-                  </Card>
-                )}
-                
-                {formData.patientId && (
-                  <div className="absolute -bottom-6 left-1 flex items-center gap-1.5 animate-in fade-in duration-300">
-                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                    <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">Paciente Selecionado</span>
                   </div>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Procedimento</Label>
-                <Input 
-                  placeholder="Ex: Limpeza, Canal, Avaliação" 
-                  value={formData.procedure}
-                  onChange={(e) => setFormData({...formData, procedure: e.target.value})}
-                  required
-                  className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700"
-                />
-              </div>
-
-              <div className="space-y-2 relative" ref={doctorSearchRef}>
-                <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Doutor(a) Responsável</Label>
-                <div className="relative group">
-                  <Input 
-                    placeholder="Nome do dentista..." 
-                    value={doctorSearch}
-                    onChange={(e) => {
-                      setDoctorSearch(e.target.value);
-                      setIsDoctorListOpen(true);
-                      setFormData({...formData, doctorName: e.target.value});
-                    }}
-                    onFocus={(e) => {
-                      setIsDoctorListOpen(true);
-                      e.target.select();
-                    }}
-                    className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 pr-10"
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
-                    <Stethoscope size={20} />
-                  </div>
-                </div>
-
-                {isDoctorListOpen && filteredDoctors.length > 0 && (
-                  <Card className="absolute z-50 w-full mt-2 border-none shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="p-2 space-y-1 bg-white">
-                      {filteredDoctors.map(d => (
+                  {isPatientListOpen && filteredPatients.length > 0 && (
+                    <Card className="absolute z-50 w-full mt-1 border-none shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-2 space-y-1 bg-white max-h-48 overflow-y-auto">
+                        {filteredPatients.map(p => (
                           <button
-                            key={d.uid}
+                            key={p.id}
                             type="button"
                             onClick={() => {
-                              const name = d.displayName || 'Doutor(a)';
-                              setFormData({...formData, doctorName: name});
-                              setDoctorSearch(name);
-                              setIsDoctorListOpen(false);
+                              setFormData({...formData, patientId: p.id!});
+                              setPatientSearch(p.name);
+                              setIsPatientListOpen(false);
                             }}
-                            className="w-full text-left p-3 rounded-xl hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
+                            className="w-full text-left p-2.5 rounded-xl hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
                           >
-                            <div className="flex flex-col gap-0.5">
-                              <span className="font-bold">{d.displayName || 'Doutor(a)'}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">
-                                  {d.role === 'owner' ? 'Proprietário' : 
-                                   d.role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'}
-                                </span>
-                                {d.email && <span className="text-[10px] text-slate-300 font-mono lowercase">{d.email}</span>}
-                              </div>
-                            </div>
+                            <span className="font-bold text-sm">{p.name}</span>
                             <span className="text-[10px] font-black opacity-0 group-hover:opacity-100 uppercase">Selecionar</span>
                           </button>
-                      ))}
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {formData.patientId && (
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                      <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">Paciente Selecionado</span>
                     </div>
-                  </Card>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Data</Label>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Procedimento</Label>
                   <Input 
-                    type="date" 
-                    value={formData.date}
-                    onChange={(e) => setFormData({...formData, date: e.target.value})}
-                    className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold"
+                    placeholder="Ex: Limpeza, Canal, Avaliação" 
+                    value={formData.procedure}
+                    onChange={(e) => setFormData({...formData, procedure: e.target.value})}
+                    required
+                    className="bg-bg-main border-none h-12 sm:h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 text-sm"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Horário</Label>
-                  <Input 
-                    type="time" 
-                    step="1800"
-                    value={formData.time}
-                    onChange={(e) => setFormData({...formData, time: e.target.value})}
-                    className="bg-bg-main border-none h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold"
-                  />
+
+                <div className="space-y-1.5 sm:space-y-2 relative" ref={doctorSearchRef}>
+                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Doutor(a) Responsável</Label>
+                  <div className="relative group">
+                    <Input 
+                      placeholder="Nome do dentista..." 
+                      value={doctorSearch}
+                      onChange={(e) => {
+                        setDoctorSearch(e.target.value);
+                        setIsDoctorListOpen(true);
+                        setFormData({...formData, doctorName: e.target.value});
+                      }}
+                      onFocus={(e) => {
+                        setIsDoctorListOpen(true);
+                        e.target.select();
+                      }}
+                      className="bg-bg-main border-none h-12 sm:h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 pr-10 text-sm"
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300">
+                      <Stethoscope size={18} />
+                    </div>
+                  </div>
+
+                  {isDoctorListOpen && filteredDoctors.length > 0 && (
+                    <Card className="absolute z-50 w-full mt-1 border-none shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-2 space-y-1 bg-white max-h-48 overflow-y-auto">
+                        {filteredDoctors.map(d => (
+                            <button
+                              key={d.uid}
+                              type="button"
+                              onClick={() => {
+                                const name = d.displayName || 'Doutor(a)';
+                                setFormData({...formData, doctorName: name});
+                                setDoctorSearch(name);
+                                setIsDoctorListOpen(false);
+                              }}
+                              className="w-full text-left p-2.5 rounded-xl hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
+                            >
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-sm">{d.displayName || 'Doutor(a)'}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">
+                                    {d.role === 'owner' ? 'Proprietário' : 
+                                     d.role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'}
+                                  </span>
+                                  {d.email && <span className="text-[10px] text-slate-300 font-mono lowercase">{d.email}</span>}
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-black opacity-0 group-hover:opacity-100 uppercase">Selecionar</span>
+                            </button>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Data</Label>
+                    <Input 
+                      type="date" 
+                      value={formData.date}
+                      onChange={(e) => setFormData({...formData, date: e.target.value})}
+                      className="bg-bg-main border-none h-12 sm:h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Horário</Label>
+                    <Input 
+                      type="time" 
+                      step="1800"
+                      value={formData.time}
+                      onChange={(e) => setFormData({...formData, time: e.target.value})}
+                      className="bg-bg-main border-none h-12 sm:h-14 rounded-2xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Duração</Label>
+                    <Select value={formData.duration} onValueChange={(val) => setFormData({...formData, duration: val})}>
+                      <SelectTrigger className="bg-bg-main border-none h-12 sm:h-14 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700 text-sm">
+                        <SelectValue placeholder="Duração" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-2xl">
+                        <SelectItem value="15" className="py-2.5 font-bold">15 minutos</SelectItem>
+                        <SelectItem value="30" className="py-2.5 font-bold">30 minutos</SelectItem>
+                        <SelectItem value="45" className="py-2.5 font-bold">45 minutos</SelectItem>
+                        <SelectItem value="60" className="py-2.5 font-bold">1 hora</SelectItem>
+                        <SelectItem value="90" className="py-2.5 font-bold">1h 30min</SelectItem>
+                        <SelectItem value="120" className="py-2.5 font-bold">2 horas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5 sm:space-y-2">
+                    <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Status</Label>
+                    <Select value={formData.status} onValueChange={(val) => setFormData({...formData, status: val as Appointment['status']})}>
+                      <SelectTrigger className="bg-bg-main border-none h-12 sm:h-14 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700 text-sm">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-2xl">
+                        <SelectItem value="marcado" className="py-2.5 font-bold text-blue-600">Marcado</SelectItem>
+                        <SelectItem value="confirmado" className="py-2.5 font-bold text-green-600">Confirmado</SelectItem>
+                        <SelectItem value="aguardando" className="py-2.5 font-bold text-orange-600">Aguardando</SelectItem>
+                        <SelectItem value="desmarcado" className="py-2.5 font-bold text-red-600">Desmarcou</SelectItem>
+                        <SelectItem value="finalizado" className="py-2.5 font-bold text-slate-600">Atendido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Duração da Consulta</Label>
-                  <Select value={formData.duration} onValueChange={(val) => setFormData({...formData, duration: val})}>
-                    <SelectTrigger className="bg-bg-main border-none h-14 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700">
-                      <SelectValue placeholder="Duração" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-2xl">
-                      <SelectItem value="15" className="py-3 font-bold">15 minutos</SelectItem>
-                      <SelectItem value="30" className="py-3 font-bold">30 minutos</SelectItem>
-                      <SelectItem value="45" className="py-3 font-bold">45 minutos</SelectItem>
-                      <SelectItem value="60" className="py-3 font-bold">1 hora</SelectItem>
-                      <SelectItem value="90" className="py-3 font-bold">1h 30min</SelectItem>
-                      <SelectItem value="120" className="py-3 font-bold">2 horas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Status da Consulta</Label>
-                  <Select value={formData.status} onValueChange={(val) => setFormData({...formData, status: val as Appointment['status']})}>
-                    <SelectTrigger className="bg-bg-main border-none h-14 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700">
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-2xl">
-                      <SelectItem value="marcado" className="py-3 font-bold text-blue-600">Marcado</SelectItem>
-                      <SelectItem value="confirmado" className="py-3 font-bold text-green-600">Confirmado</SelectItem>
-                      <SelectItem value="aguardando" className="py-3 font-bold text-orange-600">Aguardando</SelectItem>
-                      <SelectItem value="desmarcado" className="py-3 font-bold text-red-600">Desmarcou</SelectItem>
-                      <SelectItem value="finalizado" className="py-3 font-bold text-slate-600">Atendido</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <DialogFooter className="pt-4 gap-2 flex-col sm:flex-row">
+              <DialogFooter className="shrink-0 pt-3 mt-2 border-t border-slate-100 bg-white gap-2 flex-col sm:flex-row z-10">
                 {editingAppointment && (
                   <Button 
                     type="button" 
                     variant={isConfirmingDelete ? "destructive" : "ghost"}
                     onClick={handleDeleteAppointment}
                     className={cn(
-                      "rounded-2xl font-bold h-14 transition-all",
+                      "rounded-2xl font-bold h-11 sm:h-14 transition-all text-xs sm:text-sm w-full sm:w-auto",
                       !isConfirmingDelete && "text-red-500 hover:text-red-600 hover:bg-red-50"
                     )}
                   >
                     {isConfirmingDelete ? 'CONFIRMAR DESMARCAÇÃO?' : 'Desmarcar Consulta'}
                   </Button>
                 )}
-                <div className="flex gap-2 flex-1">
-                  <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-2xl font-bold h-14 flex-1">Voltar</Button>
-                  <Button type="submit" className="bg-brand-primary text-white rounded-2xl font-black h-14 flex-[2] shadow-xl shadow-brand-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                <div className="flex gap-2 w-full">
+                  <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-2xl font-bold h-11 sm:h-14 flex-1 text-xs sm:text-sm">
+                    Voltar
+                  </Button>
+                  <Button type="submit" className="bg-brand-primary text-white rounded-2xl font-black h-11 sm:h-14 flex-[2] text-xs sm:text-sm shadow-xl shadow-brand-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all">
                     {editingAppointment ? 'SALVAR ALTERAÇÕES' : 'RESERVAR HORÁRIO'}
                   </Button>
                 </div>
