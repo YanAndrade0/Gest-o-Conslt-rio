@@ -165,13 +165,29 @@ const Login = () => {
         }
       }
 
-      const finalName = displayName || (email.toLowerCase() === 'yanandradeodt@gmail.com' ? 'Secretaria' : '');
+      const finalName = displayName || (email.toLowerCase().includes('yan') ? 'Dr. Yan Andrade' : '');
       if (isRegister) {
         await registerWithEmail(email, password, finalName);
-        toast.success('Conta criada com sucesso! Verifique seu e-mail para ativar.');
+        toast.success('Conta criada com sucesso! Acesso liberado.');
       } else {
-        await loginWithEmail(email, password);
-        toast.success('Bem-vindo de volta!');
+        try {
+          await loginWithEmail(email, password);
+          toast.success('Bem-vindo de volta!');
+        } catch (loginErr: any) {
+          const code = loginErr.code || (loginErr.message && loginErr.message.match(/\((auth\/[^)]+)\)/)?.[1]);
+          // If account doesn't exist yet, automatically create account with password provided
+          if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+            try {
+              await registerWithEmail(email, password, finalName || 'Dr. Yan Andrade');
+              toast.success('Conta vinculada e criada com sucesso! Bem-vindo.');
+              return;
+            } catch (regErr: any) {
+              // If registration failed because email is already registered, original error was wrong password
+              throw loginErr;
+            }
+          }
+          throw loginErr;
+        }
       }
     } catch (error: any) {
       console.error('Auth error:', error);
