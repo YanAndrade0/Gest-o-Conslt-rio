@@ -92,18 +92,18 @@ export function WhatsAppSettings() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <header className="mb-0 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+    <div className="p-3 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6 sm:space-y-8 overflow-x-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <header className="mb-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6">
         <div className="space-y-1">
-          <h2 className="text-3xl font-black text-slate-800 tracking-tight">Configurações</h2>
-          <p className="text-slate-500 font-medium tracking-tight">Gerencie sua clínica, equipe e integrações.</p>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">Configurações</h2>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium tracking-tight">Gerencie sua clínica, equipe e integrações.</p>
         </div>
 
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+        <div className="flex w-full sm:w-auto bg-slate-100 p-1.5 rounded-2xl border border-slate-200 overflow-x-auto scrollbar-hide">
           <button 
             onClick={() => setActiveTab('general')}
             className={cn(
-              "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all gap-2 flex items-center",
+              "flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest transition-all gap-1.5 sm:gap-2 flex items-center justify-center whitespace-nowrap",
               activeTab === 'general' ? "bg-white text-brand-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
             )}
           >
@@ -112,7 +112,7 @@ export function WhatsAppSettings() {
           <button 
             onClick={() => setActiveTab('members')}
             className={cn(
-              "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all gap-2 flex items-center",
+              "flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest transition-all gap-1.5 sm:gap-2 flex items-center justify-center whitespace-nowrap",
               activeTab === 'members' ? "bg-white text-brand-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
             )}
           >
@@ -122,7 +122,7 @@ export function WhatsAppSettings() {
             <button 
               onClick={() => setActiveTab('subscription')}
               className={cn(
-                "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all gap-2 flex items-center",
+                "flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-xl text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest transition-all gap-1.5 sm:gap-2 flex items-center justify-center whitespace-nowrap",
                 activeTab === 'subscription' ? "bg-white text-brand-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
               )}
             >
@@ -137,35 +137,37 @@ export function WhatsAppSettings() {
       ) : activeTab === 'subscription' ? (
         <SubscriptionSettings />
       ) : (
-        <div className="space-y-12">
+        <div className="space-y-6 sm:space-y-12">
           {/* Clinic Details Card */}
-          <section className="space-y-6">
-            <div className="flex items-center gap-2 mb-2">
+          <section className="space-y-4 sm:space-y-6">
+            <div className="flex items-center gap-2 mb-1 sm:mb-2">
               <Building size={18} className="text-slate-400" />
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Sua Clínica</h3>
             </div>
             <Card className="card-custom border-none overflow-hidden">
-              <CardContent className="p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-1 text-center md:text-left flex-1">
+              <CardContent className="p-4 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+                <div className="space-y-1 text-center md:text-left flex-1 min-w-0">
                   {isEditingName && isAdmin ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                        <Input 
                         value={newClinicName}
                         onChange={e => setNewClinicName(e.target.value)}
                         className="h-10 bg-slate-50 border-slate-200 rounded-xl font-bold focus-visible:ring-2 focus-visible:ring-brand-primary/20"
                       />
-                      <Button onClick={handleUpdateClinicName} size="sm" className="bg-brand-primary">Salvar</Button>
-                      <Button onClick={() => setIsEditingName(false)} variant="ghost" size="sm">Cancelar</Button>
+                      <div className="flex gap-2">
+                        <Button onClick={handleUpdateClinicName} size="sm" className="bg-brand-primary flex-1">Salvar</Button>
+                        <Button onClick={() => setIsEditingName(false)} variant="ghost" size="sm" className="flex-1">Cancelar</Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 justify-center md:justify-start">
-                      <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                      <h4 className="text-base sm:text-lg font-black text-slate-800 uppercase tracking-tight truncate">
                         {clinicData?.name || 'Carregando...'}
                       </h4>
                       {isAdmin && (
                         <button 
                           onClick={() => setIsEditingName(true)}
-                          className="text-xs text-brand-primary font-bold hover:underline"
+                          className="text-xs text-brand-primary font-bold hover:underline shrink-0"
                         >
                           Editar (Admin)
                         </button>
@@ -180,16 +182,16 @@ export function WhatsAppSettings() {
                   </p>
                 </div>
                 
-                <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center justify-between md:justify-start gap-6 group hover:border-brand-primary transition-all text-left">
-                  <div className="space-y-0.5">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Código de Acesso da Equipe</p>
-                    <p className="text-xl font-black text-slate-700 tracking-[0.2em]">{clinicData?.accessCode || '------'}</p>
+                <div className="bg-slate-50 p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-100 flex items-center justify-between gap-3 sm:gap-6 group hover:border-brand-primary transition-all text-left">
+                  <div className="space-y-0.5 min-w-0">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider truncate">Código de Acesso da Equipe</p>
+                    <p className="text-lg sm:text-xl font-black text-slate-700 tracking-wider sm:tracking-[0.2em]">{clinicData?.accessCode || '------'}</p>
                   </div>
                   <Button 
                     size="icon" 
                     variant="ghost" 
                     onClick={copyClinicCode}
-                    className="bg-white rounded-xl h-10 w-10 border border-slate-200 group-hover:bg-brand-primary group-hover:text-white group-hover:border-brand-primary"
+                    className="bg-white rounded-xl h-10 w-10 border border-slate-200 group-hover:bg-brand-primary group-hover:text-white group-hover:border-brand-primary shrink-0"
                   >
                     <Copy size={16} />
                   </Button>
@@ -199,42 +201,42 @@ export function WhatsAppSettings() {
           </section>
 
           {isAdmin && (
-            <section className="space-y-6">
-              <div className="flex items-center gap-2 mb-2">
+            <section className="space-y-4 sm:space-y-6">
+              <div className="flex items-center gap-2 mb-1 sm:mb-2">
                 <ShieldCheck size={18} className="text-brand-primary" />
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Painel do Administrador</h3>
               </div>
               
               <Card className="card-custom border-none bg-brand-primary/5 border-2 border-brand-primary/10 overflow-hidden">
-                <CardHeader className="p-8 pb-4">
-                  <CardTitle className="text-xl font-black text-brand-primary flex items-center gap-2">
-                    <Key size={24} /> Gerar Código de Ativação
+                <CardHeader className="p-4 sm:p-8 pb-3 sm:pb-4">
+                  <CardTitle className="text-lg sm:text-xl font-black text-brand-primary flex items-center gap-2">
+                    <Key size={20} className="shrink-0" /> Gerar Código de Ativação
                   </CardTitle>
-                  <CardDescription className="text-brand-primary/60 font-bold text-sm">
+                  <CardDescription className="text-brand-primary/60 font-bold text-xs sm:text-sm">
                     Crie novos códigos para permitir o cadastro de novas clínicas por outros usuários.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-8 pt-4 space-y-6">
+                <CardContent className="p-4 sm:p-8 pt-2 sm:pt-4 space-y-6">
                   {generatedLicense ? (
-                    <div className="bg-white p-6 rounded-3xl border-2 border-dashed border-brand-primary/30 flex items-center justify-between animate-in zoom-in duration-300">
-                      <span className="text-2xl font-black text-slate-700 tracking-[0.2em]">{generatedLicense}</span>
-                      <div className="flex gap-2">
+                    <div className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-brand-primary/30 flex flex-col sm:flex-row items-center justify-between gap-3 animate-in zoom-in duration-300">
+                      <span className="text-xl sm:text-2xl font-black text-slate-700 tracking-wider sm:tracking-[0.2em] break-all text-center sm:text-left">{generatedLicense}</span>
+                      <div className="flex gap-2 shrink-0">
                         <Button 
                           size="icon" 
                           variant="ghost" 
                           onClick={copyLicense}
-                          className="bg-brand-light rounded-xl h-12 w-12 hover:bg-brand-primary hover:text-white"
+                          className="bg-brand-light rounded-xl h-10 w-10 sm:h-12 sm:w-12 hover:bg-brand-primary hover:text-white"
                         >
-                          <Copy size={20} />
+                          <Copy size={18} />
                         </Button>
                         <Button 
                           size="icon" 
                           variant="ghost" 
                           onClick={handleGenerateLicense}
                           disabled={isGenerating}
-                          className="bg-brand-light rounded-xl h-12 w-12 hover:bg-brand-primary hover:text-white"
+                          className="bg-brand-light rounded-xl h-10 w-10 sm:h-12 sm:w-12 hover:bg-brand-primary hover:text-white"
                         >
-                          <RefreshCw size={20} className={cn(isGenerating && "animate-spin")} />
+                          <RefreshCw size={18} className={cn(isGenerating && "animate-spin")} />
                         </Button>
                       </div>
                     </div>
@@ -242,9 +244,9 @@ export function WhatsAppSettings() {
                     <Button 
                       onClick={handleGenerateLicense}
                       disabled={isGenerating}
-                      className="w-full h-16 bg-brand-primary text-white rounded-[2rem] font-black text-lg shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                      className="w-full h-14 sm:h-16 bg-brand-primary text-white rounded-2xl sm:rounded-[2rem] font-black text-sm sm:text-lg shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 sm:gap-3"
                     >
-                      {isGenerating ? <RefreshCw className="animate-spin" /> : <Plus size={24} />}
+                      {isGenerating ? <RefreshCw className="animate-spin" /> : <Plus size={20} />}
                       GERAR NOVO CÓDIGO DE VENDA
                     </Button>
                   )}
@@ -254,21 +256,21 @@ export function WhatsAppSettings() {
           )}
 
           <section>
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-4 sm:mb-6">
               <Key size={18} className="text-slate-400" />
               <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Configuração de Mensagens</h3>
             </div>
             <Card className="card-custom border-none overflow-hidden">
-              <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
-                <CardTitle className="text-xl font-bold">Lembretes de WhatsApp</CardTitle>
-                <CardDescription className="text-slate-500 font-medium">
+              <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-4 sm:p-8">
+                <CardTitle className="text-lg sm:text-xl font-bold">Lembretes de WhatsApp</CardTitle>
+                <CardDescription className="text-slate-500 font-medium text-xs sm:text-sm">
                   Defina como e quando seus pacientes devem ser avisados.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-8 space-y-8">
-              <div className="flex items-center justify-between p-6 bg-brand-light/30 rounded-2xl border border-brand-light transition-all hover:bg-brand-light/50">
+              <CardContent className="p-4 sm:p-8 space-y-6 sm:space-y-8">
+              <div className="flex items-center justify-between p-4 sm:p-6 bg-brand-light/30 rounded-2xl border border-brand-light transition-all hover:bg-brand-light/50 gap-3">
                 <div className="space-y-0.5">
-                  <Label className="text-base font-bold text-slate-800 cursor-pointer">Enviar Automaticamente</Label>
+                  <Label className="text-sm sm:text-base font-bold text-slate-800 cursor-pointer">Enviar Automaticamente</Label>
                   <p className="text-xs text-slate-500 font-medium tracking-wide">
                     Ativa o envio de lembretes via link manual ou bot.
                   </p>
@@ -276,11 +278,11 @@ export function WhatsAppSettings() {
                 <Switch 
                   checked={enabled}
                   onCheckedChange={setEnabled}
-                  className="data-[state=checked]:bg-brand-primary"
+                  className="data-[state=checked]:bg-brand-primary shrink-0"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                 <div className="space-y-3">
                   <Label htmlFor="hours" className="text-sm font-bold text-slate-600">Tempo de Antecedência</Label>
                   <div className="flex items-center gap-3">
@@ -302,19 +304,19 @@ export function WhatsAppSettings() {
                   id="template"
                   value={template}
                   onChange={(e) => setTemplate(e.target.value)}
-                  className="w-full h-36 p-5 border border-slate-200 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all resize-none bg-slate-50/10 shadow-inner"
+                  className="w-full h-36 p-4 sm:p-5 border border-slate-200 rounded-2xl text-xs sm:text-sm font-medium focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all resize-none bg-slate-50/10 shadow-inner"
                   placeholder="Use [PACIENTE], [CLINICA] e [HORA] como variáveis."
                 />
                 <div className="flex gap-2 flex-wrap">
                   {['[PACIENTE]', '[CLINICA]', '[HORA]'].map(tag => (
-                    <span key={tag} className="px-3 py-1.5 bg-brand-muted/40 text-brand-primary rounded-xl text-[10px] font-bold tracking-wider border border-brand-primary/10 shadow-sm">{tag}</span>
+                    <span key={tag} className="px-2.5 py-1 bg-brand-muted/40 text-brand-primary rounded-xl text-[10px] font-bold tracking-wider border border-brand-primary/10 shadow-sm">{tag}</span>
                   ))}
                 </div>
               </div>
 
               <Button 
                 onClick={handleSave} 
-                className="w-full h-14 rounded-2xl bg-brand-primary hover:bg-brand-accent text-white font-bold text-lg shadow-xl shadow-brand-primary/20 transition-all active:scale-[0.98]"
+                className="w-full h-12 sm:h-14 rounded-2xl bg-brand-primary hover:bg-brand-accent text-white font-bold text-base sm:text-lg shadow-xl shadow-brand-primary/20 transition-all active:scale-[0.98]"
               >
                 Salvar Alterações
               </Button>

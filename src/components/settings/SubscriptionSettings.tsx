@@ -160,25 +160,25 @@ export function SubscriptionSettings() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
-      <section className="space-y-6">
-        <div className="flex items-center gap-2">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-2">
+      <section className="space-y-4 sm:space-y-6">
+        <div className="flex items-center gap-2 mb-1">
           <CreditCard size={18} className="text-slate-400" />
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Plano Atual</h3>
         </div>
         
         <Card className="card-custom border-none overflow-hidden">
-          <CardContent className="p-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="space-y-3">
-                <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusColor()}`}>
+          <CardContent className="p-4 sm:p-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 sm:gap-6">
+              <div className="space-y-2 sm:space-y-3">
+                <div className={`inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${getStatusColor()}`}>
                   {subscription.status === 'active' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
                   {getStatusLabel()}
                 </div>
                 <div>
-                  <h4 className="text-2xl font-black text-slate-800">{subscription.planName || 'Gestão Profissional'}</h4>
+                  <h4 className="text-xl sm:text-2xl font-black text-slate-800">{subscription.planName || 'Gestão Profissional'}</h4>
                   {subscription.currentPeriodEnd && (
-                    <p className="text-sm font-medium text-slate-500 mt-1">
+                    <p className="text-xs sm:text-sm font-medium text-slate-500 mt-1">
                       {subscription.status === 'active' ? 'Renovação em' : 'Expira em'}: {' '}
                       <span className="font-bold text-slate-700">
                         {format(subscription.currentPeriodEnd.toDate ? subscription.currentPeriodEnd.toDate() : new Date(subscription.currentPeriodEnd), "dd 'de' MMMM", { locale: ptBR })}
@@ -193,7 +193,7 @@ export function SubscriptionSettings() {
                   onClick={handlePortal}
                   disabled={isProcessing}
                   variant="outline"
-                  className="h-12 border-slate-200 rounded-xl font-bold flex items-center gap-2 hover:border-brand-primary"
+                  className="w-full md:w-auto h-11 sm:h-12 border-slate-200 rounded-xl font-bold flex items-center justify-center gap-2 hover:border-brand-primary text-xs sm:text-sm"
                 >
                   <CreditCard size={16} />
                   Gerenciar Faturamento
@@ -204,32 +204,32 @@ export function SubscriptionSettings() {
         </Card>
       </section>
 
-      <section className="space-y-6">
-        <div className="flex items-center gap-2">
+      <section className="space-y-4 sm:space-y-6">
+        <div className="flex items-center gap-2 mb-1">
           <Zap size={18} className="text-brand-primary" />
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Nossos Planos</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Monthly Plan */}
           <Card className="card-custom border-none flex flex-col h-full bg-white transition-all hover:scale-[1.01] hover:shadow-2xl">
-            <CardHeader className="p-8 pb-0">
-              <div className="px-3 py-1 bg-brand-light rounded-lg w-fit mb-4">
+            <CardHeader className="p-4 sm:p-8 pb-0">
+              <div className="px-3 py-1 bg-brand-light rounded-lg w-fit mb-3 sm:mb-4">
                 <span className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">Mais Popular</span>
               </div>
-              <CardTitle className="text-2xl font-black text-slate-800">Plano Mensal</CardTitle>
-              <CardDescription className="text-slate-500 font-medium">Controle total imediato</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl font-black text-slate-800">Plano Mensal</CardTitle>
+              <CardDescription className="text-slate-500 font-medium text-xs sm:text-sm">Controle total imediato</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 flex-1 flex flex-col gap-6">
+            <CardContent className="p-4 sm:p-8 flex-1 flex flex-col gap-4 sm:gap-6">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-800 tracking-tight">R$ 34,90</span>
-                <span className="text-lg font-bold text-slate-400">/mês</span>
+                <span className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">R$ 34,90</span>
+                <span className="text-base sm:text-lg font-bold text-slate-400">/mês</span>
               </div>
               
-              <ul className="space-y-3 flex-1">
+              <ul className="space-y-2.5 sm:space-y-3 flex-1">
                 {['Até 5 usuários por clínica', 'Pacientes Ilimitados', 'Agenda Multiclínica', 'Financeiro Completo', 'Suporte WhatsApp', 'Backup em Tempo Real'].map(feat => (
-                  <li key={feat} className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                    <CheckCircle2 size={16} className="text-green-500" /> {feat}
+                  <li key={feat} className="flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-600">
+                    <CheckCircle2 size={16} className="text-green-500 shrink-0" /> {feat}
                   </li>
                 ))}
               </ul>
@@ -237,33 +237,33 @@ export function SubscriptionSettings() {
               <Button 
                 onClick={() => handleSubscribe('Mensal', 34.90)}
                 disabled={isProcessing || subscription.status === 'active'}
-                className="w-full h-14 bg-brand-primary text-white rounded-2xl font-black shadow-lg shadow-brand-primary/20 hover:bg-brand-accent transition-all group"
+                className="w-full h-12 sm:h-14 bg-brand-primary text-white rounded-2xl font-black text-xs sm:text-sm shadow-lg shadow-brand-primary/20 hover:bg-brand-accent transition-all group"
               >
                 {isProcessing ? 'Processando...' : (subscription.status === 'active' ? 'Assinatura Ativa' : 'Assinar Mensal')}
-                <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform shrink-0" />
               </Button>
             </CardContent>
           </Card>
 
           {/* Yearly Plan */}
           <Card className="card-custom border-2 border-brand-primary/20 flex flex-col h-full bg-slate-50 shadow-none">
-            <CardHeader className="p-8 pb-0">
-              <div className="px-3 py-1 bg-green-100 rounded-lg w-fit mb-4">
+            <CardHeader className="p-4 sm:p-8 pb-0">
+              <div className="px-3 py-1 bg-green-100 rounded-lg w-fit mb-3 sm:mb-4">
                 <span className="text-[10px] font-bold text-green-600 uppercase tracking-widest">Economize 14%</span>
               </div>
-              <CardTitle className="text-2xl font-black text-slate-800">Plano Anual</CardTitle>
-              <CardDescription className="text-slate-500 font-medium tracking-tight">Foco no crescimento</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl font-black text-slate-800">Plano Anual</CardTitle>
+              <CardDescription className="text-slate-500 font-medium tracking-tight text-xs sm:text-sm">Foco no crescimento</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 flex-1 flex flex-col gap-6">
+            <CardContent className="p-4 sm:p-8 flex-1 flex flex-col gap-4 sm:gap-6">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-black text-slate-800 tracking-tight">R$ 359,90</span>
-                <span className="text-lg font-bold text-slate-400">/ano</span>
+                <span className="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">R$ 359,90</span>
+                <span className="text-base sm:text-lg font-bold text-slate-400">/ano</span>
               </div>
               
-              <ul className="space-y-3 flex-1 opacity-70">
+              <ul className="space-y-2.5 sm:space-y-3 flex-1 opacity-70">
                 {['Até 5 usuários por clínica', 'Todos os recursos Mensal', '2 meses de desconto', 'Faturamento anual por CNPJ', 'Gerente de Contas'].map(feat => (
-                  <li key={feat} className="flex items-center gap-2 text-sm font-medium text-slate-600">
-                    <CheckCircle2 size={16} className="text-green-500" /> {feat}
+                  <li key={feat} className="flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-600">
+                    <CheckCircle2 size={16} className="text-green-500 shrink-0" /> {feat}
                   </li>
                 ))}
               </ul>
@@ -272,7 +272,7 @@ export function SubscriptionSettings() {
                 variant="outline"
                 onClick={() => handleSubscribe('Anual', 359.90)}
                 disabled={isProcessing || subscription.status === 'active'}
-                className="w-full h-14 border-2 border-slate-200 rounded-2xl font-black text-slate-700 hover:bg-white hover:border-brand-primary transition-all group"
+                className="w-full h-12 sm:h-14 border-2 border-slate-200 rounded-2xl font-black text-xs sm:text-sm text-slate-700 hover:bg-white hover:border-brand-primary transition-all group"
               >
                 {isProcessing ? 'Processando...' : 'Assinar Anual'}
               </Button>
@@ -281,14 +281,14 @@ export function SubscriptionSettings() {
         </div>
       </section>
 
-      <section className="bg-slate-900 rounded-[2.5rem] p-10 text-white overflow-hidden relative group">
+      <section className="bg-slate-900 rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 text-white overflow-hidden relative group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/20 blur-[100px] -translate-y-32 translate-x-32 group-hover:bg-brand-primary/30 transition-all duration-700"></div>
-        <div className="relative z-10 space-y-6">
-          <div className="space-y-2">
-            <h4 className="text-2xl font-black tracking-tight">Precisa de Ajuda?</h4>
-            <p className="text-slate-400 font-medium leading-relaxed max-w-md">Nosso suporte está disponível para tirar dúvidas sobre faturamento e recursos avançados.</p>
+        <div className="relative z-10 space-y-4 sm:space-y-6">
+          <div className="space-y-1.5 sm:space-y-2">
+            <h4 className="text-xl sm:text-2xl font-black tracking-tight">Precisa de Ajuda?</h4>
+            <p className="text-slate-400 font-medium text-xs sm:text-sm leading-relaxed max-w-md">Nosso suporte está disponível para tirar dúvidas sobre faturamento e recursos avançados.</p>
           </div>
-          <Button className="bg-white text-slate-900 font-black px-8 h-14 rounded-2xl hover:bg-brand-primary hover:text-white transition-all shadow-2xl shadow-black/20">
+          <Button className="w-full sm:w-auto bg-white text-slate-900 font-black px-6 sm:px-8 h-12 sm:h-14 rounded-xl sm:rounded-2xl hover:bg-brand-primary hover:text-white transition-all text-xs sm:text-sm shadow-2xl shadow-black/20">
             Falar com Suporte
           </Button>
         </div>

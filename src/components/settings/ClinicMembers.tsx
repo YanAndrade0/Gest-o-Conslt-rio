@@ -213,7 +213,7 @@ export function ClinicMembers() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-4 sm:space-y-6 animate-in fade-in duration-500">
       {/* Solicitações de Acesso Pendentes */}
       {pendingMembers.length > 0 && isOwnerOrMaster && (
         <Card className="bg-amber-50/60 border border-amber-200/80 rounded-[2rem] shadow-lg overflow-hidden">
@@ -277,88 +277,88 @@ export function ClinicMembers() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-1 bg-gradient-to-br from-brand-primary to-brand-accent text-white border-none rounded-[2rem] shadow-xl overflow-hidden relative group">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        <Card className="md:col-span-1 bg-gradient-to-br from-brand-primary to-brand-accent text-white border-none rounded-2xl sm:rounded-[2rem] shadow-xl overflow-hidden relative group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-          <CardHeader className="relative z-10">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-2">
-              <UserPlus size={24} />
+          <CardHeader className="relative z-10 p-4 sm:p-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-2">
+              <UserPlus size={20} />
             </div>
-            <CardTitle className="text-xl font-black tracking-tight">Convidar Equipe</CardTitle>
+            <CardTitle className="text-lg sm:text-xl font-black tracking-tight">Convidar Equipe</CardTitle>
             <CardDescription className="text-white/70 font-medium text-xs">Compartilhe o código abaixo para que novos membros se vinculem à sua clínica.</CardDescription>
           </CardHeader>
-          <CardContent className="relative z-10 pt-0">
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex flex-col gap-3">
+          <CardContent className="relative z-10 p-4 sm:p-6 pt-0">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3.5 sm:p-4 flex flex-col gap-2.5 sm:gap-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-white/50">Código de Acesso</span>
                 {copied && <span className="text-[10px] font-black text-white flex items-center gap-1 animate-in zoom-in"><CheckCircle2 size={10} /> Copiado</span>}
               </div>
-              <div className="text-3xl font-black tracking-[0.2em] text-center py-2">
+              <div className="text-2xl sm:text-3xl font-black tracking-wider sm:tracking-[0.2em] text-center py-1 sm:py-2">
                 {clinic?.accessCode || '------'}
               </div>
               <Button 
                 onClick={copyAccessCode}
                 variant="ghost" 
-                className="w-full bg-white text-brand-primary hover:bg-slate-100 rounded-xl font-bold h-10 gap-2"
+                className="w-full bg-white text-brand-primary hover:bg-slate-100 rounded-xl font-bold h-10 gap-2 text-xs"
               >
                 <Copy size={16} /> Copiar Código
               </Button>
             </div>
-            <p className="mt-4 text-[9px] font-bold text-white/50 uppercase tracking-widest text-center">Os membros que usarem este código serão vinculados à clínica "{clinic?.name}"</p>
+            <p className="mt-3 sm:mt-4 text-[9px] font-bold text-white/50 uppercase tracking-widest text-center">Os membros que usarem este código serão vinculados à clínica "{clinic?.name}"</p>
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2 bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col">
-          <CardHeader className="border-b border-slate-50 bg-slate-50/30">
+        <Card className="md:col-span-2 bg-white rounded-2xl sm:rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col">
+          <CardHeader className="border-b border-slate-50 bg-slate-50/30 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
+                <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary shrink-0">
                   <Users size={20} />
                 </div>
                 <div>
-                  <CardTitle className="text-lg font-black text-slate-800">Membros da Clínica</CardTitle>
+                  <CardTitle className="text-base sm:text-lg font-black text-slate-800">Membros da Clínica</CardTitle>
                   <CardDescription className="font-medium text-slate-400 text-xs">Profissionais e equipe vinculados.</CardDescription>
                 </div>
               </div>
-              <div className="bg-brand-light px-3 py-1 rounded-full">
+              <div className="bg-brand-light px-3 py-1 rounded-full shrink-0">
                 <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest">{members.length} {members.length === 1 ? 'Membro' : 'Membros'}</span>
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-1 overflow-auto max-h-[400px] scrollbar-hide">
             {loading ? (
-              <div className="p-12 text-center space-y-4">
-                <div className="w-12 h-12 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin mx-auto"></div>
+              <div className="p-8 sm:p-12 text-center space-y-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin mx-auto"></div>
                 <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Carregando lista...</p>
               </div>
             ) : members.length === 0 ? (
-              <div className="p-12 text-center space-y-4">
-                <Users size={48} className="mx-auto text-slate-100" />
-                <p className="text-slate-400 font-bold">Nenhum membro encontrado.</p>
+              <div className="p-8 sm:p-12 text-center space-y-4">
+                <Users size={40} className="mx-auto text-slate-100" />
+                <p className="text-slate-400 font-bold text-sm">Nenhum membro encontrado.</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-50">
                 {members.map((member) => (
-                  <div key={member.uid} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-all group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-brand-muted flex items-center justify-center text-brand-primary font-black border border-white shadow-sm overflow-hidden flex-shrink-0">
-                         {member.displayName ? member.displayName.charAt(0).toUpperCase() : <User size={20} />}
+                  <div key={member.uid} className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/50 transition-all group">
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-brand-muted flex items-center justify-center text-brand-primary font-black border border-white shadow-sm overflow-hidden flex-shrink-0">
+                         {member.displayName ? member.displayName.charAt(0).toUpperCase() : <User size={18} />}
                       </div>
-                      <div className="overflow-hidden">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-black text-slate-700 truncate">{member.displayName || 'Usuário'}</h4>
+                      <div className="min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-black text-slate-700 text-sm sm:text-base truncate">{member.displayName || 'Usuário'}</h4>
                           {member.uid === user?.uid && (
-                            <span className="text-[8px] font-black italic text-brand-primary uppercase">(Você)</span>
+                            <span className="text-[8px] font-black italic text-brand-primary uppercase shrink-0">(Você)</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-slate-400">
-                          <Mail size={12} />
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Mail size={12} className="shrink-0" />
                           <span className="text-xs font-medium truncate">{member.email || 'Sem e-mail'}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center justify-between sm:justify-end gap-2.5 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      <div className="flex flex-col items-start sm:items-end gap-1">
                         <div className="flex items-center gap-2">
                           {getRoleBadge(member.role)}
                         </div>
@@ -371,21 +371,21 @@ export function ClinicMembers() {
                             variant="ghost"
                             size="sm"
                             onClick={() => openPermissionModal(member)}
-                            className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-brand-light hover:text-brand-primary font-bold text-xs gap-1.5 transition-all"
+                            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-slate-100 hover:bg-brand-light hover:text-brand-primary font-bold text-xs gap-1 transition-all"
                             title="Gerenciar Permissões da Agenda"
                           >
                             <Settings size={14} />
-                            <span className="hidden sm:inline">Permissões</span>
+                            <span className="text-[11px] sm:text-xs">Permissões</span>
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => openRemoveModal(member)}
-                            className="h-9 px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs gap-1.5 transition-all"
+                            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs gap-1 transition-all"
                             title="Excluir Membro da Clínica"
                           >
                             <Trash2 size={14} />
-                            <span className="hidden sm:inline">Excluir</span>
+                            <span className="text-[11px] sm:text-xs">Excluir</span>
                           </Button>
                         </div>
                       )}
@@ -395,8 +395,8 @@ export function ClinicMembers() {
               </div>
             )}
           </CardContent>
-          <div className="p-4 bg-slate-50/50 border-t border-slate-50 flex items-center gap-3">
-            <div className="w-8 h-8 bg-brand-light rounded-lg flex items-center justify-center text-brand-primary">
+          <div className="p-3.5 sm:p-4 bg-slate-50/50 border-t border-slate-50 flex items-center gap-3">
+            <div className="w-8 h-8 bg-brand-light rounded-lg flex items-center justify-center text-brand-primary shrink-0">
               <ShieldCheck size={16} />
             </div>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
