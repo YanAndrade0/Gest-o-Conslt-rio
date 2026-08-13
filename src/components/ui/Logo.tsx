@@ -11,43 +11,47 @@ export function Logo({
 }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className="relative shrink-0 w-12 h-12">
+      <div className="relative shrink-0 w-12 h-12 flex items-center justify-center">
         <svg 
-          viewBox="0 0 100 100" 
+          viewBox="0 0 200 160" 
           fill="none" 
           xmlns="http://www.w3.org/2000/svg"
           className="w-full h-full"
         >
-          {/* Cloud Base */}
+          {/* Soft Mint Light Cloud Fill */}
           <path 
-            d="M75 65C83.2843 65 90 58.2843 90 50C90 41.7157 83.2843 35 75 35C74.6568 35 74.3168 35.0115 73.9806 35.034C71.3934 23.3642 61.2144 15 49 15C34.6406 15 23 26.6406 23 41C23 41.3444 23.0067 41.6872 23.02 42.0282C15.5412 43.6841 10 50.3121 10 58.25C10 67.5008 17.4992 75 26.75 75H75V65Z" 
-            fill="currentColor" 
-            className="text-brand-primary/10"
+            d="M 60 125 C 25 125 20 90 45 70 C 35 35 85 20 105 35 C 130 15 175 40 165 75 C 185 95 175 125 140 125 Z" 
+            fill="#EAF1EC" 
           />
-          
-          {/* Tooth Integrated with Cloud */}
+
+          {/* Cloud Dark Green Outline */}
           <path 
-            d="M49.5 25C43.5 25 39 29.5 39 35.5V55C39 63 42 68 49.5 68C57 68 60 63 60 55V35.5C60 29.5 55.5 25 49.5 25Z" 
-            fill="currentColor" 
-            className="text-brand-primary"
-          />
-          
-          {/* Inner Tooth Detail */}
-          <path 
-            d="M50 35C50 32 48 30 45 30H44" 
-            stroke="white" 
-            strokeWidth="3" 
+            d="M 62 124 C 28 123 23 88 47 68 C 38 32 88 18 108 34 C 132 14 177 38 167 74 C 186 94 176 123 138 124" 
+            fill="none" 
+            stroke="#2A4D36" 
+            strokeWidth="9" 
             strokeLinecap="round" 
-            className="opacity-50"
+            strokeLinejoin="round"
           />
-          
-          {/* Cloud Outline Accent */}
+
+          {/* Center Capsule / Pill (Dark Green) */}
+          <rect 
+            x="80" 
+            y="42" 
+            width="40" 
+            height="76" 
+            rx="20" 
+            ry="20" 
+            fill="#2A4D36" 
+          />
+
+          {/* Inner Highlight Curve on Top Left of Capsule */}
           <path 
-            d="M75 75C84.3888 75 92 67.3888 92 58C92 48.6112 84.3888 41 75 41C74.8354 41 74.6719 41.0023 74.5095 41.0069C72.3995 28.9863 61.7618 20 49 20C36.2382 20 25.6005 28.9863 23.4905 41.0069C15.8202 42.2227 10 48.8351 10 56.8125C10 65.7526 17.2474 73 26.1875 73" 
-            stroke="currentColor" 
-            strokeWidth="3" 
+            d="M 88 58 C 88 50 93 47 98 47" 
+            fill="none" 
+            stroke="#88AC93" 
+            strokeWidth="5" 
             strokeLinecap="round" 
-            className="text-brand-primary"
           />
         </svg>
       </div>
@@ -55,7 +59,7 @@ export function Logo({
       {!iconOnly && (
         <div className="flex flex-col items-center md:items-start space-y-0.5">
           <span className="text-2xl font-black text-slate-800 tracking-tight leading-none">
-            Oral<span className="text-brand-primary">Cloud</span>
+            Oral<span className="text-[#2A4D36]">Cloud</span>
           </span>
           {subtitle && (
             <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest leading-none">
@@ -67,3 +71,4 @@ export function Logo({
     </div>
   );
 }
+
