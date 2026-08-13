@@ -44,6 +44,10 @@ export interface UserProfile {
   hasReadManual?: boolean;
   canManageAppointments?: boolean;
   canCancelAppointments?: boolean;
+  status?: 'active' | 'pending' | 'removed' | 'rejected';
+  pendingClinicId?: string | null;
+  previousClinicId?: string | null;
+  requestedAt?: string;
 }
 
 const CLINICS_COL = 'clinics';
@@ -128,7 +132,7 @@ export const clinicService = {
     }
   },
 
-  async joinClinic(userId: string, accessCode: string, displayName?: string, userEmail?: string, role: 'member' | 'secretary' = 'member'): Promise<string> {
+  async joinClinic(userId: string, accessCode: string, displayName?: string, userEmail?: string, role: 'member' | 'secretary' = 'member'): Promise<{ clinicId: string; pending: boolean }> {
     try {
       const q = query(
         collection(db, CLINICS_COL), 
@@ -144,6 +148,36 @@ export const clinicService = {
       const clinicDoc = querySnapshot.docs[0];
       const clinicId = clinicDoc.id;
 
+      // Check user's current profile status
+      const userRef = doc(db, USERS_COL, userId);
+      const userSnap = await getDoc(userRef);
+      const userProfile = userSnap.exists() ? (userSnap.data() as UserProfile) : null;
+
+      const isRejoining = userProfile?.status === 'removed' || userProfile?.previousClinicId === clinicId;
+
+      if (isRejoining) {
+        // Requires owner approval if previously removed or requesting re-entry
+        await setDoc(userRef, {
+          uid: userId,
+          email: userEmail || '',
+          clinicId: null,
+          pendingClinicId: clinicId,
+          previousClinicId: clinicId,
+          status: 'pending',
+          role: role,
+          displayName: displayName || userProfile?.displayName || (role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'),
+          requestedAt: new Date().toISOString(),
+          lastAccess: new Date().toISOString(),
+          userAgent: navigator.userAgent
+        }, { merge: true });
+
+        await auditService.log(AuditAction.LOGIN, clinicId, userId, 'user', { action: 'request_rejoin_clinic', role, agent: navigator.userAgent });
+
+        return { clinicId, pending: true };
+      }
+
+      // Direct join for new members
+      let resultPending = false;
       await runTransaction(db, async (transaction) => {
         const clinicRef = doc(db, CLINICS_COL, clinicId);
         const clinicSnap = await transaction.get(clinicRef);
@@ -160,19 +194,18 @@ export const clinicService = {
           throw new Error('Limite de usuários (5) atingido para esta clínica. Entre em contato com o suporte para expandir seu plano.');
         }
 
-        // Link user to this clinic
-        const userRef = doc(db, USERS_COL, userId);
         transaction.set(userRef, {
           uid: userId,
           email: userEmail || '',
           clinicId,
+          pendingClinicId: null,
+          status: 'active',
           role: role,
           displayName: displayName || (role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'),
           lastAccess: new Date().toISOString(),
           userAgent: navigator.userAgent
-        });
+        }, { merge: true });
 
-        // Update clinic user count
         transaction.update(clinicRef, {
           userCount: currentUserCount + 1
         });
@@ -180,7 +213,7 @@ export const clinicService = {
 
       await auditService.log(AuditAction.LOGIN, clinicId, userId, 'user', { action: 'join_clinic', role, agent: navigator.userAgent });
 
-      return clinicId;
+      return { clinicId, pending: resultPending };
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'join-clinic');
     }
@@ -249,6 +282,109 @@ export const clinicService = {
       if (data.clinicId) {
         await auditService.log(AuditAction.LOGIN, data.clinicId, userId, 'user', { action: 'update_profile', fields: Object.keys(data), agent: navigator.userAgent });
       }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `${USERS_COL}/${userId}`);
+    }
+  },
+
+  async removeMemberFromClinic(userId: string, clinicId: string): Promise<void> {
+    try {
+      await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, USERS_COL, userId);
+        const clinicRef = doc(db, CLINICS_COL, clinicId);
+        const clinicSnap = await transaction.get(clinicRef);
+
+        transaction.update(userRef, {
+          clinicId: null,
+          status: 'removed',
+          previousClinicId: clinicId,
+          pendingClinicId: null,
+          canManageAppointments: false,
+          canCancelAppointments: false,
+          lastAccess: new Date().toISOString()
+        });
+
+        if (clinicSnap.exists()) {
+          const currentCount = clinicSnap.data().userCount || 1;
+          transaction.update(clinicRef, {
+            userCount: Math.max(0, currentCount - 1),
+            updatedAt: new Date().toISOString()
+          });
+        }
+      });
+
+      await auditService.log(AuditAction.USER_UPDATE, clinicId, userId, 'user', { action: 'remove_member' });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `${USERS_COL}/${userId}`);
+    }
+  },
+
+  subscribeToPendingMembers(clinicId: string, callback: (members: UserProfile[]) => void) {
+    const q = query(
+      collection(db, USERS_COL),
+      where('pendingClinicId', '==', clinicId),
+      where('status', '==', 'pending')
+    );
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map(doc => doc.data() as UserProfile));
+    }, (error) => {
+      console.warn('Error subscribing to pending members:', error);
+      callback([]);
+    });
+  },
+
+  async approveMemberAccess(userId: string, clinicId: string): Promise<void> {
+    try {
+      await runTransaction(db, async (transaction) => {
+        const userRef = doc(db, USERS_COL, userId);
+        const clinicRef = doc(db, CLINICS_COL, clinicId);
+        const clinicSnap = await transaction.get(clinicRef);
+
+        transaction.update(userRef, {
+          clinicId: clinicId,
+          pendingClinicId: null,
+          status: 'active',
+          canManageAppointments: true,
+          canCancelAppointments: true,
+          lastAccess: new Date().toISOString()
+        });
+
+        if (clinicSnap.exists()) {
+          const currentCount = clinicSnap.data().userCount || 0;
+          transaction.update(clinicRef, {
+            userCount: currentCount + 1,
+            updatedAt: new Date().toISOString()
+          });
+        }
+      });
+
+      await auditService.log(AuditAction.USER_UPDATE, clinicId, userId, 'user', { action: 'approve_member_access' });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `${USERS_COL}/${userId}`);
+    }
+  },
+
+  async rejectMemberAccess(userId: string): Promise<void> {
+    try {
+      const userRef = doc(db, USERS_COL, userId);
+      await updateDoc(userRef, {
+        pendingClinicId: null,
+        status: 'rejected',
+        lastAccess: new Date().toISOString()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `${USERS_COL}/${userId}`);
+    }
+  },
+
+  async cancelJoinRequest(userId: string): Promise<void> {
+    try {
+      const userRef = doc(db, USERS_COL, userId);
+      await updateDoc(userRef, {
+        pendingClinicId: null,
+        status: 'removed',
+        lastAccess: new Date().toISOString()
+      });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${USERS_COL}/${userId}`);
     }

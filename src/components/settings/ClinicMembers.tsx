@@ -14,7 +14,12 @@ import {
   XCircle,
   Check,
   Lock,
-  Settings
+  Settings,
+  Trash2,
+  UserCheck,
+  UserX,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { clinicService, UserProfile, Clinic } from '../../services/clinicService';
@@ -31,6 +36,7 @@ import { db } from '../../lib/firebase-config';
 export function ClinicMembers() {
   const { user } = useAuth();
   const [members, setMembers] = useState<UserProfile[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<UserProfile[]>([]);
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -42,6 +48,11 @@ export function ClinicMembers() {
   const [canManageAppts, setCanManageAppts] = useState<boolean>(true);
   const [canCancelAppts, setCanCancelAppts] = useState<boolean>(true);
   const [savingPermissions, setSavingPermissions] = useState(false);
+
+  // Modal State for Member Removal
+  const [memberToRemove, setMemberToRemove] = useState<UserProfile | null>(null);
+  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
+  const [removingMember, setRemovingMember] = useState(false);
 
   const isOwnerOrMaster = user?.role === 'owner' || user?.isMasterAdmin;
 
@@ -58,12 +69,19 @@ export function ClinicMembers() {
 
     fetchClinic();
 
-    const unsub = clinicService.subscribeToClinicMembers(user.clinicId, (data) => {
+    const unsubMembers = clinicService.subscribeToClinicMembers(user.clinicId, (data) => {
       setMembers(data);
       setLoading(false);
     });
 
-    return () => unsub();
+    const unsubPending = clinicService.subscribeToPendingMembers(user.clinicId, (data) => {
+      setPendingMembers(data);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubPending();
+    };
   }, [user?.clinicId]);
 
   const copyAccessCode = () => {
@@ -98,6 +116,48 @@ export function ClinicMembers() {
       toast.error('Erro ao atualizar permissões do membro.');
     } finally {
       setSavingPermissions(false);
+    }
+  };
+
+  const handleApprovePending = async (pendingUser: UserProfile) => {
+    if (!user?.clinicId) return;
+    try {
+      await clinicService.approveMemberAccess(pendingUser.uid, user.clinicId);
+      toast.success(`Acesso de ${pendingUser.displayName || 'membro'} aprovado com sucesso!`);
+    } catch (err) {
+      console.error('Erro ao aprovar membro:', err);
+      toast.error('Erro ao aprovar acesso do membro.');
+    }
+  };
+
+  const handleRejectPending = async (pendingUser: UserProfile) => {
+    try {
+      await clinicService.rejectMemberAccess(pendingUser.uid);
+      toast.success(`Solicitação de ${pendingUser.displayName || 'membro'} recusada.`);
+    } catch (err) {
+      console.error('Erro ao recusar membro:', err);
+      toast.error('Erro ao recusar solicitação.');
+    }
+  };
+
+  const openRemoveModal = (member: UserProfile) => {
+    setMemberToRemove(member);
+    setIsRemoveModalOpen(true);
+  };
+
+  const confirmRemoveMember = async () => {
+    if (!memberToRemove || !user?.clinicId) return;
+    setRemovingMember(true);
+    try {
+      await clinicService.removeMemberFromClinic(memberToRemove.uid, user.clinicId);
+      toast.success(`${memberToRemove.displayName || 'Membro'} removido da clínica com sucesso.`);
+      setIsRemoveModalOpen(false);
+      setMemberToRemove(null);
+    } catch (err) {
+      console.error('Erro ao remover membro:', err);
+      toast.error('Erro ao remover membro da clínica.');
+    } finally {
+      setRemovingMember(false);
     }
   };
 
@@ -154,6 +214,69 @@ export function ClinicMembers() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Solicitações de Acesso Pendentes */}
+      {pendingMembers.length > 0 && isOwnerOrMaster && (
+        <Card className="bg-amber-50/60 border border-amber-200/80 rounded-[2rem] shadow-lg overflow-hidden">
+          <CardHeader className="bg-amber-100/40 border-b border-amber-200/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-700">
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-black text-amber-900">Solicitações de Acesso Pendentes</CardTitle>
+                  <CardDescription className="font-bold text-amber-700/70 text-xs">
+                    Membros que solicitaram entrada ou reingresso na clínica.
+                  </CardDescription>
+                </div>
+              </div>
+              <span className="bg-amber-200/80 text-amber-900 text-xs font-black px-3 py-1 rounded-full">
+                {pendingMembers.length} {pendingMembers.length === 1 ? 'Pendente' : 'Pendentes'}
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0 divide-y divide-amber-200/40">
+            {pendingMembers.map((pendingUser) => (
+              <div key={pendingUser.uid} className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-amber-100/30 transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-200/60 flex items-center justify-center text-amber-800 font-black shrink-0">
+                    {pendingUser.displayName ? pendingUser.displayName.charAt(0).toUpperCase() : <User size={20} />}
+                  </div>
+                  <div>
+                    <h4 className="font-black text-amber-950">{pendingUser.displayName || 'Usuário'}</h4>
+                    <p className="text-xs font-medium text-amber-800/80 flex items-center gap-1">
+                      <Mail size={12} /> {pendingUser.email || 'Sem e-mail'}
+                    </p>
+                    <span className="inline-block mt-1 text-[10px] font-bold text-amber-700 bg-amber-200/50 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      Função solicitada: {pendingUser.role === 'secretary' ? 'Secretária' : 'Dentista'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <Button
+                    size="sm"
+                    onClick={() => handleRejectPending(pendingUser)}
+                    variant="outline"
+                    className="h-10 px-4 rounded-xl border-amber-300 text-amber-800 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 font-bold text-xs gap-1.5"
+                  >
+                    <UserX size={14} />
+                    Recusar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleApprovePending(pendingUser)}
+                    className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1.5 shadow-md shadow-emerald-600/20"
+                  >
+                    <UserCheck size={14} />
+                    Aprovar Acesso
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-1 bg-gradient-to-br from-brand-primary to-brand-accent text-white border-none rounded-[2rem] shadow-xl overflow-hidden relative group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
@@ -242,17 +365,29 @@ export function ClinicMembers() {
                         {getPermissionBadge(member)}
                       </div>
                       
-                      {isOwnerOrMaster && member.role !== 'owner' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openPermissionModal(member)}
-                          className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-brand-light hover:text-brand-primary font-bold text-xs gap-1.5 transition-all"
-                          title="Gerenciar Permissões da Agenda"
-                        >
-                          <Settings size={14} />
-                          <span className="hidden sm:inline">Permissões</span>
-                        </Button>
+                      {isOwnerOrMaster && member.role !== 'owner' && member.uid !== user?.uid && (
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openPermissionModal(member)}
+                            className="h-9 px-3 rounded-xl bg-slate-100 hover:bg-brand-light hover:text-brand-primary font-bold text-xs gap-1.5 transition-all"
+                            title="Gerenciar Permissões da Agenda"
+                          >
+                            <Settings size={14} />
+                            <span className="hidden sm:inline">Permissões</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openRemoveModal(member)}
+                            className="h-9 px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs gap-1.5 transition-all"
+                            title="Excluir Membro da Clínica"
+                          >
+                            <Trash2 size={14} />
+                            <span className="hidden sm:inline">Excluir</span>
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -380,6 +515,51 @@ export function ClinicMembers() {
               className="w-full sm:w-auto bg-brand-primary text-white hover:bg-brand-accent rounded-xl font-bold h-11 px-6 shadow-lg shadow-brand-primary/20"
             >
               {savingPermissions ? 'Salvando...' : 'Salvar Permissões'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação de Exclusão de Membro */}
+      <Dialog open={isRemoveModalOpen} onOpenChange={setIsRemoveModalOpen}>
+        <DialogContent className="max-w-md bg-white rounded-[2rem] border-none shadow-2xl p-6">
+          <DialogHeader className="mb-2">
+            <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center text-rose-600 mb-3">
+              <AlertTriangle size={24} />
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-800 tracking-tight">
+              Excluir Membro da Clínica
+            </DialogTitle>
+            <DialogDescription className="font-medium text-slate-500 text-xs leading-relaxed pt-2">
+              Tem certeza que deseja excluir <strong className="text-slate-800">{memberToRemove?.displayName || 'este membro'}</strong> da clínica?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 my-2 space-y-2">
+            <div className="flex items-center gap-2 text-slate-700 font-bold text-xs">
+              <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+              <span>A conta do usuário continuará existindo no sistema.</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-700 font-bold text-xs">
+              <Lock size={14} className="text-rose-500 shrink-0" />
+              <span>O membro só poderá entrar novamente após ter uma nova solicitação aprovada por você.</span>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsRemoveModalOpen(false)}
+              className="w-full sm:w-auto rounded-xl font-bold h-11 border-slate-200 text-slate-600"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmRemoveMember}
+              disabled={removingMember}
+              className="w-full sm:w-auto bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold h-11 px-6 shadow-lg shadow-rose-600/20"
+            >
+              {removingMember ? 'Excluindo...' : 'Sim, Excluir Membro'}
             </Button>
           </DialogFooter>
         </DialogContent>

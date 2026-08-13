@@ -221,13 +221,20 @@ service cloud.firestore {
 
     // Users
     match /users/{userId} {
-      allow list: if isSignedIn() && (isMasterAdmin() || resource.data.clinicId == getUserData().clinicId);
+      allow list: if isSignedIn() && (
+        isMasterAdmin() || 
+        resource.data.clinicId == getUserData().clinicId ||
+        (resource.data.pendingClinicId != null && resource.data.pendingClinicId == getUserData().clinicId) ||
+        (resource.data.previousClinicId != null && resource.data.previousClinicId == getUserData().clinicId)
+      );
       allow read: if isSignedIn(); // Allow reading profiles for collaboration
       allow create: if isVerified() && request.auth.uid == userId && isValidUser(incoming())
         && canAddMoreUsers(incoming().clinicId);
       allow update: if isVerified() && isValidUser(incoming()) && (
         (request.auth.uid == userId && (incoming().role == existing().role || isClinicOwner(existing().clinicId))) ||
         isClinicOwner(existing().clinicId) ||
+        (existing().pendingClinicId != null && isClinicOwner(existing().pendingClinicId)) ||
+        (existing().previousClinicId != null && isClinicOwner(existing().previousClinicId)) ||
         isMasterAdmin()
       ); 
     }
@@ -241,9 +248,9 @@ service cloud.firestore {
         isClinicOwner(clinicId) || 
         isMasterAdmin() ||
         (
-          // Action: Join - allows incrementing userCount by 1
+          // Action: Join or Leave - allows incrementing or decrementing userCount
           incoming().diff(existing()).affectedKeys().hasOnly(['userCount', 'updatedAt']) &&
-          incoming().userCount == existing().userCount + 1 &&
+          (incoming().userCount == existing().userCount + 1 || incoming().userCount == existing().userCount - 1 || incoming().userCount == existing().userCount) &&
           (isClinicUnlimited(existing()) || existing().userCount < 5)
         )
       );

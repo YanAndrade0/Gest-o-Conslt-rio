@@ -28,6 +28,9 @@ interface User {
   isMasterAdmin?: boolean;
   canManageAppointments?: boolean;
   canCancelAppointments?: boolean;
+  status?: 'active' | 'pending' | 'removed' | 'rejected';
+  pendingClinicId?: string | null;
+  previousClinicId?: string | null;
 }
 
 interface AuthContextType {
@@ -109,7 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         trialEndsAt,
         isMasterAdmin,
         canManageAppointments: isOwner || profile?.canManageAppointments !== false,
-        canCancelAppointments: isOwner || (profile?.canManageAppointments !== false && profile?.canCancelAppointments !== false)
+        canCancelAppointments: isOwner || (profile?.canManageAppointments !== false && profile?.canCancelAppointments !== false),
+        status: profile?.status || 'active',
+        pendingClinicId: profile?.pendingClinicId || null,
+        previousClinicId: profile?.previousClinicId || null
       });
     } catch (error) {
       console.error('Error fetching profile:', error);

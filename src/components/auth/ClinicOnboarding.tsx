@@ -6,7 +6,11 @@ import {
   ArrowRight, 
   CheckCircle2, 
   Copy,
-  LogOut
+  LogOut,
+  Clock,
+  RotateCw,
+  XCircle,
+  ShieldAlert
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -28,6 +32,35 @@ export function ClinicOnboarding() {
   const [accessCode, setAccessCode] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const isPendingApproval = user?.status === 'pending' && user?.pendingClinicId;
+
+  const handleRefreshStatus = async () => {
+    if (!user?.uid) return;
+    setLoading(true);
+    try {
+      await refreshProfile(user.uid);
+      toast.info('Status verificado.');
+    } catch (err) {
+      toast.error('Erro ao atualizar status.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    if (!user?.uid) return;
+    setLoading(true);
+    try {
+      await clinicService.cancelJoinRequest(user.uid);
+      await refreshProfile(user.uid);
+      toast.success('Solicitação cancelada.');
+    } catch (err) {
+      toast.error('Erro ao cancelar solicitação.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNextToPlans = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,9 +104,13 @@ export function ClinicOnboarding() {
     if (!user || !accessCode) return;
     setLoading(true);
     try {
-      await clinicService.joinClinic(user.uid, accessCode, user.displayName || undefined, user.email || undefined, role);
+      const res = await clinicService.joinClinic(user.uid, accessCode, user.displayName || undefined, user.email || undefined, role);
       await refreshProfile(user.uid);
-      toast.success('Vinculado à clínica com sucesso!');
+      if (res?.pending) {
+        toast.info('Solicitação enviada ao proprietário da clínica! Aguarde a aprovação.');
+      } else {
+        toast.success('Vinculado à clínica com sucesso!');
+      }
     } catch (error: any) {
       toast.error(error.message || 'Erro ao vincular clínica.');
     } finally {
@@ -85,6 +122,58 @@ export function ClinicOnboarding() {
     navigator.clipboard.writeText(generatedCode);
     toast.success('Código copiado!');
   };
+
+  if (isPendingApproval) {
+    return (
+      <div className="min-h-screen bg-bg-main flex items-center justify-center p-4">
+        <div className="w-full max-w-lg bg-white rounded-[3rem] shadow-2xl border border-slate-50 p-8 md:p-12 text-center space-y-8 animate-in fade-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-amber-100 rounded-3xl flex items-center justify-center text-amber-600 mx-auto">
+            <Clock size={40} className="animate-pulse" />
+          </div>
+
+          <div className="space-y-3">
+            <span className="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-widest rounded-full border border-amber-200/60 inline-block">
+              Aguardando Aprovação
+            </span>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">
+              Solicitação em Análise
+            </h2>
+            <p className="text-slate-500 font-medium text-sm leading-relaxed">
+              Sua solicitação de acesso para esta clínica foi enviada ao proprietário. Você poderá acessar o sistema assim que a solicitação for aprovada.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 pt-2">
+            <Button
+              onClick={handleRefreshStatus}
+              disabled={loading}
+              className="w-full h-14 bg-brand-primary text-white font-black rounded-2xl shadow-xl shadow-brand-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all gap-2"
+            >
+              <RotateCw size={18} className={cn(loading && "animate-spin")} />
+              {loading ? 'Verificando...' : 'Verificar Status'}
+            </Button>
+
+            <Button
+              onClick={handleCancelRequest}
+              disabled={loading}
+              variant="outline"
+              className="w-full h-12 rounded-2xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50 gap-2"
+            >
+              <XCircle size={16} />
+              Cancelar Solicitação
+            </Button>
+
+            <button
+              onClick={() => logout()}
+              className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors pt-2"
+            >
+              Sair da Conta
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg-main flex items-center justify-center p-4">
