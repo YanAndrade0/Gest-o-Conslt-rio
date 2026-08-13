@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.15" />
+    </filter>
+  </defs>
+  
+  <!-- Rounded Square Container -->
+  <rect width="120" height="120" rx="32" fill="url(#brandGrad)" />
+  
+  <!-- Cloud Silhouette -->
+  <path 
+    d="M88 70C95 70 100 64.5 100 57.5C100 50.5 95 45 88 45C87.7 45 87.4 45 87.1 45.1C84.5 35.5 75.8 28.5 65.5 28.5 C53.2 28.5 43.2 38.3 43 50.5C36.8 51.9 32 57.4 32 64C32 71.7 38.3 78 46 78H88V70Z" 
+    fill="#ffffff" 
+    opacity="0.22" 
+  />
+  
+  <!-- Tooth Icon -->
+  <path 
+    d="M60 32C52.5 32 46 38 46 45.5V68C46 77 50 83 60 83C70 83 74 77 74 68V45.5C74 38 67.5 32 60 32Z" 
+    fill="#ffffff" 
+    filter="url(#shadow)"
+  />
+  
+  <!-- Tooth Detail Accent -->
+  <path 
+    d="M60 45C60 41 57.5 38.5 53.5 38.5" 
+    stroke="#2563eb" 
+    stroke-width="3.5" 
+    stroke-linecap="round" 
+    opacity="0.75"
+  />
+</svg>
