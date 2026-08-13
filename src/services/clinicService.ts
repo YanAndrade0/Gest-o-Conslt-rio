@@ -42,6 +42,8 @@ export interface UserProfile {
   lastAccess?: string;
   userAgent?: string;
   hasReadManual?: boolean;
+  canManageAppointments?: boolean;
+  canCancelAppointments?: boolean;
 }
 
 const CLINICS_COL = 'clinics';

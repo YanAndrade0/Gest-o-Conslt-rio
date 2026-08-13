@@ -26,6 +26,8 @@ interface User {
   isClinicActive?: boolean;
   trialEndsAt?: string;
   isMasterAdmin?: boolean;
+  canManageAppointments?: boolean;
+  canCancelAppointments?: boolean;
 }
 
 interface AuthContextType {
@@ -91,6 +93,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      const isMasterAdmin = firebaseUser.email === 'yandatafox@gmail.com' || firebaseUser.email === 'yanandraderfo@gmail.com';
+      const isOwner = profile?.role === 'owner' || isMasterAdmin;
+
       setUser({
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -102,7 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasReadManual: profile?.hasReadManual || false,
         isClinicActive,
         trialEndsAt,
-        isMasterAdmin: firebaseUser.email === 'yandatafox@gmail.com' || firebaseUser.email === 'yanandraderfo@gmail.com'
+        isMasterAdmin,
+        canManageAppointments: isOwner || profile?.canManageAppointments !== false,
+        canCancelAppointments: isOwner || (profile?.canManageAppointments !== false && profile?.canCancelAppointments !== false)
       });
     } catch (error) {
       console.error('Error fetching profile:', error);

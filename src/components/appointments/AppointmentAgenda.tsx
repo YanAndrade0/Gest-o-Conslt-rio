@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   XCircle,
   Stethoscope,
-  Info
+  Info,
+  Lock
 } from 'lucide-react';
 import { 
   format, 
@@ -173,9 +174,17 @@ export function AppointmentAgenda() {
     setIsModalOpen(true);
   };
 
+  const canManageAgenda = user?.isMasterAdmin || user?.role === 'owner' || user?.canManageAppointments !== false;
+  const canCancelAgenda = user?.isMasterAdmin || user?.role === 'owner' || (user?.canManageAppointments !== false && user?.canCancelAppointments !== false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    if (!canManageAgenda) {
+      toast.error('Sua conta não possui permissão para criar ou alterar agendamentos.');
+      return;
+    }
 
     const selectedPatient = patients.find(p => p.id === formData.patientId);
     if (!selectedPatient) {
@@ -241,6 +250,11 @@ export function AppointmentAgenda() {
   const handleDeleteAppointment = async () => {
     if (!editingAppointment?.id) return;
     
+    if (!canCancelAgenda) {
+      toast.error('Sua conta não possui permissão para desmarcar ou excluir consultas.');
+      return;
+    }
+
     if (!isConfirmingDelete) {
       setIsConfirmingDelete(true);
       return;
@@ -257,6 +271,11 @@ export function AppointmentAgenda() {
   };
 
   const handleUpdateStatus = async (id: string, status: Appointment['status']) => {
+    if (!canManageAgenda || (status === 'desmarcado' && !canCancelAgenda)) {
+      toast.error('Sua conta não possui permissão para alterar esse status.');
+      return;
+    }
+
     try {
       await appointmentService.updateAppointment(id, { status });
       toast.success('Status atualizado!');
@@ -286,6 +305,10 @@ export function AppointmentAgenda() {
   }, [doctors, doctorSearch]);
 
   const handleSlotClick = (day: Date, timeStr: string) => {
+    if (!canManageAgenda) {
+      toast.error('Sua conta não possui permissão para agendar consultas.');
+      return;
+    }
     setEditingAppointment(null);
     const newDate = format(day, 'yyyy-MM-dd');
     setFormData({
@@ -398,6 +421,13 @@ export function AppointmentAgenda() {
 
   return (
     <div className="p-4 md:p-8 space-y-6 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-500">
+      {!canManageAgenda && (
+        <div className="bg-amber-50 border border-amber-200/80 p-3 sm:p-4 rounded-2xl flex items-center gap-3 text-amber-800 text-xs font-bold shadow-sm animate-in fade-in duration-300">
+          <Lock size={18} className="shrink-0 text-amber-600" />
+          <span>Modo de Leitura na Agenda: Sua conta não possui permissão para agendar ou editar consultas. Entre em contato com o proprietário da clínica caso precise desta permissão.</span>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row justify-between items-center bg-white/70 backdrop-blur-md p-5 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 gap-4">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary">
@@ -666,7 +696,7 @@ export function AppointmentAgenda() {
               </div>
 
               <DialogFooter className="shrink-0 pt-3 mt-2 border-t border-slate-100 bg-white gap-2 flex-col sm:flex-row z-10">
-                {editingAppointment && (
+                {editingAppointment && canCancelAgenda && (
                   <Button 
                     type="button" 
                     variant={isConfirmingDelete ? "destructive" : "ghost"}
@@ -683,9 +713,15 @@ export function AppointmentAgenda() {
                   <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} className="rounded-2xl font-bold h-11 sm:h-14 flex-1 text-xs sm:text-sm">
                     Voltar
                   </Button>
-                  <Button type="submit" className="bg-brand-primary text-white rounded-2xl font-black h-11 sm:h-14 flex-[2] text-xs sm:text-sm shadow-xl shadow-brand-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all">
-                    {editingAppointment ? 'SALVAR ALTERAÇÕES' : 'RESERVAR HORÁRIO'}
-                  </Button>
+                  {canManageAgenda ? (
+                    <Button type="submit" className="bg-brand-primary text-white rounded-2xl font-black h-11 sm:h-14 flex-[2] text-xs sm:text-sm shadow-xl shadow-brand-primary/30 hover:scale-[1.01] active:scale-[0.99] transition-all">
+                      {editingAppointment ? 'SALVAR ALTERAÇÕES' : 'RESERVAR HORÁRIO'}
+                    </Button>
+                  ) : (
+                    <Button type="button" disabled className="bg-slate-200 text-slate-400 rounded-2xl font-black h-11 sm:h-14 flex-[2] text-xs sm:text-sm cursor-not-allowed">
+                      Apenas Leitura
+                    </Button>
+                  )}
                 </div>
               </DialogFooter>
             </form>
