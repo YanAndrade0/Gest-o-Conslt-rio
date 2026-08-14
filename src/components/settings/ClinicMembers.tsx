@@ -19,7 +19,9 @@ import {
   UserCheck,
   UserX,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { clinicService, UserProfile, Clinic } from '../../services/clinicService';
@@ -47,6 +49,7 @@ export function ClinicMembers() {
   const [memberRole, setMemberRole] = useState<'member' | 'secretary'>('member');
   const [canManageAppts, setCanManageAppts] = useState<boolean>(true);
   const [canCancelAppts, setCanCancelAppts] = useState<boolean>(true);
+  const [canViewAllAppts, setCanViewAllAppts] = useState<boolean>(true);
   const [savingPermissions, setSavingPermissions] = useState(false);
 
   // Modal State for Member Removal
@@ -97,6 +100,7 @@ export function ClinicMembers() {
     setMemberRole(member.role === 'secretary' ? 'secretary' : 'member');
     setCanManageAppts(member.canManageAppointments !== false);
     setCanCancelAppts(member.canCancelAppointments !== false);
+    setCanViewAllAppts(member.canViewAllAppointments !== false);
     setIsPermissionModalOpen(true);
   };
 
@@ -107,7 +111,8 @@ export function ClinicMembers() {
       await clinicService.updateUserProfile(selectedMember.uid, {
         role: memberRole,
         canManageAppointments: canManageAppts,
-        canCancelAppointments: canCancelAppts
+        canCancelAppointments: canCancelAppts,
+        canViewAllAppointments: canViewAllAppts
       });
       toast.success(`Permissões de ${selectedMember.displayName || 'membro'} atualizadas com sucesso!`);
       setIsPermissionModalOpen(false);
@@ -165,27 +170,34 @@ export function ClinicMembers() {
     if (member.role === 'owner') return null;
     const canManage = member.canManageAppointments !== false;
     const canCancel = member.canCancelAppointments !== false;
-
-    if (!canManage) {
-      return (
-        <span className="px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200/60 text-[9px] font-black uppercase tracking-wider rounded-md flex items-center gap-1">
-          <Lock size={10} /> Agenda Bloqueada
-        </span>
-      );
-    }
-
-    if (!canCancel) {
-      return (
-        <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/60 text-[9px] font-black uppercase tracking-wider rounded-md flex items-center gap-1">
-          <Calendar size={10} /> Agendar sem Exclusão
-        </span>
-      );
-    }
+    const canViewAll = member.canViewAllAppointments !== false;
 
     return (
-      <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[9px] font-black uppercase tracking-wider rounded-md flex items-center gap-1">
-        <ShieldCheck size={10} /> Agenda Liberação Total
-      </span>
+      <div className="flex flex-wrap items-center gap-1.5 justify-end">
+        {canViewAll ? (
+          <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200/60 text-[9px] font-black uppercase tracking-wider rounded-md flex items-center gap-1" title="Visualiza todos os agendamentos da clínica">
+            <Eye size={10} /> Ver Todos
+          </span>
+        ) : (
+          <span className="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200/60 text-[9px] font-black uppercase tracking-wider rounded-md flex items-center gap-1" title="Visualiza apenas agendamentos atribuídos ao seu nome">
+            <EyeOff size={10} /> Apenas Seus
+          </span>
+        )}
+
+        {!canManage ? (
+          <span className="px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200/60 text-[9px] font-black uppercase tracking-wider rounded-md flex items-center gap-1">
+            <Lock size={10} /> Agenda Bloqueada
+          </span>
+        ) : !canCancel ? (
+          <span className="px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/60 text-[9px] font-black uppercase tracking-wider rounded-md flex items-center gap-1">
+            <Calendar size={10} /> Sem Exclusão
+          </span>
+        ) : (
+          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 text-[9px] font-black uppercase tracking-wider rounded-md flex items-center gap-1">
+            <ShieldCheck size={10} /> Edição Total
+          </span>
+        )}
+      </div>
     );
   };
 
@@ -436,7 +448,39 @@ export function ClinicMembers() {
               </Select>
             </div>
 
-            {/* Permissão 1: Agendar e Editar Consultas */}
+            {/* Permissão 1: Visualizar Todos os Agendamentos da Clínica */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start justify-between gap-3">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  {canViewAllAppts ? (
+                    <Eye size={16} className="text-blue-600" />
+                  ) : (
+                    <EyeOff size={16} className="text-amber-600" />
+                  )}
+                  <span className="text-xs font-black text-slate-700">Visualizar Todos os Agendamentos</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium leading-snug">
+                  Permite ver a agenda completa de todos os profissionais. Se desativado, o usuário verá apenas as consultas atribuídas a ele.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCanViewAllAppts(!canViewAllAppts)}
+                className={cn(
+                  "w-12 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 cursor-pointer",
+                  canViewAllAppts ? "bg-brand-primary" : "bg-slate-300"
+                )}
+              >
+                <div className={cn(
+                  "w-5 h-5 bg-white rounded-full shadow-md transition-transform flex items-center justify-center text-[10px]",
+                  canViewAllAppts ? "translate-x-6 text-brand-primary" : "translate-x-0 text-slate-400"
+                )}>
+                  {canViewAllAppts ? <Check size={12} /> : <XCircle size={12} />}
+                </div>
+              </button>
+            </div>
+
+            {/* Permissão 2: Agendar e Editar Consultas */}
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start justify-between gap-3">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
@@ -468,7 +512,7 @@ export function ClinicMembers() {
               </button>
             </div>
 
-            {/* Permissão 2: Desmarcar / Excluir Consultas */}
+            {/* Permissão 3: Desmarcar / Excluir Consultas */}
             <div className={cn(
               "p-4 rounded-2xl border transition-all flex items-start justify-between gap-3",
               canManageAppts ? "bg-slate-50 border-slate-100" : "bg-slate-100/50 border-slate-200/50 opacity-50 pointer-events-none"

@@ -547,9 +547,10 @@ const Dashboard = () => {
     fetchClinic();
 
     // Appointments Sub
+    const canViewAll = user.isMasterAdmin || user.role === 'owner' || user.canViewAllAppointments !== false;
     const unsubAppts = appointmentService.subscribeToAppointments(
       user.clinicId, 
-      user.role || 'member',
+      canViewAll,
       user.displayName || '',
       (appts) => {
         const filtered = appts.filter(a => isToday(parseISO(a.date)));
@@ -560,7 +561,7 @@ const Dashboard = () => {
     return () => {
       unsubAppts();
     };
-  }, [user?.clinicId]);
+  }, [user?.clinicId, user?.canViewAllAppointments, user?.role, user?.displayName]);
 
   return (
     <div className="p-4 md:p-8 space-y-8 h-full overflow-y-auto">

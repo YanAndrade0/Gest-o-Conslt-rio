@@ -44,6 +44,7 @@ export interface UserProfile {
   hasReadManual?: boolean;
   canManageAppointments?: boolean;
   canCancelAppointments?: boolean;
+  canViewAllAppointments?: boolean;
   status?: 'active' | 'pending' | 'removed' | 'rejected';
   pendingClinicId?: string | null;
   previousClinicId?: string | null;
@@ -346,6 +347,7 @@ export const clinicService = {
           status: 'active',
           canManageAppointments: true,
           canCancelAppointments: true,
+          canViewAllAppointments: true,
           lastAccess: new Date().toISOString()
         });
 

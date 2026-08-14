@@ -54,14 +54,18 @@ export const appointmentService = {
     }
   },
 
-  subscribeToAppointments(clinicId: string, role: string, displayName: string, callback: (appointments: Appointment[]) => void) {
+  subscribeToAppointments(clinicId: string, canViewAllOrRole: boolean | string, displayName: string, callback: (appointments: Appointment[]) => void) {
     let q = query(
       collection(db, COLLECTION_NAME), 
       where('clinicId', '==', clinicId)
     );
 
-    // If practitioner (member) and NOT admin/secretary, apply filter
-    if (role === 'member') {
+    const canViewAll = typeof canViewAllOrRole === 'boolean' 
+      ? canViewAllOrRole 
+      : (canViewAllOrRole === 'owner' || canViewAllOrRole === 'secretary' || canViewAllOrRole === 'admin');
+
+    // If user cannot view all clinic appointments, restrict query to doctor's own name
+    if (!canViewAll && displayName) {
       q = query(q, where('doctorName', '==', displayName));
     }
 

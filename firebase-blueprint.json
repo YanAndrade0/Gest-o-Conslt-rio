@@ -35,7 +35,10 @@
         "clinicId": { "type": "string" },
         "role": { "type": "string", "enum": ["owner", "member", "secretary"] },
         "displayName": { "type": "string" },
-        "hasReadManual": { "type": "boolean" }
+        "hasReadManual": { "type": "boolean" },
+        "canManageAppointments": { "type": "boolean" },
+        "canCancelAppointments": { "type": "boolean" },
+        "canViewAllAppointments": { "type": "boolean" }
       },
       "required": ["uid", "role"]
     },

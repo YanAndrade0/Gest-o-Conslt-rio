@@ -11,7 +11,10 @@ import {
   XCircle,
   Stethoscope,
   Info,
-  Lock
+  Lock,
+  Eye,
+  EyeOff,
+  Filter
 } from 'lucide-react';
 import { 
   format, 
@@ -75,9 +78,14 @@ export function AppointmentAgenda() {
   const [isPatientListOpen, setIsPatientListOpen] = useState(false);
   const [doctorSearch, setDoctorSearch] = useState('');
   const [isDoctorListOpen, setIsDoctorListOpen] = useState(false);
+  const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>('all');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const patientSearchRef = useRef<HTMLDivElement>(null);
   const doctorSearchRef = useRef<HTMLDivElement>(null);
+
+  const canManageAgenda = user?.isMasterAdmin || user?.role === 'owner' || user?.canManageAppointments !== false;
+  const canCancelAgenda = user?.isMasterAdmin || user?.role === 'owner' || (user?.canManageAppointments !== false && user?.canCancelAppointments !== false);
+  const canViewAllAgenda = user?.isMasterAdmin || user?.role === 'owner' || user?.canViewAllAppointments !== false;
 
   // Form State
   const [formData, setFormData] = useState({
@@ -111,7 +119,7 @@ export function AppointmentAgenda() {
     const unsubPatients = patientService.subscribeToPatients(clinicId, setPatients);
     const unsubAppointments = appointmentService.subscribeToAppointments(
       clinicId, 
-      user?.role || 'member',
+      canViewAllAgenda,
       user?.displayName || '',
       (data) => {
         setAppointments(data);
@@ -129,7 +137,7 @@ export function AppointmentAgenda() {
       unsubAppointments();
       unsubMembers();
     };
-  }, [user?.clinicId]);
+  }, [user?.clinicId, canViewAllAgenda, user?.displayName]);
 
   const weekDays = useMemo(() => {
     return [selectedDate];
@@ -173,9 +181,6 @@ export function AppointmentAgenda() {
     setDoctorSearch(app.doctorName || '');
     setIsModalOpen(true);
   };
-
-  const canManageAgenda = user?.isMasterAdmin || user?.role === 'owner' || user?.canManageAppointments !== false;
-  const canCancelAgenda = user?.isMasterAdmin || user?.role === 'owner' || (user?.canManageAppointments !== false && user?.canCancelAppointments !== false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,7 +354,15 @@ export function AppointmentAgenda() {
   };
 
   const positionedAppointments = useMemo(() => {
-    const dayAppts = appointments.filter(app => isSameDay(parseISO(app.date), selectedDate));
+    const dayAppts = appointments.filter(app => {
+      if (!isSameDay(parseISO(app.date), selectedDate)) return false;
+      if (canViewAllAgenda && selectedDoctorFilter !== 'all') {
+        const docName = (app.doctorName || '').trim().toLowerCase();
+        return docName === selectedDoctorFilter.trim().toLowerCase();
+      }
+      return true;
+    });
+
     if (dayAppts.length === 0) return [];
 
     // Sort by start time (safe conversion)
@@ -415,9 +428,8 @@ export function AppointmentAgenda() {
       });
     });
 
-    console.log('[Agenda] Positioned overlapping appointments:', result);
     return result;
-  }, [appointments, selectedDate]);
+  }, [appointments, selectedDate, canViewAllAgenda, selectedDoctorFilter]);
 
   return (
     <div className="p-4 md:p-8 space-y-6 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-500">
@@ -425,6 +437,13 @@ export function AppointmentAgenda() {
         <div className="bg-amber-50 border border-amber-200/80 p-3 sm:p-4 rounded-2xl flex items-center gap-3 text-amber-800 text-xs font-bold shadow-sm animate-in fade-in duration-300">
           <Lock size={18} className="shrink-0 text-amber-600" />
           <span>Modo de Leitura na Agenda: Sua conta não possui permissão para agendar ou editar consultas. Entre em contato com o proprietário da clínica caso precise desta permissão.</span>
+        </div>
+      )}
+
+      {!canViewAllAgenda && (
+        <div className="bg-blue-50 border border-blue-200/80 p-3 sm:p-4 rounded-2xl flex items-center gap-3 text-blue-800 text-xs font-bold shadow-sm animate-in fade-in duration-300">
+          <EyeOff size={18} className="shrink-0 text-blue-600" />
+          <span>Visualização Restrita da Agenda: Sua conta está autorizada a ver apenas as consultas atribuídas diretamente ao seu nome ({user?.displayName || 'Você'}).</span>
         </div>
       )}
 
@@ -440,6 +459,26 @@ export function AppointmentAgenda() {
             </p>
           </div>
         </div>
+
+        {/* Filtro por Profissional (apenas se puder ver todos) */}
+        {canViewAllAgenda && doctors.length > 0 && (
+          <div className="flex items-center gap-2 bg-slate-100/60 px-3 py-1.5 rounded-2xl border border-slate-100">
+            <Filter size={14} className="text-slate-400 shrink-0" />
+            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Profissional:</span>
+            <select
+              value={selectedDoctorFilter}
+              onChange={(e) => setSelectedDoctorFilter(e.target.value)}
+              className="bg-transparent border-none text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-2"
+            >
+              <option value="all">Todos os Profissionais</option>
+              {doctors.map(doc => (
+                <option key={doc.uid} value={doc.displayName || doc.email}>
+                  {doc.displayName || doc.email}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="flex items-center gap-2 bg-slate-100/50 p-1.5 rounded-2xl border border-white">
           <Button variant="ghost" size="icon" onClick={handlePrevDay} className="rounded-xl hover:bg-white transition-all h-10 w-10">

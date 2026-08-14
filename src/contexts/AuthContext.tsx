@@ -28,6 +28,7 @@ interface User {
   isMasterAdmin?: boolean;
   canManageAppointments?: boolean;
   canCancelAppointments?: boolean;
+  canViewAllAppointments?: boolean;
   status?: 'active' | 'pending' | 'removed' | 'rejected';
   pendingClinicId?: string | null;
   previousClinicId?: string | null;
@@ -113,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isMasterAdmin,
         canManageAppointments: isOwner || profile?.canManageAppointments !== false,
         canCancelAppointments: isOwner || (profile?.canManageAppointments !== false && profile?.canCancelAppointments !== false),
+        canViewAllAppointments: isOwner || profile?.canViewAllAppointments !== false,
         status: profile?.status || 'active',
         pendingClinicId: profile?.pendingClinicId || null,
         previousClinicId: profile?.previousClinicId || null

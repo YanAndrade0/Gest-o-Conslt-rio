@@ -106,6 +106,16 @@ service cloud.firestore {
       );
     }
 
+    function canViewAllAppointments() {
+      let userData = getUserData();
+      return isMasterAdmin() || (
+        userData != null && (
+          userData.get('role', '') in ['owner', 'secretary'] ||
+          userData.get('canViewAllAppointments', true) == true
+        )
+      );
+    }
+
     function isClinicSecretary(clinicId) {
       let userData = getUserData();
       return isSignedIn() && userData != null && userData.get('clinicId', '') == clinicId && userData.get('role', '') == 'secretary';
@@ -270,14 +280,12 @@ service cloud.firestore {
       allow list: if isSignedIn() && (isMasterAdmin() || (getUserData() != null
         && resource.data.clinicId == getUserData().clinicId
         && (
-          getUserData().get('role', '') in ['owner', 'secretary'] || 
-          getUserData().get('canManageAppointments', true) == true ||
+          canViewAllAppointments() ||
           resource.data.get('doctorName', '') == getUserData().get('displayName', '')
         )));
       allow get: if isSignedIn() && (isMasterAdmin() || (isClinicMember(existing().clinicId)
         && (
-          getUserData().get('role', '') in ['owner', 'secretary'] || 
-          getUserData().get('canManageAppointments', true) == true ||
+          canViewAllAppointments() ||
           existing().get('doctorName', '') == getUserData().get('displayName', '')
         )));
       allow create: if isVerified() && (isMasterAdmin() || (isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidAppointment(incoming()) && canManageAppointments()));
