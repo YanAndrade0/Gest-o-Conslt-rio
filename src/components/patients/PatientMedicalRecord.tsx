@@ -418,12 +418,12 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
               </TabsContent>
 
               {/* Evolutions Tab */}
-              <TabsContent value="evolution" className="m-0 space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-                {/* Header Action Bar */}
-                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <TabsContent value="evolution" className="m-0 space-y-6 animate-in slide-in-from-bottom-4 duration-500 relative">
+                {/* Sticky Header Action Bar */}
+                <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-slate-200/80 shadow-md shadow-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-black text-slate-800 tracking-tight flex items-center gap-2">
-                      <History className="text-brand-primary" size={20} />
+                      <History className="text-brand-primary shrink-0" size={20} />
                       Histórico e Evolução do Paciente
                     </h3>
                     <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -432,9 +432,9 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                   </div>
                   <Button 
                     onClick={handleOpenEvolutionModal}
-                    className="bg-brand-primary hover:bg-brand-primary/90 text-white rounded-2xl px-6 h-12 font-black shadow-lg shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-2 shrink-0 w-full sm:w-auto"
+                    className="bg-brand-primary hover:bg-brand-primary/90 text-white rounded-2xl px-5 sm:px-6 h-11 sm:h-12 font-black shadow-lg shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-2 shrink-0 w-full sm:w-auto text-xs sm:text-sm"
                   >
-                    <PlusCircle size={20} /> REGISTRAR EVOLUÇÃO
+                    <PlusCircle size={18} /> REGISTRAR EVOLUÇÃO
                   </Button>
                 </div>
 
@@ -558,24 +558,28 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                               </div>
                             ) : (
                               <>
-                                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                                <div className="flex items-start justify-between gap-3 mb-3">
                                   <div className="space-y-1">
                                     <div className="flex flex-wrap items-center gap-2">
                                       <span className="block text-xs font-black text-brand-primary uppercase tracking-widest">{format(parseISO(evo.date), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
                                       {evo.recordedBy && (
-                                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full flex items-center gap-1">
                                           <UserIcon size={10} className="text-brand-primary" /> {evo.recordedBy}
                                         </span>
                                       )}
                                     </div>
-                                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1 mt-1">
+                                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1 mt-0.5">
                                       <Clock size={10} /> {format(parseISO(evo.date), "HH:mm")}
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t border-slate-50 sm:border-none w-full sm:w-auto justify-end">
-                                    <Button 
-                                      variant="ghost" 
-                                      className="h-10 px-4 md:h-8 md:w-8 md:px-0 rounded-xl md:rounded-lg border border-brand-primary/20 md:border-none bg-brand-light/20 md:bg-transparent text-brand-primary md:text-slate-400 hover:text-brand-primary hover:bg-brand-light flex items-center gap-2 md:gap-0 font-black text-xs md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+
+                                  {/* Botões menores no canto superior direito */}
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button 
+                                      type="button"
+                                      title="Editar evolução"
+                                      aria-label="Editar evolução"
+                                      className="h-7 w-7 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-brand-primary hover:border-brand-primary/40 hover:bg-brand-light/30 transition-all flex items-center justify-center cursor-pointer shadow-xs"
                                       onClick={() => {
                                         setEditingEvoId(evo.id!);
                                         setEditEvoData({ 
@@ -585,41 +589,39 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                         });
                                       }}
                                     >
-                                      <Edit2 size={14} />
-                                      <span className="md:hidden">EDITAR</span>
-                                    </Button>
+                                      <Edit2 size={12} />
+                                    </button>
                                     
                                     {evolutionToDelete === evo.id ? (
-                                      <div className="flex items-center gap-1 bg-white shadow-xl rounded-xl border border-slate-100 p-1 animate-in slide-in-from-right-2 duration-200">
-                                        <Button 
-                                          size="sm" 
-                                          variant="destructive"
-                                          className="h-7 px-2 rounded-lg text-[9px] font-black"
+                                      <div className="flex items-center gap-1 bg-white shadow-lg rounded-lg border border-red-200 p-0.5 animate-in slide-in-from-right-1 duration-150">
+                                        <button 
+                                          type="button"
+                                          className="h-6 px-1.5 rounded bg-red-600 hover:bg-red-700 text-white text-[9px] font-black tracking-wider uppercase cursor-pointer transition-colors"
                                           onClick={() => {
                                             handleDeleteEvolution(evo.id!);
                                             setEvolutionToDelete(null);
                                           }}
                                         >
-                                          SIM
-                                        </Button>
-                                        <Button 
-                                          size="sm" 
-                                          variant="ghost"
-                                          className="h-7 px-2 rounded-lg text-[9px] font-black text-slate-400"
+                                          Sim
+                                        </button>
+                                        <button 
+                                          type="button"
+                                          className="h-6 px-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[9px] font-black tracking-wider uppercase cursor-pointer transition-colors"
                                           onClick={() => setEvolutionToDelete(null)}
                                         >
-                                          NÃO
-                                        </Button>
+                                          Não
+                                        </button>
                                       </div>
                                     ) : (
-                                      <Button 
-                                        variant="ghost" 
-                                        className="h-10 px-4 md:h-8 md:w-8 md:px-0 rounded-xl md:rounded-lg border border-red-100 md:border-none bg-red-50/50 md:bg-transparent text-red-500 md:text-slate-400 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 md:gap-0 font-black text-xs md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                                      <button 
+                                        type="button"
+                                        title="Excluir evolução"
+                                        aria-label="Excluir evolução"
+                                        className="h-7 w-7 rounded-lg border border-slate-200 bg-white text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all flex items-center justify-center cursor-pointer shadow-xs"
                                         onClick={() => setEvolutionToDelete(evo.id!)}
                                       >
-                                        <Trash2 size={14} />
-                                        <span className="md:hidden">EXCLUIR</span>
-                                      </Button>
+                                        <Trash2 size={12} />
+                                      </button>
                                     )}
                                   </div>
                                 </div>
@@ -699,12 +701,16 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                 onChange={(e) => setEvolutionDoctor(e.target.value)}
                                 className="w-full text-xs font-black text-slate-800 bg-transparent border-none p-0 focus:ring-0 focus:outline-none cursor-pointer"
                               >
-                                {clinicMembers.map((m) => (
-                                  <option key={m.id} value={m.name}>
-                                    {m.name} {m.role === 'dentist' ? '(Dentista)' : m.role === 'admin' ? '(Admin)' : ''}
-                                  </option>
-                                ))}
-                                {user?.displayName && !clinicMembers.some(m => m.name === user.displayName) && (
+                                {clinicMembers.map((m) => {
+                                  const name = m.displayName || m.email || 'Profissional';
+                                  const roleLabel = m.role === 'owner' ? '(Responsável)' : m.role === 'secretary' ? '(Recepção)' : '(Dentista)';
+                                  return (
+                                    <option key={m.uid} value={name}>
+                                      {name} {roleLabel}
+                                    </option>
+                                  );
+                                })}
+                                {user?.displayName && !clinicMembers.some(m => (m.displayName || m.email) === user.displayName) && (
                                   <option value={user.displayName}>{user.displayName}</option>
                                 )}
                               </select>
