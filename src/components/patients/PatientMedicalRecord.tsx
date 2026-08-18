@@ -18,7 +18,8 @@ import {
   Upload,
   Loader2,
   Stethoscope,
-  ClipboardList
+  ClipboardList,
+  Sparkles
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
@@ -32,6 +33,7 @@ import {
   PatientPayment 
 } from '../../services/medicalRecordService';
 import { Patient, patientService } from '../../services/patientService';
+import { clinicService, UserProfile } from '../../services/clinicService';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import { format, parseISO, isSameDay } from 'date-fns';
@@ -51,11 +53,18 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
   const [evolutions, setEvolutions] = useState<Evolution[]>([]);
   const [photos, setPhotos] = useState<PatientPhoto[]>([]);
   const [payments, setPayments] = useState<PatientPayment[]>([]);
+  const [clinicMembers, setClinicMembers] = useState<UserProfile[]>([]);
   const [photoToDelete, setPhotoToDelete] = useState<string | null>(null);
   const [evolutionToDelete, setEvolutionToDelete] = useState<string | null>(null);
   
-  // Forms
+  // Modal de inclusão de evolução
+  const [isEvolutionModalOpen, setIsEvolutionModalOpen] = useState(false);
   const [evolutionDesc, setEvolutionDesc] = useState('');
+  const [evolutionDate, setEvolutionDate] = useState(() => format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+  const [evolutionDoctor, setEvolutionDoctor] = useState(user?.displayName || 'Doutor(a)');
+  const [isSavingEvolution, setIsSavingEvolution] = useState(false);
+
+  // Forms
   const [paymentData, setPaymentData] = useState({ amount: '', description: '', method: 'pix' as any });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoCaption, setPhotoCaption] = useState('');
@@ -71,7 +80,7 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
 
   // Editing state
   const [editingEvoId, setEditingEvoId] = useState<string | null>(null);
-  const [editEvoData, setEditEvoData] = useState({ description: '', date: '' });
+  const [editEvoData, setEditEvoData] = useState({ description: '', date: '', recordedBy: '' });
 
   // Editing state for payments
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
@@ -92,29 +101,46 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
     const unsubPayments = medicalRecordService.subscribeToPayments(patient.id, cid, (data) => {
       if (isMounted) setPayments(data);
     });
+    const unsubMembers = clinicService.subscribeToClinicMembers(cid, (members) => {
+      if (isMounted) setClinicMembers(members);
+    });
 
     return () => {
       isMounted = false;
       unsubEvolutions();
       unsubPhotos();
       unsubPayments();
+      unsubMembers();
     };
   }, [patient?.id, user?.clinicId, patient.clinicId]);
 
   if (!patient || !patient.id) return null;
 
+  const handleOpenEvolutionModal = () => {
+    setEvolutionDesc('');
+    setEvolutionDate(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
+    setEvolutionDoctor(user?.displayName || 'Doutor(a)');
+    setIsEvolutionModalOpen(true);
+  };
+
   const handleAddEvolution = async (e: React.FormEvent) => {
     e.preventDefault();
     const cid = user?.clinicId || patient.clinicId;
-    if (!evolutionDesc.trim() || !cid || !patient.id) return;
+    if (!evolutionDesc.trim() || !cid || !patient.id) {
+      toast.error('Preencha a descrição da evolução.');
+      return;
+    }
 
+    setIsSavingEvolution(true);
     try {
+      const parsedDate = evolutionDate ? new Date(evolutionDate).toISOString() : new Date().toISOString();
+
       await medicalRecordService.addEvolution({
         patientId: patient.id,
-        description: evolutionDesc,
-        date: new Date().toISOString(),
+        description: evolutionDesc.trim(),
+        date: parsedDate,
         clinicId: cid,
-        recordedBy: user?.displayName || 'Doutor(a)',
+        recordedBy: evolutionDoctor.trim() || user?.displayName || 'Doutor(a)',
         recorderId: user?.uid
       });
 
@@ -129,13 +155,15 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
         }
       } catch (appError) {
         console.error('Erro ao atualizar status da consulta:', appError);
-        // We don't block the evolution success if this fails
       }
 
       setEvolutionDesc('');
-      toast.success('Evolução registrada!');
+      setIsEvolutionModalOpen(false);
+      toast.success('Evolução clínica registrada com sucesso!');
     } catch (error) {
       toast.error('Erro ao salvar evolução.');
+    } finally {
+      setIsSavingEvolution(false);
     }
   };
 
@@ -147,7 +175,8 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
     try {
       await medicalRecordService.updateEvolution(id, {
         description: editEvoData.description,
-        date: editEvoData.date
+        date: editEvoData.date,
+        recordedBy: editEvoData.recordedBy || user?.displayName || 'Doutor(a)'
       }, cid, patient.id);
       setEditingEvoId(null);
       toast.success('Evolução atualizada!');
@@ -389,40 +418,52 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
               </TabsContent>
 
               {/* Evolutions Tab */}
-              <TabsContent value="evolution" className="m-0 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-                <Card className="card-custom border-none shadow-sm overflow-hidden border border-white">
-                  <CardContent className="p-0">
-                    <form onSubmit={handleAddEvolution} className="p-8 space-y-4">
-                      <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Nova Evolução de Tratamento</Label>
-                      <textarea 
-                        className="w-full h-32 p-6 rounded-3xl bg-slate-50/50 border border-slate-100 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-medium text-sm resize-none"
-                        placeholder="Descreva o procedimento realizado hoje, materiais utilizados, recomendações..."
-                        value={evolutionDesc}
-                        onChange={(e) => setEvolutionDesc(e.target.value)}
-                        required
-                      />
-                      <div className="flex justify-end">
-                        <Button type="submit" className="bg-brand-primary text-white rounded-2xl px-8 h-12 font-black shadow-lg shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-2">
-                          <PlusCircle size={20} /> REGISTRAR EVOLUÇÃO
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
+              <TabsContent value="evolution" className="m-0 space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+                {/* Header Action Bar */}
+                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base font-black text-slate-800 tracking-tight flex items-center gap-2">
+                      <History className="text-brand-primary" size={20} />
+                      Histórico e Evolução do Paciente
+                    </h3>
+                    <p className="text-xs text-slate-400 font-medium mt-0.5">
+                      Registro cronológico de procedimentos, intercorrências e observações clínicas
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleOpenEvolutionModal}
+                    className="bg-brand-primary hover:bg-brand-primary/90 text-white rounded-2xl px-6 h-12 font-black shadow-lg shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-2 shrink-0 w-full sm:w-auto"
+                  >
+                    <PlusCircle size={20} /> REGISTRAR EVOLUÇÃO
+                  </Button>
+                </div>
 
+                {/* Timeline Content */}
                 <div className="space-y-6">
                   <div className="flex items-center gap-4">
                     <div className="h-[1px] flex-1 bg-slate-200"></div>
-                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Linha do Tempo</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Linha do Tempo</span>
                     <div className="h-[1px] flex-1 bg-slate-200"></div>
                   </div>
 
                   {evolutions.length === 0 ? (
-                    <div className="py-12 text-center space-y-4">
-                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300">
+                    <div className="py-16 text-center space-y-4 bg-white rounded-3xl border border-dashed border-slate-200 p-8">
+                      <div className="w-16 h-16 bg-brand-light/30 rounded-2xl flex items-center justify-center mx-auto text-brand-primary">
                         <History size={32} />
                       </div>
-                      <p className="text-slate-400 font-bold italic text-sm">Nenhum registro clínico ainda.</p>
+                      <div className="max-w-xs mx-auto space-y-1">
+                        <p className="text-slate-700 font-black text-sm">Nenhum registro clínico ainda</p>
+                        <p className="text-slate-400 font-medium text-xs">
+                          Clique em &quot;Registrar Evolução&quot; acima para adicionar a primeira evolução médica deste paciente.
+                        </p>
+                      </div>
+                      <Button 
+                        onClick={handleOpenEvolutionModal}
+                        variant="outline"
+                        className="rounded-xl border-brand-primary/30 text-brand-primary font-bold text-xs hover:bg-brand-light/20 mt-2"
+                      >
+                        <Plus size={16} className="mr-1.5" /> Adicionar Primeira Evolução
+                      </Button>
                     </div>
                   ) : (
                     evolutions.map((evo) => (
@@ -430,12 +471,12 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                         <div className="absolute left-0 top-0 w-10 h-10 bg-white border-4 border-brand-light rounded-xl flex items-center justify-center text-brand-primary shadow-sm z-10">
                           <Clock size={16} />
                         </div>
-                        <Card className="card-custom border-none shadow-sm hover:shadow-md transition-all group">
+                        <Card className="card-custom border-none shadow-sm hover:shadow-md transition-all group bg-white">
                           <CardContent className="p-6">
                             {editingEvoId === evo.id ? (
                               <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
-                                <div className="flex flex-col sm:flex-row gap-4">
-                                  <div className="flex-1 space-y-1.5">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                  <div className="space-y-1.5">
                                     <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Data e Hora</Label>
                                     <Input 
                                       type="datetime-local" 
@@ -444,13 +485,22 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                       className="rounded-xl bg-slate-50 border-slate-200 font-bold"
                                     />
                                   </div>
+                                  <div className="space-y-1.5">
+                                    <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Profissional Responsável</Label>
+                                    <Input 
+                                      type="text" 
+                                      value={editEvoData.recordedBy} 
+                                      onChange={(e) => setEditEvoData({ ...editEvoData, recordedBy: e.target.value })}
+                                      className="rounded-xl bg-slate-50 border-slate-200 font-bold"
+                                    />
+                                  </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                  <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Descrição</Label>
+                                  <Label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Descrição do Procedimento / Evolução</Label>
                                   <textarea 
                                     value={editEvoData.description}
                                     onChange={(e) => setEditEvoData({ ...editEvoData, description: e.target.value })}
-                                    className="w-full h-24 p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-medium text-sm resize-none"
+                                    className="w-full h-28 p-4 rounded-2xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-medium text-sm resize-none"
                                   />
                                 </div>
                                 <div className="flex justify-end gap-2">
@@ -510,15 +560,17 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                               <>
                                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                                   <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="block text-xs font-black text-brand-primary uppercase tracking-widest">{format(parseISO(evo.date), "dd 'de' MMM, yyyy", { locale: ptBR })}</span>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="block text-xs font-black text-brand-primary uppercase tracking-widest">{format(parseISO(evo.date), "dd 'de' MMMM, yyyy", { locale: ptBR })}</span>
                                       {evo.recordedBy && (
-                                        <span className="text-[10px] font-black text-slate-100 uppercase tracking-widest bg-brand-primary/80 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                          <UserIcon size={8} /> {evo.recordedBy}
+                                        <span className="text-[10px] font-black text-slate-700 uppercase tracking-wider bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+                                          <UserIcon size={10} className="text-brand-primary" /> {evo.recordedBy}
                                         </span>
                                       )}
                                     </div>
-                                    <span className="block text-[10px] font-bold text-slate-300 uppercase tracking-widest leading-none">{format(parseISO(evo.date), "HH:mm")}</span>
+                                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none flex items-center gap-1 mt-1">
+                                      <Clock size={10} /> {format(parseISO(evo.date), "HH:mm")}
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t border-slate-50 sm:border-none w-full sm:w-auto justify-end">
                                     <Button 
@@ -526,7 +578,11 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                       className="h-10 px-4 md:h-8 md:w-8 md:px-0 rounded-xl md:rounded-lg border border-brand-primary/20 md:border-none bg-brand-light/20 md:bg-transparent text-brand-primary md:text-slate-400 hover:text-brand-primary hover:bg-brand-light flex items-center gap-2 md:gap-0 font-black text-xs md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                                       onClick={() => {
                                         setEditingEvoId(evo.id!);
-                                        setEditEvoData({ description: evo.description, date: evo.date });
+                                        setEditEvoData({ 
+                                          description: evo.description, 
+                                          date: evo.date,
+                                          recordedBy: evo.recordedBy || '' 
+                                        });
                                       }}
                                     >
                                       <Edit2 size={14} />
@@ -567,7 +623,9 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                                     )}
                                   </div>
                                 </div>
-                                <p className="text-slate-700 font-medium whitespace-pre-wrap text-sm leading-relaxed">{evo.description}</p>
+                                <div className="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                                  <p className="text-slate-700 font-medium whitespace-pre-wrap text-sm leading-relaxed">{evo.description}</p>
+                                </div>
                               </>
                             )}
                           </CardContent>
@@ -576,6 +634,144 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                     ))
                   )}
                 </div>
+
+                {/* Modal / Aba para Incluir Evolução */}
+                {isEvolutionModalOpen && (
+                  <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                      {/* Modal Header */}
+                      <div className="p-6 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-brand-primary text-white rounded-xl flex items-center justify-center shadow-md shadow-brand-primary/20">
+                            <PlusCircle size={22} />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-black text-slate-800 tracking-tight">Incluir Evolução Clínica</h3>
+                            <p className="text-xs text-slate-400 font-medium">Preencha os detalhes da evolução do paciente</p>
+                          </div>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setIsEvolutionModalOpen(false)}
+                          className="rounded-xl h-10 w-10 text-slate-400 hover:bg-white hover:text-slate-600"
+                        >
+                          <X size={20} />
+                        </Button>
+                      </div>
+
+                      {/* Modal Form Content */}
+                      <form onSubmit={handleAddEvolution} className="p-6 space-y-6 overflow-y-auto flex-1">
+                        {/* Information summary cards: Paciente, Data e Profissional */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {/* Nome do Paciente */}
+                          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-1">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                              <UserIcon size={12} className="text-brand-primary" /> Paciente
+                            </Label>
+                            <p className="text-xs font-black text-slate-800 truncate" title={patient.name}>
+                              {patient.name}
+                            </p>
+                          </div>
+
+                          {/* Data do Registro */}
+                          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-1">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                              <Calendar size={12} className="text-brand-primary" /> Data do Registro
+                            </Label>
+                            <input 
+                              type="datetime-local"
+                              value={evolutionDate}
+                              onChange={(e) => setEvolutionDate(e.target.value)}
+                              className="w-full text-xs font-black text-slate-800 bg-transparent border-none p-0 focus:ring-0 focus:outline-none"
+                              required
+                            />
+                          </div>
+
+                          {/* Profissional Responsável */}
+                          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-1">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                              <Stethoscope size={12} className="text-brand-primary" /> Profissional
+                            </Label>
+                            {clinicMembers && clinicMembers.length > 0 ? (
+                              <select
+                                value={evolutionDoctor}
+                                onChange={(e) => setEvolutionDoctor(e.target.value)}
+                                className="w-full text-xs font-black text-slate-800 bg-transparent border-none p-0 focus:ring-0 focus:outline-none cursor-pointer"
+                              >
+                                {clinicMembers.map((m) => (
+                                  <option key={m.id} value={m.name}>
+                                    {m.name} {m.role === 'dentist' ? '(Dentista)' : m.role === 'admin' ? '(Admin)' : ''}
+                                  </option>
+                                ))}
+                                {user?.displayName && !clinicMembers.some(m => m.name === user.displayName) && (
+                                  <option value={user.displayName}>{user.displayName}</option>
+                                )}
+                              </select>
+                            ) : (
+                              <input 
+                                type="text"
+                                value={evolutionDoctor}
+                                onChange={(e) => setEvolutionDoctor(e.target.value)}
+                                placeholder="Nome do profissional"
+                                className="w-full text-xs font-black text-slate-800 bg-transparent border-none p-0 focus:ring-0 focus:outline-none"
+                                required
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Campo de Descrição da Evolução */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                              Descrição do Procedimento / Observações Clínicas *
+                            </Label>
+                            <span className="text-[10px] text-slate-400 font-medium">
+                              {evolutionDesc.length} caracteres
+                            </span>
+                          </div>
+                          <textarea 
+                            className="w-full h-44 p-5 rounded-2xl bg-slate-50/70 border border-slate-200 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all font-medium text-sm leading-relaxed resize-none text-slate-800 placeholder:text-slate-400"
+                            placeholder="Descreva o procedimento realizado, medicamentos prescritos, queixas tratadas, dentes manipulados, materiais utilizados, orientações e próximo passo..."
+                            value={evolutionDesc}
+                            onChange={(e) => setEvolutionDesc(e.target.value)}
+                            required
+                            autoFocus
+                          />
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            onClick={() => setIsEvolutionModalOpen(false)}
+                            className="rounded-2xl px-6 h-12 font-bold text-slate-500 hover:bg-slate-100 text-sm"
+                            disabled={isSavingEvolution}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={isSavingEvolution || !evolutionDesc.trim()}
+                            className="bg-brand-primary hover:bg-brand-primary/90 text-white rounded-2xl px-8 h-12 font-black shadow-lg shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all gap-2 text-sm"
+                          >
+                            {isSavingEvolution ? (
+                              <>
+                                <Loader2 size={18} className="animate-spin" /> SALVANDO...
+                              </>
+                            ) : (
+                              <>
+                                <Save size={18} /> REGISTRAR EVOLUÇÃO
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               {/* Payments Tab */}
