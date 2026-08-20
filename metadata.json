@@ -2,5 +2,5 @@
   "name": "OralCloud",
   "description": "Sistema completo de gestão odontológica com prontuário, agenda, financeiro e integração WhatsApp.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
