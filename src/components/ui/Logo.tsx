@@ -55,7 +55,7 @@ export function Logo({
       {!iconOnly && (
         <div className="flex flex-col items-center md:items-start space-y-0.5">
           <span className="text-2xl font-black text-slate-800 tracking-tight leading-none">
-            Oral<span className="text-brand-primary">Cloud</span>
+            Oral<span className="text-brand-primary">cloud</span>
           </span>
           {subtitle && (
             <span className="text-slate-400 font-bold text-[10px] uppercase tracking-widest leading-none">
