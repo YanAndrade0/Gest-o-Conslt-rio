@@ -450,30 +450,30 @@ export function AppointmentAgenda() {
   }, [appointments, selectedDate, canViewAllAgenda, selectedDoctorFilter]);
 
   return (
-    <div className="p-4 md:p-8 space-y-6 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-500">
+    <div className="p-2.5 sm:p-4 md:p-8 space-y-2.5 sm:space-y-4 md:space-y-6 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-500">
       {!canManageAgenda && (
-        <div className="bg-amber-50 border border-amber-200/80 p-3 sm:p-4 rounded-2xl flex items-center gap-3 text-amber-800 text-xs font-bold shadow-sm animate-in fade-in duration-300">
-          <Lock size={18} className="shrink-0 text-amber-600" />
-          <span>Modo de Leitura na Agenda: Sua conta não possui permissão para agendar ou editar consultas. Entre em contato com o proprietário da clínica caso precise desta permissão.</span>
+        <div className="bg-amber-50 border border-amber-200/80 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl flex items-center gap-2.5 sm:gap-3 text-amber-800 text-xs font-bold shadow-sm animate-in fade-in duration-300">
+          <Lock size={16} className="shrink-0 text-amber-600 sm:size-[18px]" />
+          <span>Modo de Leitura na Agenda: Sua conta não possui permissão para agendar ou editar consultas.</span>
         </div>
       )}
 
       {!canViewAllAgenda && (
-        <div className="bg-blue-50 border border-blue-200/80 p-3 sm:p-4 rounded-2xl flex items-center gap-3 text-blue-800 text-xs font-bold shadow-sm animate-in fade-in duration-300">
-          <EyeOff size={18} className="shrink-0 text-blue-600" />
-          <span>Visualização Restrita da Agenda: Sua conta está autorizada a ver apenas as consultas atribuídas diretamente ao seu nome ({user?.displayName || 'Você'}).</span>
+        <div className="bg-blue-50 border border-blue-200/80 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl flex items-center gap-2.5 sm:gap-3 text-blue-800 text-xs font-bold shadow-sm animate-in fade-in duration-300">
+          <EyeOff size={16} className="shrink-0 text-blue-600 sm:size-[18px]" />
+          <span>Visualização Restrita da Agenda: Exibindo apenas consultas atribuídas a você ({user?.displayName || 'Você'}).</span>
         </div>
       )}
 
-      <header className="shrink-0 flex flex-col xl:flex-row items-stretch xl:items-center justify-between bg-white/80 backdrop-blur-md p-4 sm:p-5 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 gap-4">
+      <header className="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white/80 backdrop-blur-md p-3 sm:p-4 md:p-5 rounded-2xl sm:rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 gap-2.5 sm:gap-4">
         {/* Lado Esquerdo: Título e Filtro de Profissional */}
-        <div className="flex flex-wrap items-center justify-between sm:justify-start gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-11 h-11 sm:w-12 sm:h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary shrink-0 shadow-sm">
-              <CalendarIcon size={22} className="sm:w-6 sm:h-6" />
+        <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-primary/10 rounded-xl sm:rounded-2xl flex items-center justify-center text-brand-primary shrink-0 shadow-sm">
+              <CalendarIcon size={20} className="sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight leading-tight">Agenda Diária</h2>
+              <h2 className="text-lg sm:text-2xl font-black text-slate-800 tracking-tight leading-tight">Agenda Diária</h2>
               <p className="text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
                 {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
               </p>
@@ -482,15 +482,15 @@ export function AppointmentAgenda() {
 
           {/* Filtro por Profissional (apenas se puder ver todos) */}
           {canViewAllAgenda && doctors.length > 0 && (
-            <div className="flex items-center gap-2 bg-slate-100/70 px-3 py-1.5 rounded-2xl border border-slate-200/60 shrink-0">
-              <Filter size={14} className="text-slate-400 shrink-0" />
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Profissional:</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100/70 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
+              <Filter size={13} className="text-slate-400 shrink-0 sm:size-3.5" />
+              <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-wider">Profissional:</span>
               <select
                 value={selectedDoctorFilter}
                 onChange={(e) => setSelectedDoctorFilter(e.target.value)}
-                className="bg-transparent border-none text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-2 max-w-[150px] truncate"
+                className="bg-transparent border-none text-[11px] sm:text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1 max-w-[120px] sm:max-w-[150px] truncate"
               >
-                <option value="all">Todos os Profissionais</option>
+                <option value="all">Todos</option>
                 {doctors.map(doc => (
                   <option key={doc.uid} value={doc.displayName || doc.email}>
                     {doc.displayName || doc.email}
@@ -501,14 +501,20 @@ export function AppointmentAgenda() {
           )}
         </div>
 
-        {/* Lado Direito: Navegação de Datas + Botão Novo Agendamento */}
-        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 sm:gap-3">
-          {/* Navegador de Data */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-slate-100/60 p-1 rounded-2xl border border-slate-200/60 shrink-0">
-            <Button variant="ghost" size="icon" onClick={handlePrevDay} className="rounded-xl hover:bg-white transition-all h-9 w-9">
+        {/* Lado Direito: Navegação de Datas (Avançar e Voltar) + Botão Novo Agendamento */}
+        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
+          {/* Navegador de Data: Apenas botões de voltar e avançar */}
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100/70 p-1 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handlePrevDay} 
+              className="rounded-lg sm:rounded-xl hover:bg-white transition-all h-8 w-8 sm:h-9 sm:w-9"
+              title="Voltar um dia"
+            >
               <ChevronLeft size={16} />
             </Button>
-            <div className="px-2 sm:px-3 py-1 flex items-center gap-2 relative">
+            <div className="px-2 sm:px-3 py-1 flex items-center gap-1.5 sm:gap-2 relative">
               <span className="text-xs sm:text-sm font-black text-slate-700 capitalize whitespace-nowrap">
                 {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
               </span>
@@ -518,59 +524,29 @@ export function AppointmentAgenda() {
                 onChange={(e) => setSelectedDate(parseISO(e.target.value))}
                 className="w-8 h-8 p-0 border-none bg-transparent cursor-pointer opacity-0 absolute inset-0"
               />
-              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-brand-primary p-0 pointer-events-none">
-                <CalendarIcon size={14} />
+              <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md sm:rounded-lg text-brand-primary p-0 pointer-events-none">
+                <CalendarIcon size={13} className="sm:size-3.5" />
               </Button>
             </div>
-            <Button variant="ghost" size="icon" onClick={handleNextDay} className="rounded-xl hover:bg-white transition-all h-9 w-9">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleNextDay} 
+              className="rounded-lg sm:rounded-xl hover:bg-white transition-all h-8 w-8 sm:h-9 sm:w-9"
+              title="Avançar um dia"
+            >
               <ChevronRight size={16} />
             </Button>
           </div>
 
-          {/* Atalhos Rápidos: Ontem, Hoje, Amanhã */}
-          <div className="flex items-center gap-1 bg-slate-100/40 p-1 rounded-2xl border border-slate-200/60 shrink-0">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 hover:bg-white h-8 sm:h-9 px-2 sm:px-3 transition-all"
-              onClick={() => setSelectedDate(subDays(new Date(), 1))}
-              type="button"
-            >
-              Ontem
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={cn(
-                "rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider h-8 sm:h-9 px-2.5 sm:px-3 transition-all",
-                isToday(selectedDate) 
-                  ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20 hover:bg-brand-primary" 
-                  : "text-brand-primary hover:bg-brand-light/40"
-              )}
-              onClick={() => setSelectedDate(new Date())}
-              type="button"
-            >
-              Hoje
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 hover:bg-white h-8 sm:h-9 px-2 sm:px-3 transition-all"
-              onClick={() => setSelectedDate(addDays(new Date(), 1))}
-              type="button"
-            >
-              Amanhã
-            </Button>
-          </div>
-
-          {/* Botão Novo Agendamento / Atendimento Proeminente e Estável */}
+          {/* Botão Novo Agendamento */}
           <Button 
             onClick={handleOpenNewAppointment}
-            className="bg-brand-primary text-white px-5 sm:px-6 rounded-2xl font-black hover:bg-brand-accent transition-all shadow-xl shadow-brand-primary/25 gap-2 h-10 sm:h-11 shrink-0 flex items-center justify-center cursor-pointer active:scale-95"
+            className="bg-brand-primary text-white px-3.5 sm:px-6 rounded-xl sm:rounded-2xl font-black hover:bg-brand-accent transition-all shadow-lg sm:shadow-xl shadow-brand-primary/25 gap-1.5 sm:gap-2 h-9 sm:h-11 shrink-0 flex items-center justify-center cursor-pointer active:scale-95 text-xs sm:text-sm"
             title="Agendar nova consulta ou atendimento"
           >
-            <Plus size={18} className="shrink-0 stroke-[2.5]" />
-            <span className="inline whitespace-nowrap text-xs sm:text-sm font-black">Novo Agendamento</span>
+            <Plus size={16} className="shrink-0 stroke-[2.5] sm:size-[18px]" />
+            <span className="whitespace-nowrap font-black">Novo Agendamento</span>
           </Button>
         </div>
 
@@ -911,26 +887,26 @@ export function AppointmentAgenda() {
         </Dialog>
       </header>
 
-      <div className="flex-1 bg-white rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-auto flex flex-col scrollbar-hide">
+      <div className="flex-1 bg-white rounded-2xl sm:rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-auto flex flex-col scrollbar-hide">
         <div className="w-full flex-1 flex flex-col">
           {/* Days Header */}
-          <div className="grid grid-cols-[100px_1fr] border-b border-slate-50 bg-slate-50/20 shrink-0">
-          <div className="p-4 border-r border-slate-50 flex items-center justify-center">
+          <div className="grid grid-cols-[56px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] border-b border-slate-50 bg-slate-50/20 shrink-0">
+          <div className="p-2 sm:p-4 border-r border-slate-50 flex items-center justify-center">
             <Clock size={16} className="text-slate-300" />
           </div>
           {weekDays.map((day, i) => (
             <div 
               key={i} 
               className={cn(
-                "p-4 text-center border-r border-slate-50 last:border-r-0 flex flex-col items-center justify-center gap-1",
+                "p-2 sm:p-4 text-center border-r border-slate-50 last:border-r-0 flex flex-col items-center justify-center gap-0.5 sm:gap-1",
                 isToday(day) ? "bg-brand-light/20 relative" : ""
               )}
             >
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-400">
                 {format(day, 'EEEE', { locale: ptBR })}
               </span>
               <span className={cn(
-                "text-lg font-black w-10 h-10 flex items-center justify-center rounded-xl transition-all",
+                "text-sm sm:text-lg font-black w-7 h-7 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl transition-all",
                 isToday(day) ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/30" : "text-slate-700"
               )}>
                 {format(day, 'dd')}
@@ -945,19 +921,19 @@ export function AppointmentAgenda() {
         </div>
 
         {/* Scrollable Grid */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
-          <div className="grid grid-cols-[100px_1fr] relative">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
+          <div className="grid grid-cols-[56px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] relative">
             
             {/* Time Indicators Column */}
             <div className="flex flex-col">
               <div className="h-6 bg-slate-50 border-b border-slate-100"></div> {/* Header spacer */}
               {TIME_SLOTS.map((timeStr) => (
-                <div key={timeStr} className="h-20 border-r border-b border-slate-50 flex flex-col items-center justify-start p-3 bg-white sticky left-0 z-20">
+                <div key={timeStr} className="h-20 border-r border-b border-slate-50 flex flex-col items-center justify-start p-1.5 sm:p-3 bg-white sticky left-0 z-20">
                   <span className={cn(
                     "font-black text-slate-800 transition-all",
-                    timeStr.endsWith(':00') ? "text-xs" : "text-[9px] opacity-30"
+                    timeStr.endsWith(':00') ? "text-[10px] sm:text-xs" : "text-[8px] sm:text-[9px] opacity-35"
                   )}>{timeStr}</span>
-                  {timeStr.endsWith(':00') && <span className="text-[7px] font-black text-slate-300 uppercase tracking-tighter">Horário</span>}
+                  {timeStr.endsWith(':00') && <span className="hidden sm:inline-block text-[7px] font-black text-slate-300 uppercase tracking-tighter">Horário</span>}
                 </div>
               ))}
             </div>
@@ -1101,44 +1077,44 @@ export function AppointmentAgenda() {
         </div>
       </div>
 
-      <footer className="bg-white/70 backdrop-blur-sm p-3.5 sm:p-4 rounded-2xl border border-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
+      <footer className="bg-white/70 backdrop-blur-sm p-2 sm:p-3.5 md:p-4 rounded-xl sm:rounded-2xl border border-white flex flex-col md:flex-row items-center justify-between gap-1.5 sm:gap-3 shadow-sm shrink-0">
         {/* Procedimentos Pré-definidos e suas cores na agenda */}
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3.5 gap-y-1.5">
-          <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+        <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-2 sm:gap-x-3.5 gap-y-1 sm:gap-y-1.5">
+          <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-wider">
             Procedimentos:
           </span>
           {PREDEFINED_PROCEDURES.map((p) => (
-            <div key={p.id} className="flex items-center gap-1.5 bg-white/60 px-2 py-0.5 rounded-md border border-slate-100">
-              <span className={cn("w-2 h-2 rounded-full shrink-0", p.dotBg)} />
-              <span className="text-[10px] font-bold text-slate-700">{p.name}</span>
+            <div key={p.id} className="flex items-center gap-1 bg-white/70 px-1.5 sm:px-2 py-0.5 rounded-md border border-slate-100 text-[8px] sm:text-[10px]">
+              <span className={cn("w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0", p.dotBg)} />
+              <span className="font-bold text-slate-700">{p.name}</span>
             </div>
           ))}
         </div>
 
         {/* Legenda de Status */}
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
-          <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+        <div className="flex flex-wrap items-center justify-center gap-x-2.5 sm:gap-x-3 gap-y-0.5 sm:gap-y-1 pt-1 md:pt-0 border-t md:border-t-0 border-slate-100 text-[8px] sm:text-[9px]">
+          <span className="font-black uppercase text-slate-400 tracking-wider">
             Status:
           </span>
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-            <span className="text-[9px] font-bold text-slate-500">Marcado</span>
+            <span className="font-bold text-slate-500">Marcado</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-            <span className="text-[9px] font-bold text-slate-500">Confirmado</span>
+            <span className="font-bold text-slate-500">Confirmado</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
-            <span className="text-[9px] font-bold text-slate-500">Aguardando</span>
+            <span className="font-bold text-slate-500">Aguardando</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-            <span className="text-[9px] font-bold text-slate-500">Desmarcou</span>
+            <span className="font-bold text-slate-500">Desmarcou</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
-            <span className="text-[9px] font-bold text-slate-500">Atendido</span>
+            <span className="font-bold text-slate-500">Atendido</span>
           </div>
         </div>
       </footer>
