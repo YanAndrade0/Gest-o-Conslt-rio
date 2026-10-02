@@ -39,8 +39,7 @@ import {
   DialogDescription, 
   DialogFooter, 
   DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+  DialogTitle 
 } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -55,6 +54,7 @@ import { clinicService, UserProfile } from '../../services/clinicService';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { PatientMedicalRecord } from '../patients/PatientMedicalRecord';
+import { PREDEFINED_PROCEDURES, getProcedureConfig } from '../../constants/procedures';
 
 const TIME_SLOTS = Array.from({ length: (20 - 8) * 2 + 1 }, (_, i) => {
   const hour = Math.floor(i / 2) + 8;
@@ -79,6 +79,7 @@ export function AppointmentAgenda() {
   const [doctorSearch, setDoctorSearch] = useState('');
   const [isDoctorListOpen, setIsDoctorListOpen] = useState(false);
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>('all');
+  const [isCustomProcedure, setIsCustomProcedure] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const patientSearchRef = useRef<HTMLDivElement>(null);
   const doctorSearchRef = useRef<HTMLDivElement>(null);
@@ -90,7 +91,7 @@ export function AppointmentAgenda() {
   // Form State
   const [formData, setFormData] = useState({
     patientId: '',
-    procedure: '',
+    procedure: 'Avaliação',
     doctorName: user?.displayName || '',
     time: '09:00',
     duration: '30',
@@ -149,7 +150,7 @@ export function AppointmentAgenda() {
   const resetForm = () => {
     setFormData({
       patientId: '',
-      procedure: '',
+      procedure: 'Avaliação',
       doctorName: user?.displayName || '',
       time: '09:00',
       duration: '30',
@@ -160,8 +161,33 @@ export function AppointmentAgenda() {
     setIsPatientListOpen(false);
     setDoctorSearch(user?.displayName || '');
     setIsDoctorListOpen(false);
+    setIsCustomProcedure(false);
     setEditingAppointment(null);
     setIsConfirmingDelete(false);
+  };
+
+  const handleOpenNewAppointment = () => {
+    if (!canManageAgenda) {
+      toast.error('Sua conta não possui permissão para criar agendamentos.');
+      return;
+    }
+    setEditingAppointment(null);
+    setIsConfirmingDelete(false);
+    setFormData({
+      patientId: '',
+      procedure: 'Avaliação',
+      doctorName: user?.displayName || '',
+      time: '09:00',
+      duration: '30',
+      date: format(selectedDate, 'yyyy-MM-dd'),
+      status: 'marcado'
+    });
+    setPatientSearch('');
+    setIsPatientListOpen(false);
+    setDoctorSearch(user?.displayName || '');
+    setIsDoctorListOpen(false);
+    setIsCustomProcedure(false);
+    setIsModalOpen(true);
   };
 
   const handleEditAppointment = (app: Appointment) => {
@@ -177,6 +203,10 @@ export function AppointmentAgenda() {
       date: format(appDate, 'yyyy-MM-dd'),
       status: app.status
     });
+    const isPredefined = PREDEFINED_PROCEDURES.some(
+      p => p.name.toLowerCase() === (app.procedure || '').toLowerCase()
+    );
+    setIsCustomProcedure(!isPredefined && !!app.procedure);
     setPatientSearch(app.patientName);
     setDoctorSearch(app.doctorName || '');
     setIsModalOpen(true);
@@ -318,13 +348,14 @@ export function AppointmentAgenda() {
     const newDate = format(day, 'yyyy-MM-dd');
     setFormData({
       patientId: '',
-      procedure: '',
+      procedure: 'Avaliação',
       doctorName: user?.displayName || '',
       time: timeStr,
       duration: '30',
       date: newDate,
       status: 'marcado'
     });
+    setIsCustomProcedure(false);
     setPatientSearch('');
     setIsPatientListOpen(false);
     setDoctorSearch(user?.displayName || '');
@@ -447,106 +478,116 @@ export function AppointmentAgenda() {
         </div>
       )}
 
-      <header className="flex flex-col md:flex-row justify-between items-center bg-white/70 backdrop-blur-md p-5 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary">
-            <CalendarIcon size={24} />
+      <header className="shrink-0 flex flex-col xl:flex-row items-stretch xl:items-center justify-between bg-white/80 backdrop-blur-md p-4 sm:p-5 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 gap-4">
+        {/* Lado Esquerdo: Título e Filtro de Profissional */}
+        <div className="flex flex-wrap items-center justify-between sm:justify-start gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary shrink-0 shadow-sm">
+              <CalendarIcon size={22} className="sm:w-6 sm:h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight leading-tight">Agenda Diária</h2>
+              <p className="text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+                {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Agenda Diária</h2>
-            <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-              {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-            </p>
-          </div>
+
+          {/* Filtro por Profissional (apenas se puder ver todos) */}
+          {canViewAllAgenda && doctors.length > 0 && (
+            <div className="flex items-center gap-2 bg-slate-100/70 px-3 py-1.5 rounded-2xl border border-slate-200/60 shrink-0">
+              <Filter size={14} className="text-slate-400 shrink-0" />
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Profissional:</span>
+              <select
+                value={selectedDoctorFilter}
+                onChange={(e) => setSelectedDoctorFilter(e.target.value)}
+                className="bg-transparent border-none text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-2 max-w-[150px] truncate"
+              >
+                <option value="all">Todos os Profissionais</option>
+                {doctors.map(doc => (
+                  <option key={doc.uid} value={doc.displayName || doc.email}>
+                    {doc.displayName || doc.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        {/* Filtro por Profissional (apenas se puder ver todos) */}
-        {canViewAllAgenda && doctors.length > 0 && (
-          <div className="flex items-center gap-2 bg-slate-100/60 px-3 py-1.5 rounded-2xl border border-slate-100">
-            <Filter size={14} className="text-slate-400 shrink-0" />
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Profissional:</span>
-            <select
-              value={selectedDoctorFilter}
-              onChange={(e) => setSelectedDoctorFilter(e.target.value)}
-              className="bg-transparent border-none text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-2"
-            >
-              <option value="all">Todos os Profissionais</option>
-              {doctors.map(doc => (
-                <option key={doc.uid} value={doc.displayName || doc.email}>
-                  {doc.displayName || doc.email}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 bg-slate-100/50 p-1.5 rounded-2xl border border-white">
-          <Button variant="ghost" size="icon" onClick={handlePrevDay} className="rounded-xl hover:bg-white transition-all h-10 w-10">
-            <ChevronLeft size={18} />
-          </Button>
-          <div className="px-4 py-1 flex items-center gap-3 relative">
-             <span className="text-sm font-black text-slate-700 capitalize">
-              {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-            </span>
-            <Input 
-              type="date"
-              value={format(selectedDate, 'yyyy-MM-dd')}
-              onChange={(e) => setSelectedDate(parseISO(e.target.value))}
-              className="w-10 h-10 p-0 border-none bg-transparent cursor-pointer opacity-0 absolute"
-            />
-             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-brand-primary">
+        {/* Lado Direito: Navegação de Datas + Botão Novo Agendamento */}
+        <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5 sm:gap-3">
+          {/* Navegador de Data */}
+          <div className="flex items-center gap-1 sm:gap-2 bg-slate-100/60 p-1 rounded-2xl border border-slate-200/60 shrink-0">
+            <Button variant="ghost" size="icon" onClick={handlePrevDay} className="rounded-xl hover:bg-white transition-all h-9 w-9">
+              <ChevronLeft size={16} />
+            </Button>
+            <div className="px-2 sm:px-3 py-1 flex items-center gap-2 relative">
+              <span className="text-xs sm:text-sm font-black text-slate-700 capitalize whitespace-nowrap">
+                {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+              </span>
+              <Input 
+                type="date"
+                value={format(selectedDate, 'yyyy-MM-dd')}
+                onChange={(e) => setSelectedDate(parseISO(e.target.value))}
+                className="w-8 h-8 p-0 border-none bg-transparent cursor-pointer opacity-0 absolute inset-0"
+              />
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-brand-primary p-0 pointer-events-none">
                 <CalendarIcon size={14} />
-             </Button>
+              </Button>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleNextDay} className="rounded-xl hover:bg-white transition-all h-9 w-9">
+              <ChevronRight size={16} />
+            </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleNextDay} className="rounded-xl hover:bg-white transition-all h-10 w-10">
-            <ChevronRight size={18} />
-          </Button>
-        </div>
 
-        <div className="flex items-center gap-1 bg-slate-100/30 p-1 rounded-2xl border border-slate-100">
+          {/* Atalhos Rápidos: Ontem, Hoje, Amanhã */}
+          <div className="flex items-center gap-1 bg-slate-100/40 p-1 rounded-2xl border border-slate-200/60 shrink-0">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 hover:bg-white h-8 sm:h-9 px-2 sm:px-3 transition-all"
+              onClick={() => setSelectedDate(subDays(new Date(), 1))}
+              type="button"
+            >
+              Ontem
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={cn(
+                "rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider h-8 sm:h-9 px-2.5 sm:px-3 transition-all",
+                isToday(selectedDate) 
+                  ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20 hover:bg-brand-primary" 
+                  : "text-brand-primary hover:bg-brand-light/40"
+              )}
+              onClick={() => setSelectedDate(new Date())}
+              type="button"
+            >
+              Hoje
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-slate-500 hover:bg-white h-8 sm:h-9 px-2 sm:px-3 transition-all"
+              onClick={() => setSelectedDate(addDays(new Date(), 1))}
+              type="button"
+            >
+              Amanhã
+            </Button>
+          </div>
+
+          {/* Botão Novo Agendamento / Atendimento Proeminente e Estável */}
           <Button 
-            variant="ghost" 
-            size="sm" 
-            className="rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-500 hover:bg-white h-9 px-3 transition-all"
-            onClick={() => setSelectedDate(subDays(new Date(), 1))}
-            type="button"
+            onClick={handleOpenNewAppointment}
+            className="bg-brand-primary text-white px-5 sm:px-6 rounded-2xl font-black hover:bg-brand-accent transition-all shadow-xl shadow-brand-primary/25 gap-2 h-10 sm:h-11 shrink-0 flex items-center justify-center cursor-pointer active:scale-95"
+            title="Agendar nova consulta ou atendimento"
           >
-            Ontem
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className={cn(
-              "rounded-xl text-[11px] font-black uppercase tracking-wider h-9 px-3 transition-all",
-              isToday(selectedDate) 
-                ? "bg-brand-primary text-white shadow-md shadow-brand-primary/20 hover:bg-brand-primary" 
-                : "text-brand-primary hover:bg-brand-light/40"
-            )}
-            onClick={() => setSelectedDate(new Date())}
-            type="button"
-          >
-            Hoje
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-500 hover:bg-white h-9 px-3 transition-all"
-            onClick={() => setSelectedDate(addDays(new Date(), 1))}
-            type="button"
-          >
-            Amanhã
+            <Plus size={18} className="shrink-0 stroke-[2.5]" />
+            <span className="inline whitespace-nowrap text-xs sm:text-sm font-black">Novo Agendamento</span>
           </Button>
         </div>
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger 
-            render={
-              <Button className="bg-brand-primary text-white px-8 rounded-2xl font-bold hover:bg-brand-accent transition-all shadow-xl shadow-brand-primary/20 gap-2 h-12">
-                <Plus size={20} />
-                <span className="hidden md:inline">Novo Agendamento</span>
-              </Button>
-            }
-          />
           <DialogContent className="max-w-md md:max-w-2xl lg:max-w-3xl w-[calc(100%-1.5rem)] bg-white rounded-2xl sm:rounded-[2rem] border-none shadow-2xl p-4 sm:p-5 md:p-6 max-h-[92dvh] flex flex-col overflow-hidden">
             <DialogHeader className="shrink-0 mb-2 sm:mb-3">
               <div className="flex items-center gap-3">
@@ -618,15 +659,100 @@ export function AppointmentAgenda() {
                       )}
                     </div>
 
-                    <div className="space-y-1">
-                      <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Procedimento</Label>
-                      <Input 
-                        placeholder="Ex: Limpeza, Canal, Avaliação" 
-                        value={formData.procedure}
-                        onChange={(e) => setFormData({...formData, procedure: e.target.value})}
-                        required
-                        className="bg-bg-main border-none h-10 sm:h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 text-xs sm:text-sm"
-                      />
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Procedimento</Label>
+                        <span className="text-[9px] font-bold text-slate-400">Opções pré-definidas</span>
+                      </div>
+
+                      <Select 
+                        value={
+                          PREDEFINED_PROCEDURES.some(p => p.name.toLowerCase() === (formData.procedure || '').toLowerCase())
+                            ? PREDEFINED_PROCEDURES.find(p => p.name.toLowerCase() === (formData.procedure || '').toLowerCase())?.name
+                            : (formData.procedure ? 'outro' : 'Avaliação')
+                        } 
+                        onValueChange={(val) => {
+                          if (val === 'outro') {
+                            setIsCustomProcedure(true);
+                          } else {
+                            setIsCustomProcedure(false);
+                            const selected = PREDEFINED_PROCEDURES.find(p => p.name === val);
+                            setFormData({
+                              ...formData,
+                              procedure: val,
+                              duration: selected ? selected.defaultDuration.toString() : formData.duration
+                            });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="bg-bg-main border-none h-10 sm:h-11 rounded-xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700 text-xs sm:text-sm">
+                          <SelectValue placeholder="Selecione o procedimento..." />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-xl max-h-64 z-50">
+                          {PREDEFINED_PROCEDURES.map((p) => (
+                            <SelectItem key={p.id} value={p.name} className="py-2.5 font-bold text-xs cursor-pointer">
+                              <div className="flex items-center justify-between w-full gap-3">
+                                <div className="flex items-center gap-2">
+                                  <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", p.dotBg)} />
+                                  <span className="text-slate-800 font-bold">{p.name}</span>
+                                </div>
+                                <span className="text-[10px] font-semibold text-slate-400 bg-slate-100/80 px-1.5 py-0.5 rounded">
+                                  {p.defaultDuration} min
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="outro" className="py-2.5 font-bold text-xs cursor-pointer text-slate-500">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-slate-300 shrink-0" />
+                              <span>Outro procedimento...</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      {/* Botões rápidos com as cores dos 8 procedimentos pré-definidos */}
+                      <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                        {PREDEFINED_PROCEDURES.map((p) => {
+                          const isSelected = (formData.procedure || '').toLowerCase() === p.name.toLowerCase();
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setIsCustomProcedure(false);
+                                setFormData({
+                                  ...formData,
+                                  procedure: p.name,
+                                  duration: p.defaultDuration.toString()
+                                });
+                              }}
+                              className={cn(
+                                "text-[10px] font-black py-1.5 px-1 rounded-lg transition-all flex items-center justify-center gap-1 truncate text-center cursor-pointer",
+                                isSelected ? p.chipActive : p.chipInactive
+                              )}
+                              title={`${p.name} (${p.defaultDuration} min) - ${p.description}`}
+                            >
+                              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", isSelected ? "bg-white" : p.dotBg)} />
+                              <span className="truncate">{p.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Campo caso escolha Outro procedimento */}
+                      {isCustomProcedure && (
+                        <div className="pt-1 animate-in fade-in duration-200">
+                          <Input 
+                            placeholder="Digite o procedimento personalizado..." 
+                            value={formData.procedure}
+                            onChange={(e) => setFormData({...formData, procedure: e.target.value})}
+                            required
+                            autoFocus
+                            className="bg-bg-main border-none h-10 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 text-xs sm:text-sm"
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-1 relative" ref={doctorSearchRef}>
@@ -861,9 +987,12 @@ export function AppointmentAgenda() {
                     />
                   ))}
 
-                  {/* Absolute Appointments */}
+                  {/* Absolute Appointments com cores personalizadas por procedimento */}
                   {positionedAppointments.map((app) => {
                     const pos = calculatePosition(app.date, app.duration || 30);
+                    const proc = getProcedureConfig(app.procedure);
+                    const isCanceled = app.status === 'desmarcado';
+
                     return (
                       <div 
                         key={app.id} 
@@ -878,41 +1007,80 @@ export function AppointmentAgenda() {
                           width: app.width < 100 ? `calc(${app.width}% - 4px)` : `${app.width}%`,
                         }}
                         className={cn(
-                          "absolute p-1.5 rounded-xl text-[10px] font-bold border-l-4 shadow-md transition-all hover:scale-[1.01] active:scale-[0.98] z-30 overflow-hidden select-none",
-                          app.status === 'marcado' ? 'bg-blue-50 border-blue-400 text-blue-700' : 
-                          app.status === 'confirmado' ? 'bg-green-50 border-green-400 text-green-700' : 
-                          app.status === 'aguardando' ? 'bg-orange-50 border-orange-400 text-orange-700' : 
-                          app.status === 'desmarcado' ? 'bg-red-50 border-red-400 text-red-700' : 
-                          'bg-slate-50 border-slate-400 text-slate-700'
+                          "absolute p-1.5 sm:p-2 rounded-xl text-[10px] font-bold border-l-4 shadow-sm transition-all hover:scale-[1.01] hover:shadow-md active:scale-[0.98] z-30 overflow-hidden select-none flex flex-col justify-between border cursor-pointer",
+                          proc.cardBg,
+                          proc.cardBorder,
+                          proc.cardLeftBorder,
+                          proc.cardText,
+                          isCanceled && "opacity-60 grayscale-[30%] line-through"
                         )}
+                        title={`${app.patientName} - ${proc.name} (${app.duration}m) - Status: ${app.status}`}
                       >
-                         <div className="flex justify-between items-start mb-0.5">
-                          <span 
-                            className="font-black truncate block pr-2 hover:text-brand-primary cursor-pointer transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const p = patients.find(pat => pat.id === app.patientId);
-                              if (p) setSelectedPatientRecord(p);
-                            }}
-                          >
-                            {app.patientName}
-                          </span>
-                          <span className="text-[7px] opacity-70 shrink-0">{app.duration}m</span>
-                        </div>
-                        <p className="opacity-70 flex items-center gap-1 text-[8px] truncate">
-                           {app.procedure}
-                        </p>
-                        {(app.duration || 0) >= 30 && (
-                          <div className="mt-1 pt-1 border-t border-black/5 flex items-center justify-between">
-                            <span className="text-[7px] opacity-60 flex items-center gap-1 truncate max-w-[60%]">
-                              <User size={8} className="shrink-0" /> {app.doctorName?.split(' ')[0]}
+                         <div className="overflow-hidden">
+                          <div className="flex justify-between items-start mb-0.5 gap-1">
+                            <span 
+                              className="font-black truncate block hover:text-brand-primary cursor-pointer transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const p = patients.find(pat => pat.id === app.patientId);
+                                if (p) setSelectedPatientRecord(p);
+                              }}
+                            >
+                              {app.patientName}
                             </span>
-                            <div className="flex gap-1 shrink-0">
+                            <span className="text-[8px] font-bold opacity-75 shrink-0 bg-white/70 px-1 py-0.2 rounded border border-black/5">
+                              {app.duration}m
+                            </span>
+                          </div>
+                          
+                          {/* Tag visual do procedimento com a cor específica */}
+                          <div className="flex items-center gap-1.5 text-[8px] truncate font-black">
+                            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", proc.dotBg)} />
+                            <span className={cn("truncate uppercase tracking-wider", proc.badgeText)}>
+                              {app.procedure || proc.name}
+                            </span>
+                          </div>
+                        </div>
+
+                        {(app.duration || 0) >= 30 && (
+                          <div className="mt-0.5 pt-0.5 border-t border-black/5 flex items-center justify-between gap-1">
+                            <span className="text-[7px] opacity-75 flex items-center gap-1 truncate max-w-[55%]">
+                              <User size={8} className="shrink-0" /> {app.doctorName?.split(' ')[0] || 'Dentista'}
+                            </span>
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              {/* Status badge compacto */}
+                              <span className={cn(
+                                "text-[7px] font-black uppercase px-1 py-0.2 rounded-full",
+                                app.status === 'confirmado' ? 'bg-green-100 text-green-700' :
+                                app.status === 'marcado' ? 'bg-blue-100 text-blue-700' :
+                                app.status === 'aguardando' ? 'bg-orange-100 text-orange-700' :
+                                app.status === 'desmarcado' ? 'bg-red-100 text-red-700' :
+                                'bg-slate-100 text-slate-600'
+                              )}>
+                                {app.status === 'confirmado' ? 'Conf.' :
+                                 app.status === 'marcado' ? 'Marc.' :
+                                 app.status === 'aguardando' ? 'Aguard.' :
+                                 app.status === 'desmarcado' ? 'Desm.' : 'Atend.'}
+                              </span>
+
                               {(app.status === 'marcado' || app.status === 'aguardando') && (
-                                <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'confirmado'); }} className="hover:text-green-600 transition-colors"><CheckCircle2 size={10} /></button>
+                                <button 
+                                  title="Confirmar consulta"
+                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'confirmado'); }} 
+                                  className="hover:text-green-600 transition-colors p-0.5"
+                                >
+                                  <CheckCircle2 size={10} />
+                                </button>
                               )}
                               {app.status !== 'desmarcado' && (
-                                <button onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'desmarcado'); }} className="hover:text-red-600 transition-colors"><XCircle size={10} /></button>
+                                <button 
+                                  title="Desmarcar consulta"
+                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'desmarcado'); }} 
+                                  className="hover:text-red-600 transition-colors p-0.5"
+                                >
+                                  <XCircle size={10} />
+                                </button>
                               )}
                             </div>
                           </div>
@@ -928,26 +1096,45 @@ export function AppointmentAgenda() {
         </div>
       </div>
 
-      <footer className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white flex justify-center gap-6">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Marcado</span>
+      <footer className="bg-white/70 backdrop-blur-sm p-3.5 sm:p-4 rounded-2xl border border-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
+        {/* Procedimentos Pré-definidos e suas cores na agenda */}
+        <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-3.5 gap-y-1.5">
+          <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+            Procedimentos:
+          </span>
+          {PREDEFINED_PROCEDURES.map((p) => (
+            <div key={p.id} className="flex items-center gap-1.5 bg-white/60 px-2 py-0.5 rounded-md border border-slate-100">
+              <span className={cn("w-2 h-2 rounded-full shrink-0", p.dotBg)} />
+              <span className="text-[10px] font-bold text-slate-700">{p.name}</span>
+            </div>
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-400"></div>
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Confirmado</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Aguardando</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-red-400"></div>
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Desmarcou</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-slate-400"></div>
-          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Atendido</span>
+
+        {/* Legenda de Status */}
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
+          <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+            Status:
+          </span>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+            <span className="text-[9px] font-bold text-slate-500">Marcado</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+            <span className="text-[9px] font-bold text-slate-500">Confirmado</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
+            <span className="text-[9px] font-bold text-slate-500">Aguardando</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+            <span className="text-[9px] font-bold text-slate-500">Desmarcou</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
+            <span className="text-[9px] font-bold text-slate-500">Atendido</span>
+          </div>
         </div>
       </footer>
 

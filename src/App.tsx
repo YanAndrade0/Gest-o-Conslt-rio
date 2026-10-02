@@ -24,6 +24,7 @@ import { Input } from './components/ui/input';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/card';
 import { cn } from './lib/utils';
+import { getProcedureConfig } from './constants/procedures';
 
 // Components
 const EmailVerificationScreen = () => {
@@ -603,38 +604,39 @@ const Dashboard = () => {
               <p className="text-slate-400 font-bold italic text-sm">Nenhuma consulta para hoje.</p>
             </div>
           ) : (
-            todayAppointments.map((item, i) => (
-              <div key={i} className="flex items-center gap-3 md:gap-6 p-3 md:p-4 border border-slate-100 rounded-2xl hover:bg-slate-50/50 transition-all cursor-pointer">
-                <div className="text-center w-16 md:w-20">
-                  <p className="text-sm font-bold text-slate-400">{format(parseISO(item.date), 'HH:mm')}</p>
-                  <p className="text-[10px] text-slate-300 font-medium">{item.duration} min</p>
-                </div>
-                <div className={`w-1.5 h-12 rounded-full flex-shrink-0 ${
-                  item.status === 'marcado' ? 'bg-blue-400' : 
-                  item.status === 'confirmado' ? 'bg-green-400' : 
-                  item.status === 'aguardando' ? 'bg-orange-400' : 
-                  item.status === 'desmarcado' ? 'bg-red-400' : 'bg-slate-200'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="text-base font-bold text-slate-800">{item.patientName}</p>
-                  <div className="flex items-center gap-3">
-                    <p className="text-xs text-slate-500 font-medium">{item.procedure}</p>
-                    {item.doctorName && (
-                      <span className="text-[10px] font-black text-brand-primary/50 uppercase tracking-widest bg-brand-light/30 px-2 py-0.5 rounded-md flex items-center gap-1">
-                        <UserIcon size={8} /> {item.doctorName}
-                      </span>
-                    )}
+            todayAppointments.map((item, i) => {
+              const proc = getProcedureConfig(item.procedure);
+              return (
+                <div key={i} className="flex items-center gap-3 md:gap-6 p-3 md:p-4 border border-slate-100 rounded-2xl hover:bg-slate-50/50 transition-all cursor-pointer">
+                  <div className="text-center w-16 md:w-20">
+                    <p className="text-sm font-bold text-slate-400">{format(parseISO(item.date), 'HH:mm')}</p>
+                    <p className="text-[10px] text-slate-300 font-medium">{item.duration} min</p>
                   </div>
+                  <div className={cn("w-1.5 h-12 rounded-full flex-shrink-0", proc.dotBg)}></div>
+                  <div className="flex-1">
+                    <p className="text-base font-bold text-slate-800">{item.patientName}</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                      <span className={cn("text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1", proc.badgeBg, proc.badgeText)}>
+                        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", proc.dotBg)} />
+                        {item.procedure || proc.name}
+                      </span>
+                      {item.doctorName && (
+                        <span className="text-[10px] font-black text-brand-primary/50 uppercase tracking-widest bg-brand-light/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <UserIcon size={8} /> {item.doctorName}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
+                    ${item.status === 'marcado' ? 'bg-blue-50 text-blue-600' : 
+                      item.status === 'confirmado' ? 'bg-green-50 text-green-600' : 
+                      item.status === 'aguardando' ? 'bg-orange-50 text-orange-600' : 
+                      item.status === 'desmarcado' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-400'}`}>
+                    {item.status}
+                  </span>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
-                  ${item.status === 'marcado' ? 'bg-blue-50 text-blue-600' : 
-                    item.status === 'confirmado' ? 'bg-green-50 text-green-600' : 
-                    item.status === 'aguardando' ? 'bg-orange-50 text-orange-600' : 
-                    item.status === 'desmarcado' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-400'}`}>
-                  {item.status}
-                </span>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </section>
