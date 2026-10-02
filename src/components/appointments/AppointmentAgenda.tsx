@@ -450,31 +450,31 @@ export function AppointmentAgenda() {
   }, [appointments, selectedDate, canViewAllAgenda, selectedDoctorFilter]);
 
   return (
-    <div className="p-2.5 sm:p-4 md:p-8 space-y-2.5 sm:space-y-4 md:space-y-6 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-500">
+    <div className="p-2 sm:p-4 md:p-8 space-y-2 sm:space-y-4 md:space-y-6 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-500">
       {!canManageAgenda && (
-        <div className="bg-amber-50 border border-amber-200/80 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl flex items-center gap-2.5 sm:gap-3 text-amber-800 text-xs font-bold shadow-sm animate-in fade-in duration-300">
-          <Lock size={16} className="shrink-0 text-amber-600 sm:size-[18px]" />
+        <div className="bg-amber-50 border border-amber-200/80 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 text-amber-800 text-[11px] sm:text-xs font-bold shadow-sm animate-in fade-in duration-300">
+          <Lock size={15} className="shrink-0 text-amber-600 sm:size-[18px]" />
           <span>Modo de Leitura na Agenda: Sua conta não possui permissão para agendar ou editar consultas.</span>
         </div>
       )}
 
       {!canViewAllAgenda && (
-        <div className="bg-blue-50 border border-blue-200/80 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl flex items-center gap-2.5 sm:gap-3 text-blue-800 text-xs font-bold shadow-sm animate-in fade-in duration-300">
-          <EyeOff size={16} className="shrink-0 text-blue-600 sm:size-[18px]" />
+        <div className="bg-blue-50 border border-blue-200/80 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 text-blue-800 text-[11px] sm:text-xs font-bold shadow-sm animate-in fade-in duration-300">
+          <EyeOff size={15} className="shrink-0 text-blue-600 sm:size-[18px]" />
           <span>Visualização Restrita da Agenda: Exibindo apenas consultas atribuídas a você ({user?.displayName || 'Você'}).</span>
         </div>
       )}
 
-      <header className="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white/80 backdrop-blur-md p-3 sm:p-4 md:p-5 rounded-2xl sm:rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 gap-2.5 sm:gap-4">
+      <header className="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white/80 backdrop-blur-md p-2.5 sm:p-4 md:p-5 rounded-2xl sm:rounded-[2rem] border border-white shadow-lg sm:shadow-xl shadow-slate-200/50 gap-2 sm:gap-4">
         {/* Lado Esquerdo: Título e Filtro de Profissional */}
         <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-4">
-          <div className="flex items-center gap-2.5 sm:gap-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-primary/10 rounded-xl sm:rounded-2xl flex items-center justify-center text-brand-primary shrink-0 shadow-sm">
-              <CalendarIcon size={20} className="sm:w-6 sm:h-6" />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 bg-brand-primary/10 rounded-xl sm:rounded-2xl flex items-center justify-center text-brand-primary shrink-0 shadow-sm">
+              <CalendarIcon size={18} className="sm:size-6" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-2xl font-black text-slate-800 tracking-tight leading-tight">Agenda Diária</h2>
-              <p className="text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-widest">
+              <h2 className="text-base sm:text-2xl font-black text-slate-800 tracking-tight leading-tight">Agenda Diária</h2>
+              <p className="text-slate-400 text-[9px] sm:text-xs font-bold uppercase tracking-widest">
                 {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
               </p>
             </div>
@@ -482,13 +482,13 @@ export function AppointmentAgenda() {
 
           {/* Filtro por Profissional (apenas se puder ver todos) */}
           {canViewAllAgenda && doctors.length > 0 && (
-            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100/70 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
-              <Filter size={13} className="text-slate-400 shrink-0 sm:size-3.5" />
+            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100/70 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
+              <Filter size={12} className="text-slate-400 shrink-0 sm:size-3.5" />
               <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-wider">Profissional:</span>
               <select
                 value={selectedDoctorFilter}
                 onChange={(e) => setSelectedDoctorFilter(e.target.value)}
-                className="bg-transparent border-none text-[11px] sm:text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1 max-w-[120px] sm:max-w-[150px] truncate"
+                className="bg-transparent border-none text-[10px] sm:text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1 max-w-[110px] sm:max-w-[150px] truncate"
               >
                 <option value="all">Todos</option>
                 {doctors.map(doc => (
@@ -502,9 +502,9 @@ export function AppointmentAgenda() {
         </div>
 
         {/* Lado Direito: Navegação de Datas (Avançar e Voltar) + Botão Novo Agendamento */}
-        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
+        <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-3 w-full sm:w-auto">
           {/* Navegador de Data: Apenas botões de voltar e avançar */}
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100/70 p-1 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100/70 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -514,8 +514,11 @@ export function AppointmentAgenda() {
             >
               <ChevronLeft size={16} />
             </Button>
-            <div className="px-2 sm:px-3 py-1 flex items-center gap-1.5 sm:gap-2 relative">
-              <span className="text-xs sm:text-sm font-black text-slate-700 capitalize whitespace-nowrap">
+            <div className="px-1.5 sm:px-3 py-1 flex items-center gap-1 sm:gap-2 relative">
+              <span className="text-xs sm:text-sm font-black text-slate-700 capitalize whitespace-nowrap block sm:hidden">
+                {format(selectedDate, "dd 'de' MMM", { locale: ptBR })}
+              </span>
+              <span className="text-xs sm:text-sm font-black text-slate-700 capitalize whitespace-nowrap hidden sm:block">
                 {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
               </span>
               <Input 
@@ -524,8 +527,8 @@ export function AppointmentAgenda() {
                 onChange={(e) => setSelectedDate(parseISO(e.target.value))}
                 className="w-8 h-8 p-0 border-none bg-transparent cursor-pointer opacity-0 absolute inset-0"
               />
-              <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 rounded-md sm:rounded-lg text-brand-primary p-0 pointer-events-none">
-                <CalendarIcon size={13} className="sm:size-3.5" />
+              <Button variant="ghost" size="icon" className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-lg text-brand-primary p-0 pointer-events-none">
+                <CalendarIcon size={12} className="sm:size-3.5" />
               </Button>
             </div>
             <Button 
@@ -542,10 +545,10 @@ export function AppointmentAgenda() {
           {/* Botão Novo Agendamento */}
           <Button 
             onClick={handleOpenNewAppointment}
-            className="bg-brand-primary text-white px-3.5 sm:px-6 rounded-xl sm:rounded-2xl font-black hover:bg-brand-accent transition-all shadow-lg sm:shadow-xl shadow-brand-primary/25 gap-1.5 sm:gap-2 h-9 sm:h-11 shrink-0 flex items-center justify-center cursor-pointer active:scale-95 text-xs sm:text-sm"
+            className="bg-brand-primary text-white px-2.5 sm:px-6 rounded-xl sm:rounded-2xl font-black hover:bg-brand-accent transition-all shadow-md sm:shadow-xl shadow-brand-primary/25 gap-1 sm:gap-2 h-8 sm:h-11 shrink-0 flex items-center justify-center cursor-pointer active:scale-95 text-xs sm:text-sm"
             title="Agendar nova consulta ou atendimento"
           >
-            <Plus size={16} className="shrink-0 stroke-[2.5] sm:size-[18px]" />
+            <Plus size={15} className="shrink-0 stroke-[2.5] sm:size-[18px]" />
             <span className="whitespace-nowrap font-black">Novo Agendamento</span>
           </Button>
         </div>
@@ -721,7 +724,7 @@ export function AppointmentAgenda() {
 
                   {/* Coluna 2: Doutor Responsável, Data & Horário, Duração & Status */}
                   <div className="space-y-3">
-                    {/* Doutor(a) Responsável - Totalmente visível sem precisar rolar */}
+                    {/* Doutor(a) Responsável */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">
@@ -765,33 +768,6 @@ export function AppointmentAgenda() {
                           })}
                         </SelectContent>
                       </Select>
-
-                      {/* Opções de Doutores visíveis diretamente na tela com 1 clique sem precisar rolar */}
-                      {availableDoctors.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-0.5">
-                          {availableDoctors.map((d) => {
-                            const name = d.displayName || d.email || 'Doutor(a)';
-                            const isSelected = (formData.doctorName || '').toLowerCase() === name.toLowerCase();
-                            return (
-                              <button
-                                key={d.uid}
-                                type="button"
-                                onClick={() => setFormData({ ...formData, doctorName: name })}
-                                className={cn(
-                                  "text-[10px] font-black py-1.5 px-2.5 rounded-lg transition-all flex items-center gap-1.5 border cursor-pointer",
-                                  isSelected 
-                                    ? "bg-brand-primary text-white border-brand-primary shadow-sm" 
-                                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200/80"
-                                )}
-                                title={name}
-                              >
-                                <Stethoscope size={12} className={isSelected ? "text-white" : "text-brand-primary"} />
-                                <span className="truncate max-w-[130px]">{name}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
@@ -887,18 +863,18 @@ export function AppointmentAgenda() {
         </Dialog>
       </header>
 
-      <div className="flex-1 bg-white rounded-2xl sm:rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-auto flex flex-col scrollbar-hide">
+      <div className="flex-1 bg-white rounded-xl sm:rounded-[2rem] border border-slate-100 shadow-xl sm:shadow-2xl shadow-slate-200/50 overflow-auto flex flex-col scrollbar-hide">
         <div className="w-full flex-1 flex flex-col">
           {/* Days Header */}
-          <div className="grid grid-cols-[56px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] border-b border-slate-50 bg-slate-50/20 shrink-0">
-          <div className="p-2 sm:p-4 border-r border-slate-50 flex items-center justify-center">
-            <Clock size={16} className="text-slate-300" />
+          <div className="grid grid-cols-[46px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] border-b border-slate-50 bg-slate-50/20 shrink-0">
+          <div className="p-1 sm:p-4 border-r border-slate-50 flex items-center justify-center">
+            <Clock size={15} className="text-slate-300" />
           </div>
           {weekDays.map((day, i) => (
             <div 
               key={i} 
               className={cn(
-                "p-2 sm:p-4 text-center border-r border-slate-50 last:border-r-0 flex flex-col items-center justify-center gap-0.5 sm:gap-1",
+                "p-1 sm:p-4 text-center border-r border-slate-50 last:border-r-0 flex flex-col items-center justify-center gap-0.5 sm:gap-1",
                 isToday(day) ? "bg-brand-light/20 relative" : ""
               )}
             >
@@ -906,8 +882,8 @@ export function AppointmentAgenda() {
                 {format(day, 'EEEE', { locale: ptBR })}
               </span>
               <span className={cn(
-                "text-sm sm:text-lg font-black w-7 h-7 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg sm:rounded-xl transition-all",
-                isToday(day) ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/30" : "text-slate-700"
+                "text-xs sm:text-lg font-black w-6 h-6 sm:w-10 sm:h-10 flex items-center justify-center rounded-md sm:rounded-xl transition-all",
+                isToday(day) ? "bg-brand-primary text-white shadow-md sm:shadow-lg shadow-brand-primary/30" : "text-slate-700"
               )}>
                 {format(day, 'dd')}
               </span>
@@ -921,14 +897,14 @@ export function AppointmentAgenda() {
         </div>
 
         {/* Scrollable Grid */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
-          <div className="grid grid-cols-[56px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] relative">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-xl sm:rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
+          <div className="grid grid-cols-[46px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] relative">
             
             {/* Time Indicators Column */}
             <div className="flex flex-col">
               <div className="h-6 bg-slate-50 border-b border-slate-100"></div> {/* Header spacer */}
               {TIME_SLOTS.map((timeStr) => (
-                <div key={timeStr} className="h-20 border-r border-b border-slate-50 flex flex-col items-center justify-start p-1.5 sm:p-3 bg-white sticky left-0 z-20">
+                <div key={timeStr} className="h-20 border-r border-b border-slate-50 flex flex-col items-center justify-start p-1 sm:p-3 bg-white sticky left-0 z-20">
                   <span className={cn(
                     "font-black text-slate-800 transition-all",
                     timeStr.endsWith(':00') ? "text-[10px] sm:text-xs" : "text-[8px] sm:text-[9px] opacity-35"
@@ -1077,14 +1053,14 @@ export function AppointmentAgenda() {
         </div>
       </div>
 
-      <footer className="bg-white/70 backdrop-blur-sm p-2 sm:p-3.5 md:p-4 rounded-xl sm:rounded-2xl border border-white flex flex-col md:flex-row items-center justify-between gap-1.5 sm:gap-3 shadow-sm shrink-0">
+      <footer className="bg-white/80 backdrop-blur-sm p-2 sm:p-3.5 md:p-4 rounded-xl sm:rounded-2xl border border-white flex flex-col md:flex-row items-stretch md:items-center justify-between gap-1.5 sm:gap-3 shadow-sm shrink-0">
         {/* Procedimentos Pré-definidos e suas cores na agenda */}
-        <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-2 sm:gap-x-3.5 gap-y-1 sm:gap-y-1.5">
-          <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-wider">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 whitespace-nowrap">
+          <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-wider shrink-0">
             Procedimentos:
           </span>
           {PREDEFINED_PROCEDURES.map((p) => (
-            <div key={p.id} className="flex items-center gap-1 bg-white/70 px-1.5 sm:px-2 py-0.5 rounded-md border border-slate-100 text-[8px] sm:text-[10px]">
+            <div key={p.id} className="flex items-center gap-1 bg-white/70 px-1.5 sm:px-2 py-0.5 rounded-md border border-slate-100 text-[8px] sm:text-[10px] shrink-0">
               <span className={cn("w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0", p.dotBg)} />
               <span className="font-bold text-slate-700">{p.name}</span>
             </div>
@@ -1092,27 +1068,27 @@ export function AppointmentAgenda() {
         </div>
 
         {/* Legenda de Status */}
-        <div className="flex flex-wrap items-center justify-center gap-x-2.5 sm:gap-x-3 gap-y-0.5 sm:gap-y-1 pt-1 md:pt-0 border-t md:border-t-0 border-slate-100 text-[8px] sm:text-[9px]">
-          <span className="font-black uppercase text-slate-400 tracking-wider">
+        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pt-1 md:pt-0 border-t md:border-t-0 border-slate-100 text-[8px] sm:text-[9px] whitespace-nowrap">
+          <span className="font-black uppercase text-slate-400 tracking-wider shrink-0">
             Status:
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
             <span className="font-bold text-slate-500">Marcado</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
             <span className="font-bold text-slate-500">Confirmado</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
             <span className="font-bold text-slate-500">Aguardando</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
             <span className="font-bold text-slate-500">Desmarcou</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div>
             <span className="font-bold text-slate-500">Atendido</span>
           </div>

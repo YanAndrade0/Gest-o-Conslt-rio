@@ -734,24 +734,32 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           </div>
         </div>
       </aside>
-      <main className="flex-1 overflow-auto w-full">
-        <div className="flex flex-col min-h-full">
-          <div className="flex-1">{children}</div>
-          <footer className="p-8 border-t border-slate-100 bg-white/50 space-y-4">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-brand-primary rounded-xl flex items-center justify-center">
-                  <span className="text-[10px] font-black text-white">OC</span>
+      <main className={cn(
+        "flex-1 w-full",
+        location.pathname === '/agenda' ? "h-full overflow-hidden flex flex-col" : "overflow-auto"
+      )}>
+        <div className={cn(
+          "flex flex-col",
+          location.pathname === '/agenda' ? "h-full flex-1 overflow-hidden" : "min-h-full"
+        )}>
+          <div className={cn("flex-1", location.pathname === '/agenda' && "h-full overflow-hidden flex flex-col")}>{children}</div>
+          {location.pathname !== '/agenda' && (
+            <footer className="p-8 border-t border-slate-100 bg-white/50 space-y-4">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-brand-primary rounded-xl flex items-center justify-center">
+                    <span className="text-[10px] font-black text-white">OC</span>
+                  </div>
+                  <p className="text-xs font-bold text-slate-400">© 2024 OralCloud - Gestão Inteligente</p>
                 </div>
-                <p className="text-xs font-bold text-slate-400">© 2024 OralCloud - Gestão Inteligente</p>
+                <div className="flex items-center gap-6">
+                  <Link to="/termos" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand-primary transition-colors">Termos</Link>
+                  <Link to="/privacidade" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand-primary transition-colors">Privacidade</Link>
+                  <button className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand-primary transition-colors">Suporte</button>
+                </div>
               </div>
-              <div className="flex items-center gap-6">
-                <Link to="/termos" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand-primary transition-colors">Termos</Link>
-                <Link to="/privacidade" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand-primary transition-colors">Privacidade</Link>
-                <button className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-brand-primary transition-colors">Suporte</button>
-              </div>
-            </div>
-          </footer>
+            </footer>
+          )}
         </div>
       </main>
       </div>
