@@ -76,13 +76,10 @@ export function AppointmentAgenda() {
   const [selectedPatientRecord, setSelectedPatientRecord] = useState<Patient | null>(null);
   const [patientSearch, setPatientSearch] = useState('');
   const [isPatientListOpen, setIsPatientListOpen] = useState(false);
-  const [doctorSearch, setDoctorSearch] = useState('');
-  const [isDoctorListOpen, setIsDoctorListOpen] = useState(false);
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>('all');
   const [isCustomProcedure, setIsCustomProcedure] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const patientSearchRef = useRef<HTMLDivElement>(null);
-  const doctorSearchRef = useRef<HTMLDivElement>(null);
 
   const canManageAgenda = user?.isMasterAdmin || user?.role === 'owner' || user?.canManageAppointments !== false;
   const canCancelAgenda = user?.isMasterAdmin || user?.role === 'owner' || (user?.canManageAppointments !== false && user?.canCancelAppointments !== false);
@@ -103,9 +100,6 @@ export function AppointmentAgenda() {
     const handleClickOutside = (event: MouseEvent) => {
       if (patientSearchRef.current && !patientSearchRef.current.contains(event.target as Node)) {
         setIsPatientListOpen(false);
-      }
-      if (doctorSearchRef.current && !doctorSearchRef.current.contains(event.target as Node)) {
-        setIsDoctorListOpen(false);
       }
     };
 
@@ -140,6 +134,19 @@ export function AppointmentAgenda() {
     };
   }, [user?.clinicId, canViewAllAgenda, user?.displayName]);
 
+  const availableDoctors = useMemo(() => {
+    const list = [...doctors];
+    if (user?.displayName && !list.some(d => (d.displayName || '').toLowerCase() === user.displayName.toLowerCase())) {
+      list.unshift({
+        uid: user.uid,
+        displayName: user.displayName,
+        email: user.email || '',
+        role: user.role || 'member'
+      } as UserProfile);
+    }
+    return list;
+  }, [doctors, user]);
+
   const weekDays = useMemo(() => {
     return [selectedDate];
   }, [selectedDate]);
@@ -151,7 +158,7 @@ export function AppointmentAgenda() {
     setFormData({
       patientId: '',
       procedure: 'Avaliação',
-      doctorName: user?.displayName || '',
+      doctorName: user?.displayName || (availableDoctors[0]?.displayName || ''),
       time: '09:00',
       duration: '30',
       date: format(new Date(), 'yyyy-MM-dd'),
@@ -159,8 +166,6 @@ export function AppointmentAgenda() {
     });
     setPatientSearch('');
     setIsPatientListOpen(false);
-    setDoctorSearch(user?.displayName || '');
-    setIsDoctorListOpen(false);
     setIsCustomProcedure(false);
     setEditingAppointment(null);
     setIsConfirmingDelete(false);
@@ -176,7 +181,7 @@ export function AppointmentAgenda() {
     setFormData({
       patientId: '',
       procedure: 'Avaliação',
-      doctorName: user?.displayName || '',
+      doctorName: user?.displayName || (availableDoctors[0]?.displayName || ''),
       time: '09:00',
       duration: '30',
       date: format(selectedDate, 'yyyy-MM-dd'),
@@ -184,8 +189,6 @@ export function AppointmentAgenda() {
     });
     setPatientSearch('');
     setIsPatientListOpen(false);
-    setDoctorSearch(user?.displayName || '');
-    setIsDoctorListOpen(false);
     setIsCustomProcedure(false);
     setIsModalOpen(true);
   };
@@ -197,7 +200,7 @@ export function AppointmentAgenda() {
     setFormData({
       patientId: app.patientId,
       procedure: app.procedure,
-      doctorName: app.doctorName || '',
+      doctorName: app.doctorName || user?.displayName || '',
       time: format(appDate, 'HH:mm'),
       duration: app.duration.toString(),
       date: format(appDate, 'yyyy-MM-dd'),
@@ -208,7 +211,6 @@ export function AppointmentAgenda() {
     );
     setIsCustomProcedure(!isPredefined && !!app.procedure);
     setPatientSearch(app.patientName);
-    setDoctorSearch(app.doctorName || '');
     setIsModalOpen(true);
   };
 
@@ -326,19 +328,6 @@ export function AppointmentAgenda() {
     ).slice(0, 5);
   }, [patients, patientSearch]);
 
-  const filteredDoctors = useMemo(() => {
-    const search = doctorSearch.toLowerCase().trim();
-    
-    // If empty search, we show all members (up to 20)
-    if (!search) return doctors.slice(0, 20);
-    
-    return doctors.filter(d => {
-      const name = (d.displayName || 'Doutor(a)').toLowerCase();
-      const email = (d.email || '').toLowerCase();
-      return name.includes(search) || email.includes(search);
-    }).slice(0, 30);
-  }, [doctors, doctorSearch]);
-
   const handleSlotClick = (day: Date, timeStr: string) => {
     if (!canManageAgenda) {
       toast.error('Sua conta não possui permissão para agendar consultas.');
@@ -349,7 +338,7 @@ export function AppointmentAgenda() {
     setFormData({
       patientId: '',
       procedure: 'Avaliação',
-      doctorName: user?.displayName || '',
+      doctorName: user?.displayName || (availableDoctors[0]?.displayName || ''),
       time: timeStr,
       duration: '30',
       date: newDate,
@@ -358,8 +347,6 @@ export function AppointmentAgenda() {
     setIsCustomProcedure(false);
     setPatientSearch('');
     setIsPatientListOpen(false);
-    setDoctorSearch(user?.displayName || '');
-    setIsDoctorListOpen(false);
     setIsConfirmingDelete(false);
     setIsModalOpen(true);
   };
@@ -754,65 +741,83 @@ export function AppointmentAgenda() {
                         </div>
                       )}
                     </div>
+                  </div>
 
-                    <div className="space-y-1 relative" ref={doctorSearchRef}>
-                      <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Doutor(a) Responsável</Label>
-                      <div className="relative group">
-                        <Input 
-                          placeholder="Nome do dentista..." 
-                          value={doctorSearch}
-                          onChange={(e) => {
-                            setDoctorSearch(e.target.value);
-                            setIsDoctorListOpen(true);
-                            setFormData({...formData, doctorName: e.target.value});
-                          }}
-                          onFocus={(e) => {
-                            setIsDoctorListOpen(true);
-                            e.target.select();
-                          }}
-                          className="bg-bg-main border-none h-10 sm:h-11 rounded-xl focus-visible:ring-2 focus-visible:ring-brand-primary/20 font-bold text-slate-700 pr-10 text-xs sm:text-sm"
-                        />
-                        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300">
-                          <Stethoscope size={16} />
-                        </div>
+                  {/* Coluna 2: Doutor Responsável, Data & Horário, Duração & Status */}
+                  <div className="space-y-3">
+                    {/* Doutor(a) Responsável - Totalmente visível sem precisar rolar */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">
+                          Doutor(a) Responsável
+                        </Label>
+                        {availableDoctors.length > 0 && (
+                          <span className="text-[9px] font-bold text-slate-400">
+                            {availableDoctors.length} {availableDoctors.length === 1 ? 'profissional' : 'profissionais'}
+                          </span>
+                        )}
                       </div>
 
-                      {isDoctorListOpen && filteredDoctors.length > 0 && (
-                        <Card className="absolute z-50 w-full mt-1 border-none shadow-2xl rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                          <div className="p-2 space-y-1 bg-white max-h-40 overflow-y-auto">
-                            {filteredDoctors.map(d => (
+                      <Select 
+                        value={formData.doctorName || user?.displayName || (availableDoctors[0]?.displayName || '')} 
+                        onValueChange={(val) => {
+                          setFormData({ ...formData, doctorName: val });
+                        }}
+                      >
+                        <SelectTrigger className="bg-bg-main border-none h-10 sm:h-11 rounded-xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700 text-xs sm:text-sm w-full">
+                          <div className="flex items-center gap-2 truncate">
+                            <Stethoscope size={16} className="text-brand-primary shrink-0" />
+                            <SelectValue placeholder="Selecione o profissional..." />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-xl z-50">
+                          {availableDoctors.map((d) => {
+                            const name = d.displayName || d.email || 'Doutor(a)';
+                            return (
+                              <SelectItem key={d.uid} value={name} className="py-2.5 font-bold text-xs cursor-pointer">
+                                <div className="flex items-center justify-between w-full gap-3">
+                                  <div className="flex flex-col text-left">
+                                    <span className="text-slate-800 font-bold">{name}</span>
+                                    {d.email && <span className="text-[9px] text-slate-400 lowercase">{d.email}</span>}
+                                  </div>
+                                  <span className="text-[9px] text-slate-500 font-extrabold uppercase bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+                                    {d.role === 'owner' ? 'Proprietário' : d.role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Opções de Doutores visíveis diretamente na tela com 1 clique sem precisar rolar */}
+                      {availableDoctors.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {availableDoctors.map((d) => {
+                            const name = d.displayName || d.email || 'Doutor(a)';
+                            const isSelected = (formData.doctorName || '').toLowerCase() === name.toLowerCase();
+                            return (
                               <button
                                 key={d.uid}
                                 type="button"
-                                onClick={() => {
-                                  const name = d.displayName || 'Doutor(a)';
-                                  setFormData({...formData, doctorName: name});
-                                  setDoctorSearch(name);
-                                  setIsDoctorListOpen(false);
-                                }}
-                                className="w-full text-left p-2 rounded-lg hover:bg-brand-light hover:text-brand-primary transition-all flex items-center justify-between group"
+                                onClick={() => setFormData({ ...formData, doctorName: name })}
+                                className={cn(
+                                  "text-[10px] font-black py-1.5 px-2.5 rounded-lg transition-all flex items-center gap-1.5 border cursor-pointer",
+                                  isSelected 
+                                    ? "bg-brand-primary text-white border-brand-primary shadow-sm" 
+                                    : "bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200/80"
+                                )}
+                                title={name}
                               >
-                                <div className="flex flex-col gap-0.5">
-                                  <span className="font-bold text-xs sm:text-sm">{d.displayName || 'Doutor(a)'}</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest">
-                                      {d.role === 'owner' ? 'Proprietário' : 
-                                       d.role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'}
-                                    </span>
-                                    {d.email && <span className="text-[9px] text-slate-300 font-mono lowercase">{d.email}</span>}
-                                  </div>
-                                </div>
-                                <span className="text-[9px] font-black opacity-0 group-hover:opacity-100 uppercase">Selecionar</span>
+                                <Stethoscope size={12} className={isSelected ? "text-white" : "text-brand-primary"} />
+                                <span className="truncate max-w-[130px]">{name}</span>
                               </button>
-                            ))}
-                          </div>
-                        </Card>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Coluna 2: Data, Horário, Duração, Status */}
-                  <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       <div className="space-y-1">
                         <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">Data</Label>
