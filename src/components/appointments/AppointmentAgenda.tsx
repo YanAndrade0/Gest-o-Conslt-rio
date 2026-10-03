@@ -987,7 +987,7 @@ export function AppointmentAgenda() {
                           proc.cardText,
                           isCanceled && "opacity-60 grayscale-[30%] line-through"
                         )}
-                        title={`${app.patientName} - ${proc.name} (${app.duration}m) - Status: ${app.status}`}
+                        title={`${app.patientName} - ${proc.name} (${app.duration}m) - Dentista: ${app.doctorName || 'Dentista'} - Status: ${app.status}`}
                       >
                          <div className="overflow-hidden">
                           <div className="flex justify-between items-start mb-0.5 gap-1">
@@ -1017,8 +1017,12 @@ export function AppointmentAgenda() {
 
                         {(app.duration || 0) >= 30 && (
                           <div className="mt-0.5 pt-0.5 border-t border-black/5 flex items-center justify-between gap-1">
-                            <span className="text-[7px] opacity-75 flex items-center gap-1 truncate max-w-[55%]">
-                              <User size={8} className="shrink-0" /> {app.doctorName?.split(' ')[0] || 'Dentista'}
+                            <span 
+                              className="text-[8px] font-bold opacity-90 flex items-center gap-1 truncate max-w-[62%]"
+                              title={`Dentista Responsável: ${app.doctorName || 'Dentista'}`}
+                            >
+                              <User size={9} className="shrink-0 text-brand-primary" />
+                              <span className="truncate">{app.doctorName || 'Dentista'}</span>
                             </span>
 
                             <div className="flex items-center gap-1 shrink-0">

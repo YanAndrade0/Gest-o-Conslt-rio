@@ -621,8 +621,8 @@ const Dashboard = () => {
                         {item.procedure || proc.name}
                       </span>
                       {item.doctorName && (
-                        <span className="text-[10px] font-black text-brand-primary/50 uppercase tracking-widest bg-brand-light/30 px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <UserIcon size={8} /> {item.doctorName}
+                        <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider bg-brand-light/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <UserIcon size={10} className="text-brand-primary" /> {item.doctorName}
                         </span>
                       )}
                     </div>
