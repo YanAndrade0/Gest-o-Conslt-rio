@@ -21,7 +21,8 @@ import {
   Clock,
   AlertTriangle,
   Eye,
-  EyeOff
+  EyeOff,
+  Pencil
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { clinicService, UserProfile, Clinic } from '../../services/clinicService';
@@ -30,21 +31,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase-config';
 
 export function ClinicMembers() {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [pendingMembers, setPendingMembers] = useState<UserProfile[]>([]);
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  // Modal State for permissions
+  // Modal State for permissions and name editing
   const [selectedMember, setSelectedMember] = useState<UserProfile | null>(null);
+  const [memberDisplayName, setMemberDisplayName] = useState('');
   const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
   const [memberRole, setMemberRole] = useState<'member' | 'secretary'>('member');
   const [canManageAppts, setCanManageAppts] = useState<boolean>(true);
@@ -97,6 +100,7 @@ export function ClinicMembers() {
 
   const openPermissionModal = (member: UserProfile) => {
     setSelectedMember(member);
+    setMemberDisplayName(member.displayName || '');
     setMemberRole(member.role === 'secretary' ? 'secretary' : 'member');
     setCanManageAppts(member.canManageAppointments !== false);
     setCanCancelAppts(member.canCancelAppointments !== false);
@@ -105,20 +109,36 @@ export function ClinicMembers() {
   };
 
   const savePermissions = async () => {
-    if (!selectedMember) return;
+    if (!selectedMember || !user?.clinicId) return;
+    const trimmedName = memberDisplayName.trim();
+    if (!trimmedName) {
+      toast.error('O nome de exibição no aplicativo não pode ficar vazio.');
+      return;
+    }
+
     setSavingPermissions(true);
     try {
+      const isOwnerMember = selectedMember.role === 'owner';
       await clinicService.updateUserProfile(selectedMember.uid, {
-        role: memberRole,
-        canManageAppointments: canManageAppts,
-        canCancelAppointments: canCancelAppts,
-        canViewAllAppointments: canViewAllAppts
-      });
-      toast.success(`Permissões de ${selectedMember.displayName || 'membro'} atualizadas com sucesso!`);
+        displayName: trimmedName,
+        ...(isOwnerMember ? {} : {
+          role: memberRole,
+          canManageAppointments: canManageAppts,
+          canCancelAppointments: canCancelAppts,
+          canViewAllAppointments: canViewAllAppts
+        })
+      }, user.clinicId);
+
+      // Se o próprio dono atualizou o seu próprio nome, atualiza a sessão local
+      if (selectedMember.uid === user.uid) {
+        await refreshProfile(user.uid);
+      }
+
+      toast.success(`Nome e dados de "${trimmedName}" atualizados com sucesso!`);
       setIsPermissionModalOpen(false);
     } catch (err) {
-      console.error('Erro ao salvar permissões:', err);
-      toast.error('Erro ao atualizar permissões do membro.');
+      console.error('Erro ao salvar dados do membro:', err);
+      toast.error('Erro ao atualizar dados do membro.');
     } finally {
       setSavingPermissions(false);
     }
@@ -362,6 +382,16 @@ export function ClinicMembers() {
                           {member.uid === user?.uid && (
                             <span className="text-[8px] font-black italic text-brand-primary uppercase shrink-0">(Você)</span>
                           )}
+                          {isOwnerOrMaster && (
+                            <button
+                              type="button"
+                              onClick={() => openPermissionModal(member)}
+                              className="text-slate-300 hover:text-brand-primary transition-colors p-0.5 rounded cursor-pointer"
+                              title="Editar como este usuário aparece no aplicativo"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 text-slate-400">
                           <Mail size={12} className="shrink-0" />
@@ -377,28 +407,30 @@ export function ClinicMembers() {
                         {getPermissionBadge(member)}
                       </div>
                       
-                      {isOwnerOrMaster && member.role !== 'owner' && member.uid !== user?.uid && (
+                      {isOwnerOrMaster && (
                         <div className="flex items-center gap-1.5">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => openPermissionModal(member)}
-                            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-slate-100 hover:bg-brand-light hover:text-brand-primary font-bold text-xs gap-1 transition-all"
-                            title="Gerenciar Permissões da Agenda"
+                            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-slate-100 hover:bg-brand-light hover:text-brand-primary font-bold text-xs gap-1.5 transition-all cursor-pointer"
+                            title="Editar Nome e Permissões"
                           >
-                            <Settings size={14} />
-                            <span className="text-[11px] sm:text-xs">Permissões</span>
+                            <Pencil size={13} />
+                            <span className="text-[11px] sm:text-xs">Editar</span>
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openRemoveModal(member)}
-                            className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs gap-1 transition-all"
-                            title="Excluir Membro da Clínica"
-                          >
-                            <Trash2 size={14} />
-                            <span className="text-[11px] sm:text-xs">Excluir</span>
-                          </Button>
+                          {member.role !== 'owner' && member.uid !== user?.uid && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openRemoveModal(member)}
+                              className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold text-xs gap-1.5 transition-all cursor-pointer"
+                              title="Excluir Membro da Clínica"
+                            >
+                              <Trash2 size={13} />
+                              <span className="text-[11px] sm:text-xs">Excluir</span>
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -412,13 +444,13 @@ export function ClinicMembers() {
               <ShieldCheck size={16} />
             </div>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-              O proprietário da clínica pode controlar individualmente quais membros têm permissão para agendar, editar ou desmarcar consultas.
+              O dono da clínica pode editar o nome de como cada usuário aparece no aplicativo e controlar as permissões de acesso individualmente.
             </p>
           </div>
         </Card>
       </div>
 
-      {/* Modal de Configuração de Permissões do Membro */}
+      {/* Modal de Configuração de Membro e Permissões */}
       <Dialog open={isPermissionModalOpen} onOpenChange={setIsPermissionModalOpen}>
         <DialogContent className="max-w-md bg-white rounded-[2rem] border-none shadow-2xl p-6">
           <DialogHeader className="mb-4">
@@ -426,123 +458,164 @@ export function ClinicMembers() {
               <ShieldCheck size={24} />
             </div>
             <DialogTitle className="text-xl font-black text-slate-800 tracking-tight">
-              Permissões de Acesso
+              Editar Membro no Aplicativo
             </DialogTitle>
             <DialogDescription className="font-medium text-slate-400 text-xs">
-              Gerencie a função e as autorizações de agendamento de <span className="font-bold text-slate-700">{selectedMember?.displayName || 'este membro'}</span>.
+              Altere como <span className="font-bold text-slate-700">{selectedMember?.displayName || 'este usuário'}</span> aparecerá em todo o sistema e gerencie suas permissões.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5 py-2">
-            {/* Seletor de Função */}
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Função na Clínica</Label>
-              <Select value={memberRole} onValueChange={(val: 'member' | 'secretary') => setMemberRole(val)}>
-                <SelectTrigger className="w-full bg-slate-50 border-slate-200 h-11 rounded-xl font-bold text-slate-700">
-                  <SelectValue placeholder="Selecione a função" />
-                </SelectTrigger>
-                <SelectContent className="bg-white rounded-xl">
-                  <SelectItem value="member">Dentista / Profissional de Saúde</SelectItem>
-                  <SelectItem value="secretary">Secretária / Recepção</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-4 py-2">
+            {/* Nome de Exibição no Aplicativo */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-0.5">
+                  Nome no Aplicativo
+                </Label>
+                <span className="text-[9px] font-bold text-brand-primary uppercase tracking-wider">
+                  Como aparecerá no sistema
+                </span>
+              </div>
+              <div className="relative">
+                <Input
+                  value={memberDisplayName}
+                  onChange={(e) => setMemberDisplayName(e.target.value)}
+                  placeholder="Ex: Dr. Carlos Silva, Dra. Mariana ou Recepção Ana"
+                  className="bg-slate-50 border-slate-200 h-11 rounded-xl font-bold text-slate-700 pl-3 pr-9 focus-visible:ring-2 focus-visible:ring-brand-primary/20"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  <Pencil size={14} />
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+                Este nome será exibido nos agendamentos, na agenda de atendimento, prontuários, evoluções e na lista de profissionais.
+              </p>
             </div>
 
-            {/* Permissão 1: Visualizar Todos os Agendamentos da Clínica */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start justify-between gap-3">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  {canViewAllAppts ? (
-                    <Eye size={16} className="text-blue-600" />
-                  ) : (
-                    <EyeOff size={16} className="text-amber-600" />
-                  )}
-                  <span className="text-xs font-black text-slate-700">Visualizar Todos os Agendamentos</span>
+            {/* Aviso especial se for Proprietário */}
+            {selectedMember?.role === 'owner' && (
+              <div className="p-3.5 bg-brand-light/40 border border-brand-primary/20 rounded-2xl flex items-center gap-3 text-brand-primary">
+                <Shield size={18} className="shrink-0" />
+                <div className="text-xs">
+                  <span className="font-black block">Proprietário da Clínica</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Possui acesso administrativo completo em todos os módulos.</span>
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium leading-snug">
-                  Permite ver a agenda completa de todos os profissionais. Se desativado, o usuário verá apenas as consultas atribuídas a ele.
-                </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setCanViewAllAppts(!canViewAllAppts)}
-                className={cn(
-                  "w-12 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 cursor-pointer",
-                  canViewAllAppts ? "bg-brand-primary" : "bg-slate-300"
-                )}
-              >
-                <div className={cn(
-                  "w-5 h-5 bg-white rounded-full shadow-md transition-transform flex items-center justify-center text-[10px]",
-                  canViewAllAppts ? "translate-x-6 text-brand-primary" : "translate-x-0 text-slate-400"
-                )}>
-                  {canViewAllAppts ? <Check size={12} /> : <XCircle size={12} />}
-                </div>
-              </button>
-            </div>
+            )}
 
-            {/* Permissão 2: Agendar e Editar Consultas */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-start justify-between gap-3">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-brand-primary" />
-                  <span className="text-xs font-black text-slate-700">Agendar e Editar Consultas</span>
+            {/* Seletor de Função e Permissões (para membros que não são owner) */}
+            {selectedMember?.role !== 'owner' && (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-0.5">Função na Clínica</Label>
+                  <Select value={memberRole} onValueChange={(val: 'member' | 'secretary') => setMemberRole(val)}>
+                    <SelectTrigger className="w-full bg-slate-50 border-slate-200 h-11 rounded-xl font-bold text-slate-700">
+                      <SelectValue placeholder="Selecione a função" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white rounded-xl">
+                      <SelectItem value="member">Dentista / Profissional de Saúde</SelectItem>
+                      <SelectItem value="secretary">Secretária / Recepção</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium leading-snug">
-                  Permite criar novos agendamentos e alterar detalhes de consultas existentes.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const nextVal = !canManageAppts;
-                  setCanManageAppts(nextVal);
-                  if (!nextVal) setCanCancelAppts(false);
-                }}
-                className={cn(
-                  "w-12 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 cursor-pointer",
-                  canManageAppts ? "bg-brand-primary" : "bg-slate-300"
-                )}
-              >
-                <div className={cn(
-                  "w-5 h-5 bg-white rounded-full shadow-md transition-transform flex items-center justify-center text-[10px]",
-                  canManageAppts ? "translate-x-6 text-brand-primary" : "translate-x-0 text-slate-400"
-                )}>
-                  {canManageAppts ? <Check size={12} /> : <XCircle size={12} />}
-                </div>
-              </button>
-            </div>
 
-            {/* Permissão 3: Desmarcar / Excluir Consultas */}
-            <div className={cn(
-              "p-4 rounded-2xl border transition-all flex items-start justify-between gap-3",
-              canManageAppts ? "bg-slate-50 border-slate-100" : "bg-slate-100/50 border-slate-200/50 opacity-50 pointer-events-none"
-            )}>
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <XCircle size={16} className="text-rose-500" />
-                  <span className="text-xs font-black text-slate-700">Desmarcar / Excluir Consultas</span>
+                {/* Permissão 1: Visualizar Todos os Agendamentos da Clínica */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      {canViewAllAppts ? (
+                        <Eye size={16} className="text-blue-600" />
+                      ) : (
+                        <EyeOff size={16} className="text-amber-600" />
+                      )}
+                      <span className="text-xs font-black text-slate-700">Visualizar Todos os Agendamentos</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-medium leading-snug">
+                      Permite ver a agenda completa de todos os profissionais. Se desativado, o usuário verá apenas as consultas atribuídas a ele.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCanViewAllAppts(!canViewAllAppts)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 cursor-pointer",
+                      canViewAllAppts ? "bg-brand-primary" : "bg-slate-300"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 bg-white rounded-full shadow-md transition-transform flex items-center justify-center text-[10px]",
+                      canViewAllAppts ? "translate-x-6 text-brand-primary" : "translate-x-0 text-slate-400"
+                    )}>
+                      {canViewAllAppts ? <Check size={12} /> : <XCircle size={12} />}
+                    </div>
+                  </button>
                 </div>
-                <p className="text-[11px] text-slate-500 font-medium leading-snug">
-                  Permite cancelar ou remover horários previamente agendados na agenda da clínica.
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={!canManageAppts}
-                onClick={() => setCanCancelAppts(!canCancelAppts)}
-                className={cn(
-                  "w-12 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 cursor-pointer",
-                  canCancelAppts ? "bg-brand-primary" : "bg-slate-300"
-                )}
-              >
+
+                {/* Permissão 2: Agendar e Editar Consultas */}
+                <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-100 flex items-start justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={16} className="text-brand-primary" />
+                      <span className="text-xs font-black text-slate-700">Agendar e Editar Consultas</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-medium leading-snug">
+                      Permite criar novos agendamentos e alterar detalhes de consultas existentes.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !canManageAppts;
+                      setCanManageAppts(nextVal);
+                      if (!nextVal) setCanCancelAppts(false);
+                    }}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 cursor-pointer",
+                      canManageAppts ? "bg-brand-primary" : "bg-slate-300"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 bg-white rounded-full shadow-md transition-transform flex items-center justify-center text-[10px]",
+                      canManageAppts ? "translate-x-6 text-brand-primary" : "translate-x-0 text-slate-400"
+                    )}>
+                      {canManageAppts ? <Check size={12} /> : <XCircle size={12} />}
+                    </div>
+                  </button>
+                </div>
+
+                {/* Permissão 3: Desmarcar / Excluir Consultas */}
                 <div className={cn(
-                  "w-5 h-5 bg-white rounded-full shadow-md transition-transform flex items-center justify-center text-[10px]",
-                  canCancelAppts ? "translate-x-6 text-brand-primary" : "translate-x-0 text-slate-400"
+                  "p-3.5 rounded-2xl border transition-all flex items-start justify-between gap-3",
+                  canManageAppts ? "bg-slate-50 border-slate-100" : "bg-slate-100/50 border-slate-200/50 opacity-50 pointer-events-none"
                 )}>
-                  {canCancelAppts ? <Check size={12} /> : <XCircle size={12} />}
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <XCircle size={16} className="text-rose-500" />
+                      <span className="text-xs font-black text-slate-700">Desmarcar / Excluir Consultas</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-medium leading-snug">
+                      Permite cancelar ou remover horários previamente agendados na agenda da clínica.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!canManageAppts}
+                    onClick={() => setCanCancelAppts(!canCancelAppts)}
+                    className={cn(
+                      "w-12 h-6 rounded-full transition-colors relative flex items-center p-0.5 shrink-0 cursor-pointer",
+                      canCancelAppts ? "bg-brand-primary" : "bg-slate-300"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 bg-white rounded-full shadow-md transition-transform flex items-center justify-center text-[10px]",
+                      canCancelAppts ? "translate-x-6 text-brand-primary" : "translate-x-0 text-slate-400"
+                    )}>
+                      {canCancelAppts ? <Check size={12} /> : <XCircle size={12} />}
+                    </div>
+                  </button>
                 </div>
-              </button>
-            </div>
+              </>
+            )}
           </div>
 
           <DialogFooter className="mt-6 flex flex-col sm:flex-row gap-2">
@@ -556,9 +629,9 @@ export function ClinicMembers() {
             <Button
               onClick={savePermissions}
               disabled={savingPermissions}
-              className="w-full sm:w-auto bg-brand-primary text-white hover:bg-brand-accent rounded-xl font-bold h-11 px-6 shadow-lg shadow-brand-primary/20"
+              className="w-full sm:w-auto bg-brand-primary text-white hover:bg-brand-accent rounded-xl font-bold h-11 px-6 shadow-lg shadow-brand-primary/20 cursor-pointer"
             >
-              {savingPermissions ? 'Salvando...' : 'Salvar Permissões'}
+              {savingPermissions ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </DialogFooter>
         </DialogContent>

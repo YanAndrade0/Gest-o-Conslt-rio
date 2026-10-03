@@ -271,7 +271,7 @@ export const clinicService = {
     }
   },
 
-  async updateUserProfile(userId: string, data: Partial<UserProfile>): Promise<void> {
+  async updateUserProfile(userId: string, data: Partial<UserProfile>, clinicId?: string): Promise<void> {
     try {
       const userRef = doc(db, USERS_COL, userId);
       const updateData = {
@@ -280,8 +280,14 @@ export const clinicService = {
         userAgent: navigator.userAgent
       };
       await setDoc(userRef, updateData, { merge: true });
-      if (data.clinicId) {
-        await auditService.log(AuditAction.LOGIN, data.clinicId, userId, 'user', { action: 'update_profile', fields: Object.keys(data), agent: navigator.userAgent });
+      const targetClinicId = clinicId || data.clinicId;
+      if (targetClinicId) {
+        await auditService.log(AuditAction.USER_UPDATE, targetClinicId, userId, 'user', { 
+          action: 'update_profile', 
+          fields: Object.keys(data), 
+          displayName: data.displayName,
+          agent: navigator.userAgent 
+        });
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${USERS_COL}/${userId}`);
