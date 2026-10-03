@@ -134,18 +134,34 @@ export function AppointmentAgenda() {
     };
   }, [user?.clinicId, canViewAllAgenda, user?.displayName]);
 
+  const isSecretary = (role?: string) => {
+    if (!role) return false;
+    const r = role.toLowerCase().trim();
+    return r === 'secretary' || r === 'secretaria' || r === 'secretária';
+  };
+
   const availableDoctors = useMemo(() => {
-    const list = [...doctors];
-    if (user?.displayName && !list.some(d => (d.displayName || '').toLowerCase() === user.displayName.toLowerCase())) {
-      list.unshift({
-        uid: user.uid,
-        displayName: user.displayName,
-        email: user.email || '',
-        role: user.role || 'member'
-      } as UserProfile);
+    // Filtrar apenas dentistas e proprietários (exclui secretárias)
+    const list = doctors.filter(d => !isSecretary(d.role));
+    if (user?.displayName && !isSecretary(user.role)) {
+      if (!list.some(d => (d.displayName || '').toLowerCase() === user.displayName!.toLowerCase())) {
+        list.unshift({
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email || '',
+          role: user.role || 'member'
+        } as UserProfile);
+      }
     }
     return list;
   }, [doctors, user]);
+
+  const getDefaultDoctor = () => {
+    if (user && !isSecretary(user.role) && user.displayName) {
+      return user.displayName;
+    }
+    return availableDoctors[0]?.displayName || '';
+  };
 
   const weekDays = useMemo(() => {
     return [selectedDate];
@@ -158,7 +174,7 @@ export function AppointmentAgenda() {
     setFormData({
       patientId: '',
       procedure: 'Avaliação',
-      doctorName: user?.displayName || (availableDoctors[0]?.displayName || ''),
+      doctorName: getDefaultDoctor(),
       time: '09:00',
       duration: '30',
       date: format(new Date(), 'yyyy-MM-dd'),
@@ -181,7 +197,7 @@ export function AppointmentAgenda() {
     setFormData({
       patientId: '',
       procedure: 'Avaliação',
-      doctorName: user?.displayName || (availableDoctors[0]?.displayName || ''),
+      doctorName: getDefaultDoctor(),
       time: '09:00',
       duration: '30',
       date: format(selectedDate, 'yyyy-MM-dd'),
@@ -338,7 +354,7 @@ export function AppointmentAgenda() {
     setFormData({
       patientId: '',
       procedure: 'Avaliação',
-      doctorName: user?.displayName || (availableDoctors[0]?.displayName || ''),
+      doctorName: getDefaultDoctor(),
       time: timeStr,
       duration: '30',
       date: newDate,
@@ -481,17 +497,17 @@ export function AppointmentAgenda() {
           </div>
 
           {/* Filtro por Profissional (apenas se puder ver todos) */}
-          {canViewAllAgenda && doctors.length > 0 && (
+          {canViewAllAgenda && availableDoctors.length > 0 && (
             <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100/70 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
               <Filter size={12} className="text-slate-400 shrink-0 sm:size-3.5" />
-              <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-wider">Profissional:</span>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-wider">Dentista:</span>
               <select
                 value={selectedDoctorFilter}
                 onChange={(e) => setSelectedDoctorFilter(e.target.value)}
                 className="bg-transparent border-none text-[10px] sm:text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1 max-w-[110px] sm:max-w-[150px] truncate"
               >
                 <option value="all">Todos</option>
-                {doctors.map(doc => (
+                {availableDoctors.map(doc => (
                   <option key={doc.uid} value={doc.displayName || doc.email}>
                     {doc.displayName || doc.email}
                   </option>
@@ -724,21 +740,21 @@ export function AppointmentAgenda() {
 
                   {/* Coluna 2: Doutor Responsável, Data & Horário, Duração & Status */}
                   <div className="space-y-3">
-                    {/* Doutor(a) Responsável */}
+                    {/* Doutor(a) Responsável / Dentista */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest pl-1">
-                          Doutor(a) Responsável
+                          Dentista Responsável
                         </Label>
                         {availableDoctors.length > 0 && (
                           <span className="text-[9px] font-bold text-slate-400">
-                            {availableDoctors.length} {availableDoctors.length === 1 ? 'profissional' : 'profissionais'}
+                            {availableDoctors.length} {availableDoctors.length === 1 ? 'dentista' : 'dentistas'}
                           </span>
                         )}
                       </div>
 
                       <Select 
-                        value={formData.doctorName || user?.displayName || (availableDoctors[0]?.displayName || '')} 
+                        value={formData.doctorName || getDefaultDoctor()} 
                         onValueChange={(val) => {
                           setFormData({ ...formData, doctorName: val });
                         }}
@@ -746,12 +762,12 @@ export function AppointmentAgenda() {
                         <SelectTrigger className="bg-bg-main border-none h-10 sm:h-11 rounded-xl focus:ring-2 focus:ring-brand-primary/20 font-bold text-slate-700 text-xs sm:text-sm w-full">
                           <div className="flex items-center gap-2 truncate">
                             <Stethoscope size={16} className="text-brand-primary shrink-0" />
-                            <SelectValue placeholder="Selecione o profissional..." />
+                            <SelectValue placeholder="Selecione o dentista..." />
                           </div>
                         </SelectTrigger>
                         <SelectContent className="bg-white border border-slate-100 shadow-2xl rounded-xl z-50">
                           {availableDoctors.map((d) => {
-                            const name = d.displayName || d.email || 'Doutor(a)';
+                            const name = d.displayName || d.email || 'Dentista';
                             return (
                               <SelectItem key={d.uid} value={name} className="py-2.5 font-bold text-xs cursor-pointer">
                                 <div className="flex items-center justify-between w-full gap-3">
@@ -759,8 +775,8 @@ export function AppointmentAgenda() {
                                     <span className="text-slate-800 font-bold">{name}</span>
                                     {d.email && <span className="text-[9px] text-slate-400 lowercase">{d.email}</span>}
                                   </div>
-                                  <span className="text-[9px] text-slate-500 font-extrabold uppercase bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
-                                    {d.role === 'owner' ? 'Proprietário' : d.role === 'secretary' ? 'Secretário(a)' : 'Doutor(a)'}
+                                  <span className="text-[9px] text-brand-primary font-extrabold uppercase bg-brand-primary/10 px-1.5 py-0.5 rounded shrink-0">
+                                    {d.role === 'owner' ? 'Proprietário' : 'Dentista'}
                                   </span>
                                 </div>
                               </SelectItem>

@@ -690,28 +690,30 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                             />
                           </div>
 
-                          {/* Profissional Responsável */}
+                          {/* Profissional Responsável (Apenas Dentistas) */}
                           <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 space-y-1">
                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                              <Stethoscope size={12} className="text-brand-primary" /> Profissional
+                              <Stethoscope size={12} className="text-brand-primary" /> Dentista Responsável
                             </Label>
-                            {clinicMembers && clinicMembers.length > 0 ? (
+                            {clinicMembers && clinicMembers.filter(m => m.role !== 'secretary').length > 0 ? (
                               <select
                                 value={evolutionDoctor}
                                 onChange={(e) => setEvolutionDoctor(e.target.value)}
                                 className="w-full text-xs font-black text-slate-800 bg-transparent border-none p-0 focus:ring-0 focus:outline-none cursor-pointer"
                               >
-                                {clinicMembers.map((m) => {
-                                  const name = m.displayName || m.email || 'Profissional';
-                                  const roleLabel = m.role === 'owner' ? '(Responsável)' : m.role === 'secretary' ? '(Recepção)' : '(Dentista)';
-                                  return (
-                                    <option key={m.uid} value={name}>
-                                      {name} {roleLabel}
-                                    </option>
-                                  );
-                                })}
-                                {user?.displayName && !clinicMembers.some(m => (m.displayName || m.email) === user.displayName) && (
-                                  <option value={user.displayName}>{user.displayName}</option>
+                                {clinicMembers
+                                  .filter(m => m.role !== 'secretary')
+                                  .map((m) => {
+                                    const name = m.displayName || m.email || 'Dentista';
+                                    const roleLabel = m.role === 'owner' ? '(Proprietário)' : '(Dentista)';
+                                    return (
+                                      <option key={m.uid} value={name}>
+                                        {name} {roleLabel}
+                                      </option>
+                                    );
+                                  })}
+                                {user?.displayName && user.role !== 'secretary' && !clinicMembers.some(m => (m.displayName || m.email) === user.displayName) && (
+                                  <option value={user.displayName}>{user.displayName} (Dentista)</option>
                                 )}
                               </select>
                             ) : (
