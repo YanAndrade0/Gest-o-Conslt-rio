@@ -531,6 +531,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const isAgenda = location.pathname === '/agenda';
+  const isCompactSidebar = location.pathname === '/agenda' || location.pathname === '/pacientes';
   
   const navItems = [
     { name: 'Agenda', shortName: 'Agenda', path: '/agenda', id: 'nav-agenda', icon: Calendar },
@@ -550,17 +551,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         {/* Mobile Header */}
       <header className={cn(
         "lg:hidden bg-white border-b border-slate-200 flex items-center justify-between z-40 shrink-0 transition-all",
-        isAgenda ? "h-11 px-3" : "h-16 px-6"
+        isCompactSidebar ? "h-11 px-3" : "h-16 px-6"
       )}>
-        <Logo className={isAgenda ? "w-8 h-8" : "w-10 h-10"} />
+        <Logo className={isCompactSidebar ? "w-8 h-8" : "w-10 h-10"} />
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           className={cn(
             "rounded-xl bg-slate-50 flex items-center justify-center text-slate-600 transition-all active:scale-95",
-            isAgenda ? "w-8 h-8" : "w-10 h-10"
+            isCompactSidebar ? "w-8 h-8" : "w-10 h-10"
           )}
         >
-          {isSidebarOpen ? <CloseIcon size={isAgenda ? 16 : 20} /> : <Menu size={isAgenda ? 16 : 20} />}
+          {isSidebarOpen ? <CloseIcon size={isCompactSidebar ? 16 : 20} /> : <Menu size={isCompactSidebar ? 16 : 20} />}
         </button>
       </header>
 
@@ -572,13 +573,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         />
       )}
 
-      {/* Sidebar - Fica ultra-compacto (w-14 / 56px) na Agenda para a tela ser praticamente 100% livre */}
+      {/* Sidebar - Fica ultra-compacto (w-14 / 56px) na Agenda e Pacientes para a tela ser praticamente 100% livre */}
       <aside className={cn(
         "bg-white border-r border-slate-200 flex flex-col items-stretch z-50 shadow-xl shadow-slate-200/20 transition-all duration-300 lg:static fixed inset-y-0 left-0 h-full",
-        isAgenda ? "w-72 lg:w-14" : "w-72",
+        isCompactSidebar ? "w-72 lg:w-14" : "w-72",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        {isAgenda ? (
+        {isCompactSidebar ? (
           <div className="p-2 hidden lg:flex items-center justify-center border-b border-slate-100 shrink-0">
             <div className="w-8 h-8 bg-brand-primary rounded-xl flex items-center justify-center font-black text-white text-[11px] shadow-sm shadow-brand-primary/30" title="OralCloud">
               OC
@@ -590,7 +591,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         
         <nav className={cn(
           "flex-1 space-y-1 mt-3 lg:mt-2 overflow-y-auto no-scrollbar",
-          isAgenda ? "px-1 sm:px-1.5" : "px-6"
+          isCompactSidebar ? "px-1 sm:px-1.5" : "px-6"
         )}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
@@ -604,16 +605,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 onClick={() => setIsSidebarOpen(false)}
                 className={cn(
                   "flex items-center rounded-xl cursor-pointer transition-all font-bold group",
-                  isAgenda 
+                  isCompactSidebar 
                     ? "justify-center p-2 mx-auto w-10 h-10" 
                     : "gap-4 px-6 py-4 text-sm",
                   isActive 
-                    ? "bg-brand-light text-brand-primary shadow-xs font-black" + (!isAgenda ? " border-l-4 border-brand-primary" : "")
+                    ? "bg-brand-light text-brand-primary shadow-xs font-black" + (!isCompactSidebar ? " border-l-4 border-brand-primary" : "")
                     : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
                 )}
               >
                 <Icon size={18} className="shrink-0" />
-                {!isAgenda && (
+                {!isCompactSidebar && (
                   <span className="text-sm">
                     {item.name}
                   </span>
@@ -623,8 +624,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           })}
         </nav>
 
-        <div className={cn("border-t border-slate-100 shrink-0", isAgenda ? "p-1.5" : "p-6")}>
-          {isAgenda ? (
+        <div className={cn("border-t border-slate-100 shrink-0", isCompactSidebar ? "p-1.5" : "p-6")}>
+          {isCompactSidebar ? (
             <div className="flex flex-col items-center gap-1.5 p-1 bg-slate-50/80 rounded-xl border border-slate-100">
               <div 
                 className="w-7 h-7 rounded-full bg-brand-muted flex items-center justify-center overflow-hidden border border-white shadow-xs shrink-0"
