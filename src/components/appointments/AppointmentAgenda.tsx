@@ -109,6 +109,17 @@ export function AppointmentAgenda() {
     return Math.max(0, Math.min(rawTop, (TIME_SLOTS.length * 80) - 2));
   }, [currentMinutesFrom8]);
 
+  // Dias da semana atual (7 dias de Segunda a Domingo)
+  const weekDays = useMemo(() => {
+    const start = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Segunda-feira
+    const end = endOfWeek(selectedDate, { weekStartsOn: 1 });     // Domingo
+    return eachDayOfInterval({ start, end });
+  }, [selectedDate]);
+
+  const isTodayInWeek = useMemo(() => {
+    return weekDays.some(day => isToday(day));
+  }, [weekDays]);
+
   // Função para a vista da agenda acompanhar a linha do horário atual
   const scrollToCurrentTime = (smooth = true) => {
     const now = new Date();
@@ -139,9 +150,9 @@ export function AppointmentAgenda() {
     }
   };
 
-  // Ao abrir a agenda no dia de hoje ou trocar para hoje, a visualização rola automaticamente para a hora atual
+  // Ao abrir a agenda ou navegar para uma semana que contenha o dia de hoje, rola automaticamente para a hora atual
   useEffect(() => {
-    if (isToday(selectedDate)) {
+    if (isTodayInWeek) {
       const trigger = (smooth: boolean) => {
         requestAnimationFrame(() => scrollToCurrentTime(smooth));
       };
@@ -158,7 +169,7 @@ export function AppointmentAgenda() {
         clearTimeout(t3);
       };
     }
-  }, [selectedDate]);
+  }, [selectedDate, isTodayInWeek]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -238,12 +249,10 @@ export function AppointmentAgenda() {
     return availableDoctors[0]?.displayName || '';
   };
 
-  const weekDays = useMemo(() => {
-    return [selectedDate];
-  }, [selectedDate]);
-
-  const handleNextDay = () => setSelectedDate(prev => addDays(prev, 1));
-  const handlePrevDay = () => setSelectedDate(prev => subDays(prev, 1));
+  const handleNextWeek = () => setSelectedDate(prev => addDays(prev, 7));
+  const handlePrevWeek = () => setSelectedDate(prev => subDays(prev, 7));
+  const handleNextDay = handleNextWeek;
+  const handlePrevDay = handlePrevWeek;
 
   const resetForm = () => {
     setFormData({
@@ -462,83 +471,92 @@ export function AppointmentAgenda() {
     return appointments.filter(app => isSameDay(parseISO(app.date), date));
   };
 
-  const positionedAppointments = useMemo(() => {
-    const dayAppts = appointments.filter(app => {
-      if (!isSameDay(parseISO(app.date), selectedDate)) return false;
-      if (canViewAllAgenda && selectedDoctorFilter !== 'all') {
-        const docName = (app.doctorName || '').trim().toLowerCase();
-        return docName === selectedDoctorFilter.trim().toLowerCase();
-      }
-      return true;
-    });
+  const positionedAppointmentsByDay = useMemo(() => {
+    const result: Record<string, (Appointment & { left: number; width: number })[]> = {};
 
-    if (dayAppts.length === 0) return [];
-
-    // Sort by start time (safe conversion)
-    const sorted = [...dayAppts].sort((a, b) => {
-      const timeA = parseISO(a.date).getTime();
-      const timeB = parseISO(b.date).getTime();
-      return (isNaN(timeA) ? 0 : timeA) - (isNaN(timeB) ? 0 : timeB);
-    });
-
-    const result: (Appointment & { left: number; width: number })[] = [];
-    
-    // Group connected overlapping appointments
-    const groups: Appointment[][] = [];
-    let activeGroup: Appointment[] = [];
-    let groupEndTime = 0;
-
-    sorted.forEach(app => {
-      const startTime = parseISO(app.date).getTime();
-      const dur = typeof app.duration === 'number' ? app.duration : parseInt(app.duration as any) || 30;
-      const endTime = startTime + dur * 60 * 1000;
-
-      if (activeGroup.length > 0 && startTime >= groupEndTime) {
-        groups.push(activeGroup);
-        activeGroup = [app];
-        groupEndTime = endTime;
-      } else {
-        activeGroup.push(app);
-        groupEndTime = Math.max(groupEndTime, endTime);
-      }
-    });
-    if (activeGroup.length > 0) groups.push(activeGroup);
-
-    groups.forEach(group => {
-      const columns: Appointment[][] = [];
-      group.forEach(app => {
-        const appStart = parseISO(app.date).getTime();
-        let placed = false;
-
-        for (let i = 0; i < columns.length; i++) {
-          const lastInCol = columns[i][columns[i].length - 1];
-          const lastDur = typeof lastInCol.duration === 'number' ? lastInCol.duration : parseInt(lastInCol.duration as any) || 30;
-          const lastEnd = parseISO(lastInCol.date).getTime() + lastDur * 60 * 1000;
-          
-          if (appStart >= lastEnd) {
-            columns[i].push(app);
-            placed = true;
-            break;
-          }
+    weekDays.forEach(day => {
+      const dayStr = format(day, 'yyyy-MM-dd');
+      const dayAppts = appointments.filter(app => {
+        const appDate = parseISO(app.date);
+        if (format(appDate, 'yyyy-MM-dd') !== dayStr) return false;
+        if (canViewAllAgenda && selectedDoctorFilter !== 'all') {
+          const docName = (app.doctorName || '').trim().toLowerCase();
+          return docName === selectedDoctorFilter.trim().toLowerCase();
         }
-
-        if (!placed) columns.push([app]);
+        return true;
       });
 
-      const numCols = columns.length;
-      columns.forEach((col, colIndex) => {
-        col.forEach(app => {
-          result.push({
-            ...app,
-            left: (colIndex / numCols) * 100,
-            width: (1 / numCols) * 100
+      if (dayAppts.length === 0) {
+        result[dayStr] = [];
+        return;
+      }
+
+      // Sort by start time (safe conversion)
+      const sorted = [...dayAppts].sort((a, b) => {
+        const timeA = parseISO(a.date).getTime();
+        const timeB = parseISO(b.date).getTime();
+        return (isNaN(timeA) ? 0 : timeA) - (isNaN(timeB) ? 0 : timeB);
+      });
+
+      const dayResult: (Appointment & { left: number; width: number })[] = [];
+      const groups: Appointment[][] = [];
+      let activeGroup: Appointment[] = [];
+      let groupEndTime = 0;
+
+      sorted.forEach(app => {
+        const startTime = parseISO(app.date).getTime();
+        const dur = typeof app.duration === 'number' ? app.duration : parseInt(app.duration as any) || 30;
+        const endTime = startTime + dur * 60 * 1000;
+
+        if (activeGroup.length > 0 && startTime >= groupEndTime) {
+          groups.push(activeGroup);
+          activeGroup = [app];
+          groupEndTime = endTime;
+        } else {
+          activeGroup.push(app);
+          groupEndTime = Math.max(groupEndTime, endTime);
+        }
+      });
+      if (activeGroup.length > 0) groups.push(activeGroup);
+
+      groups.forEach(group => {
+        const columns: Appointment[][] = [];
+        group.forEach(app => {
+          const appStart = parseISO(app.date).getTime();
+          let placed = false;
+
+          for (let i = 0; i < columns.length; i++) {
+            const lastInCol = columns[i][columns[i].length - 1];
+            const lastDur = typeof lastInCol.duration === 'number' ? lastInCol.duration : parseInt(lastInCol.duration as any) || 30;
+            const lastEnd = parseISO(lastInCol.date).getTime() + lastDur * 60 * 1000;
+            
+            if (appStart >= lastEnd) {
+              columns[i].push(app);
+              placed = true;
+              break;
+            }
+          }
+
+          if (!placed) columns.push([app]);
+        });
+
+        const numCols = columns.length;
+        columns.forEach((col, colIndex) => {
+          col.forEach(app => {
+            dayResult.push({
+              ...app,
+              left: (colIndex / numCols) * 100,
+              width: (1 / numCols) * 100
+            });
           });
         });
       });
+
+      result[dayStr] = dayResult;
     });
 
     return result;
-  }, [appointments, selectedDate, canViewAllAgenda, selectedDoctorFilter]);
+  }, [appointments, weekDays, canViewAllAgenda, selectedDoctorFilter]);
 
   return (
     <div className="p-2 sm:p-4 md:p-8 space-y-2 sm:space-y-4 md:space-y-6 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-500">
@@ -564,9 +582,9 @@ export function AppointmentAgenda() {
               <CalendarIcon size={18} className="sm:size-6" />
             </div>
             <div>
-              <h2 className="text-base sm:text-2xl font-black text-slate-800 tracking-tight leading-tight">Agenda Diária</h2>
+              <h2 className="text-base sm:text-2xl font-black text-slate-800 tracking-tight leading-tight">Agenda Semanal</h2>
               <p className="text-slate-400 text-[9px] sm:text-xs font-bold uppercase tracking-widest">
-                {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                Semana de {format(weekDays[0], "dd 'de' MMMM", { locale: ptBR })} a {format(weekDays[6], "dd 'de' MMMM", { locale: ptBR })}
               </p>
             </div>
           </div>
@@ -592,25 +610,25 @@ export function AppointmentAgenda() {
           )}
         </div>
 
-        {/* Lado Direito: Navegação de Datas (Avançar e Voltar) + Botão Novo Agendamento */}
+        {/* Lado Direito: Navegação de Semanas (Avançar e Voltar) + Botão Novo Agendamento */}
         <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-3 w-full sm:w-auto">
-          {/* Navegador de Data: Apenas botões de voltar e avançar */}
+          {/* Navegador de Semana */}
           <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100/70 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={handlePrevDay} 
+              onClick={handlePrevWeek} 
               className="rounded-lg sm:rounded-xl hover:bg-white transition-all h-8 w-8 sm:h-9 sm:w-9"
-              title="Voltar um dia"
+              title="Semana anterior"
             >
               <ChevronLeft size={16} />
             </Button>
             <div className="px-1.5 sm:px-3 py-1 flex items-center gap-1 sm:gap-2 relative">
               <span className="text-xs sm:text-sm font-black text-slate-700 capitalize whitespace-nowrap block sm:hidden">
-                {format(selectedDate, "dd 'de' MMM", { locale: ptBR })}
+                {format(weekDays[0], "dd/MM")} - {format(weekDays[6], "dd/MM")}
               </span>
               <span className="text-xs sm:text-sm font-black text-slate-700 capitalize whitespace-nowrap hidden sm:block">
-                {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                {format(weekDays[0], "dd 'de' MMM", { locale: ptBR })} - {format(weekDays[6], "dd 'de' MMM", { locale: ptBR })}
               </span>
               <Input 
                 type="date"
@@ -625,14 +643,14 @@ export function AppointmentAgenda() {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={handleNextDay} 
+              onClick={handleNextWeek} 
               className="rounded-lg sm:rounded-xl hover:bg-white transition-all h-8 w-8 sm:h-9 sm:w-9"
-              title="Avançar um dia"
+              title="Próxima semana"
             >
               <ChevronRight size={16} />
             </Button>
             {/* Botão Hoje / Agora para acompanhar em tempo real */}
-            {!isToday(selectedDate) ? (
+            {!isTodayInWeek ? (
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -641,7 +659,7 @@ export function AppointmentAgenda() {
                   setTimeout(() => scrollToCurrentTime(true), 80);
                 }}
                 className="h-8 sm:h-9 px-2 sm:px-3 rounded-lg sm:rounded-xl text-brand-primary hover:bg-white font-black text-[11px] sm:text-xs transition-all cursor-pointer"
-                title="Ir para o dia de hoje"
+                title="Ir para a semana atual"
               >
                 Hoje
               </Button>
@@ -984,229 +1002,226 @@ export function AppointmentAgenda() {
       </header>
 
       <div className="flex-1 bg-white rounded-xl sm:rounded-[2rem] border border-slate-100 shadow-xl sm:shadow-2xl shadow-slate-200/50 overflow-hidden flex flex-col min-h-0 scrollbar-hide">
-        <div className="w-full flex-1 flex flex-col min-h-0 overflow-hidden">
-          {/* Days Header */}
-          <div className="grid grid-cols-[46px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] border-b border-slate-50 bg-slate-50/20 shrink-0">
-          <div className="p-1 sm:p-4 border-r border-slate-50 flex items-center justify-center">
-            <Clock size={15} className="text-slate-300" />
-          </div>
-          {weekDays.map((day, i) => (
-            <div 
-              key={i} 
-              className={cn(
-                "p-1 sm:p-4 text-center border-r border-slate-50 last:border-r-0 flex flex-col items-center justify-center gap-0.5 sm:gap-1",
-                isToday(day) ? "bg-brand-light/20 relative" : ""
-              )}
-            >
-              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-slate-400">
-                {format(day, 'EEEE', { locale: ptBR })}
-              </span>
-              <span className={cn(
-                "text-xs sm:text-lg font-black w-6 h-6 sm:w-10 sm:h-10 flex items-center justify-center rounded-md sm:rounded-xl transition-all",
-                isToday(day) ? "bg-brand-primary text-white shadow-md sm:shadow-lg shadow-brand-primary/30" : "text-slate-700"
-              )}>
-                {format(day, 'dd')}
-              </span>
-              {isToday(day) && (
-                <div className="absolute top-1 right-1">
-                  <div className="w-1.5 h-1.5 bg-brand-primary rounded-full animate-pulse"></div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Scrollable Grid */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-xl sm:rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
-          <div className="grid grid-cols-[46px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] relative">
-            
-            {/* Time Indicators Column */}
-            <div className="flex flex-col relative">
-              <div className="h-6 bg-slate-50 border-b border-slate-100"></div> {/* Header spacer */}
-              {TIME_SLOTS.map((timeStr) => (
-                <div key={timeStr} className="h-20 border-r border-b border-slate-50 flex flex-col items-center justify-start p-1 sm:p-3 bg-white sticky left-0 z-20">
-                  <span className={cn(
-                    "font-black text-slate-800 transition-all",
-                    timeStr.endsWith(':00') ? "text-[10px] sm:text-xs" : "text-[8px] sm:text-[9px] opacity-35"
-                  )}>{timeStr}</span>
-                  {timeStr.endsWith(':00') && <span className="hidden sm:inline-block text-[7px] font-black text-slate-300 uppercase tracking-tighter">Horário</span>}
-                </div>
-              ))}
-
-              {/* Indicador na régua de horários à esquerda */}
-              {isToday(selectedDate) && (
+        {/* Container com rolagem vertical e horizontal unificadas */}
+        <div 
+          className="flex-1 min-h-0 overflow-auto scrollbar-hide bg-white rounded-xl sm:rounded-3xl border border-slate-100 shadow-inner group/grid" 
+          ref={scrollContainerRef}
+        >
+          <div className="min-w-[850px] lg:min-w-full flex flex-col">
+            {/* Days Header - Fixo no topo durante a rolagem vertical (sticky top-0 z-30) */}
+            <div className="grid grid-cols-[50px_repeat(7,1fr)] sm:grid-cols-[70px_repeat(7,1fr)] border-b border-slate-100 bg-white sticky top-0 z-30 shrink-0 shadow-xs">
+              <div className="p-2 sm:p-3 border-r border-slate-100 flex items-center justify-center bg-slate-50/80 sticky left-0 z-40">
+                <Clock size={16} className="text-slate-400" />
+              </div>
+              {weekDays.map((day, i) => (
                 <div 
-                  style={{ top: `${currentTimeTop + 24}px` }}
-                  className="absolute right-0 z-30 pointer-events-none -translate-y-1/2 pr-1 transition-[top] duration-500 ease-linear flex items-center"
+                  key={i} 
+                  className={cn(
+                    "p-2 sm:p-3 text-center border-r border-slate-100 last:border-r-0 flex flex-col items-center justify-center gap-0.5 sm:gap-1 transition-colors",
+                    isToday(day) ? "bg-brand-light/35 font-black" : "bg-slate-50/50"
+                  )}
                 >
-                  <span className="bg-rose-600 text-white text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded shadow-sm">
-                    {format(currentTime, 'HH:mm')}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Day Columns */}
-            {weekDays.map((day, i) => (
-              <div key={i} className="flex flex-col relative border-r border-slate-50 last:border-r-0">
-                {/* Day Header (Mini) */}
-                <div className={cn(
-                  "h-6 flex items-center justify-center border-b border-slate-100 sticky top-0 bg-white z-10",
-                  isToday(day) ? "bg-brand-primary/5" : "bg-slate-50"
-                )}>
                   <span className={cn(
-                    "text-[8px] font-black uppercase tracking-widest",
+                    "text-[9px] sm:text-[10px] font-black uppercase tracking-wider",
                     isToday(day) ? "text-brand-primary" : "text-slate-400"
                   )}>
                     {format(day, 'EEE', { locale: ptBR })}
                   </span>
-                </div>
-
-                {/* Vertical Slot Grid */}
-                <div className="relative h-full min-h-[1600px]">
-                  {/* Background Lines */}
-                  {TIME_SLOTS.map((time) => (
-                    <div 
-                      key={time} 
-                      onClick={() => handleSlotClick(day, time)}
-                      className={cn(
-                        "h-20 border-b border-slate-50 transition-colors hover:bg-brand-light/5 cursor-pointer",
-                        isToday(day) ? "bg-brand-light/2" : ""
-                      )}
-                    />
-                  ))}
-
-                  {/* Absolute Appointments com cores personalizadas por procedimento */}
-                  {positionedAppointments.map((app) => {
-                    const pos = calculatePosition(app.date, app.duration || 30);
-                    const proc = getProcedureConfig(app.procedure);
-                    const isCanceled = app.status === 'desmarcado';
-
-                    return (
-                      <div 
-                        key={app.id} 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditAppointment(app);
-                        }}
-                        style={{ 
-                          top: `${pos.top}px`,
-                          height: `${pos.height}px`,
-                          left: app.width < 100 ? `calc(${app.left}% + 2px)` : `${app.left}%`,
-                          width: app.width < 100 ? `calc(${app.width}% - 4px)` : `${app.width}%`,
-                        }}
-                        className={cn(
-                          "absolute p-1.5 sm:p-2 rounded-xl text-[10px] font-bold border-l-4 shadow-sm transition-all hover:scale-[1.01] hover:shadow-md active:scale-[0.98] z-30 overflow-hidden select-none flex flex-col justify-between border cursor-pointer",
-                          proc.cardBg,
-                          proc.cardBorder,
-                          proc.cardLeftBorder,
-                          proc.cardText,
-                          isCanceled && "opacity-60 grayscale-[30%] line-through"
-                        )}
-                        title={`${app.patientName} - ${proc.name} (${app.duration}m) - Status: ${app.status}`}
-                      >
-                         <div className="overflow-hidden">
-                          <div className="flex justify-between items-start mb-0.5 gap-1">
-                            <span 
-                              className="font-black truncate block hover:text-brand-primary cursor-pointer transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const p = patients.find(pat => pat.id === app.patientId);
-                                if (p) setSelectedPatientRecord(p);
-                              }}
-                            >
-                              {app.patientName}
-                            </span>
-                            <span className="text-[8px] font-bold opacity-75 shrink-0 bg-white/70 px-1 py-0.2 rounded border border-black/5">
-                              {app.duration}m
-                            </span>
-                          </div>
-                          
-                          {/* Tag visual do procedimento com a cor específica */}
-                          <div className="flex items-center gap-1.5 text-[8px] truncate font-black">
-                            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", proc.dotBg)} />
-                            <span className={cn("truncate uppercase tracking-wider", proc.badgeText)}>
-                              {app.procedure || proc.name}
-                            </span>
-                          </div>
-                        </div>
-
-                        {(app.duration || 0) >= 30 && (
-                          <div className="mt-0.5 pt-0.5 border-t border-black/5 flex items-center justify-between gap-1">
-                            <span className="text-[7px] opacity-75 flex items-center gap-1 truncate max-w-[55%]">
-                              <User size={8} className="shrink-0" /> {app.doctorName?.split(' ')[0] || 'Dentista'}
-                            </span>
-
-                            <div className="flex items-center gap-1 shrink-0">
-                              {/* Status badge compacto */}
-                              <span className={cn(
-                                "text-[7px] font-black uppercase px-1 py-0.2 rounded-full",
-                                app.status === 'confirmado' ? 'bg-green-100 text-green-700' :
-                                app.status === 'marcado' ? 'bg-blue-100 text-blue-700' :
-                                app.status === 'aguardando' ? 'bg-orange-100 text-orange-700' :
-                                app.status === 'desmarcado' ? 'bg-red-100 text-red-700' :
-                                'bg-slate-100 text-slate-600'
-                              )}>
-                                {app.status === 'confirmado' ? 'Conf.' :
-                                 app.status === 'marcado' ? 'Marc.' :
-                                 app.status === 'aguardando' ? 'Aguard.' :
-                                 app.status === 'desmarcado' ? 'Desm.' : 'Atend.'}
-                              </span>
-
-                              {(app.status === 'marcado' || app.status === 'aguardando') && (
-                                <button 
-                                  title="Confirmar consulta"
-                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'confirmado'); }} 
-                                  className="hover:text-green-600 transition-colors p-0.5"
-                                >
-                                  <CheckCircle2 size={10} />
-                                </button>
-                              )}
-                              {app.status !== 'desmarcado' && (
-                                <button 
-                                  title="Desmarcar consulta"
-                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'desmarcado'); }} 
-                                  className="hover:text-red-600 transition-colors p-0.5"
-                                >
-                                  <XCircle size={10} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {/* Linha em tempo real do horário atual (sobreposta por cima dos pacientes marcados) */}
+                  <div className="flex items-center gap-1">
+                    <span className={cn(
+                      "text-xs sm:text-base font-black w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition-all",
+                      isToday(day) ? "bg-brand-primary text-white shadow-md shadow-brand-primary/30" : "text-slate-700"
+                    )}>
+                      {format(day, 'dd')}
+                    </span>
+                  </div>
                   {isToday(day) && (
-                    <div 
-                      ref={currentTimeLineRef}
-                      style={{ top: `${currentTimeTop}px` }}
-                      className="absolute left-0 right-0 z-40 pointer-events-none flex items-center transition-[top] duration-500 ease-linear"
-                    >
-                      {/* Marcador flutuante da hora atual com indicador pulsante */}
-                      <div className="absolute left-1.5 -translate-y-1/2 flex items-center gap-1.5 bg-rose-600 text-white shadow-lg shadow-rose-600/40 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black tracking-wide z-50">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-300 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
-                        </span>
-                        <span>{format(currentTime, 'HH:mm')}</span>
-                        <span className="text-[8px] uppercase font-bold text-rose-200 tracking-wider hidden sm:inline">Agora</span>
-                      </div>
-
-                      {/* Linha contínua sobreposta por cima de todos os pacientes */}
-                      <div className="w-full h-[2.5px] bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
-                      
-                      {/* Ponto indicador na extremidade direita */}
-                      <div className="w-2.5 h-2.5 rounded-full bg-rose-500 -ml-1 shadow-sm shrink-0" />
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
+                      <span className="text-[8px] font-black uppercase tracking-widest text-brand-primary">Hoje</span>
                     </div>
                   )}
                 </div>
+              ))}
+            </div>
+
+            {/* Grid de Horários e 7 Colunas da Semana */}
+            <div className="grid grid-cols-[50px_repeat(7,1fr)] sm:grid-cols-[70px_repeat(7,1fr)] relative">
+              {/* Coluna da Régua de Horários */}
+              <div className="flex flex-col relative bg-white border-r border-slate-100 sticky left-0 z-20 shadow-xs">
+                {TIME_SLOTS.map((timeStr) => (
+                  <div key={timeStr} className="h-20 border-b border-slate-50 flex flex-col items-center justify-start p-1 sm:p-2 bg-white">
+                    <span className={cn(
+                      "font-black text-slate-800 transition-all",
+                      timeStr.endsWith(':00') ? "text-[10px] sm:text-xs" : "text-[8px] sm:text-[9px] opacity-35"
+                    )}>{timeStr}</span>
+                    {timeStr.endsWith(':00') && <span className="hidden sm:inline-block text-[7px] font-black text-slate-300 uppercase tracking-tighter">Horário</span>}
+                  </div>
+                ))}
+
+                {/* Marcador na régua lateral se hoje estiver na semana visível */}
+                {isTodayInWeek && (
+                  <div 
+                    style={{ top: `${currentTimeTop}px` }}
+                    className="absolute right-0 z-30 pointer-events-none -translate-y-1/2 pr-1 transition-[top] duration-500 ease-linear flex items-center"
+                  >
+                    <span className="bg-rose-600 text-white text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded shadow-sm">
+                      {format(currentTime, 'HH:mm')}
+                    </span>
+                  </div>
+                )}
               </div>
-            ))}
+
+              {/* Colunas dos 7 Dias da Semana */}
+              {weekDays.map((day, dayIndex) => {
+                const dayAppts = positionedAppointmentsByDay[format(day, 'yyyy-MM-dd')] || [];
+                return (
+                  <div key={dayIndex} className="flex flex-col relative border-r border-slate-100 last:border-r-0">
+                    {/* Vertical Slot Grid */}
+                    <div className="relative h-full min-h-[1600px]">
+                      {/* Background Lines */}
+                      {TIME_SLOTS.map((time) => (
+                        <div 
+                          key={time} 
+                          onClick={() => handleSlotClick(day, time)}
+                          className={cn(
+                            "h-20 border-b border-slate-50 transition-colors hover:bg-brand-light/5 cursor-pointer",
+                            isToday(day) ? "bg-brand-light/2" : ""
+                          )}
+                        />
+                      ))}
+
+                      {/* Absolute Appointments com cores personalizadas por procedimento */}
+                      {dayAppts.map((app) => {
+                        const pos = calculatePosition(app.date, app.duration || 30);
+                        const proc = getProcedureConfig(app.procedure);
+                        const isCanceled = app.status === 'desmarcado';
+
+                        return (
+                          <div 
+                            key={app.id} 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditAppointment(app);
+                            }}
+                            style={{ 
+                              top: `${pos.top}px`,
+                              height: `${pos.height}px`,
+                              left: app.width < 100 ? `calc(${app.left}% + 2px)` : `${app.left}%`,
+                              width: app.width < 100 ? `calc(${app.width}% - 4px)` : `${app.width}%`,
+                            }}
+                            className={cn(
+                              "absolute p-1 sm:p-1.5 rounded-xl text-[9px] sm:text-[10px] font-bold border-l-4 shadow-sm transition-all hover:scale-[1.01] hover:shadow-md active:scale-[0.98] z-30 overflow-hidden select-none flex flex-col justify-between border cursor-pointer",
+                              proc.cardBg,
+                              proc.cardBorder,
+                              proc.cardLeftBorder,
+                              proc.cardText,
+                              isCanceled && "opacity-60 grayscale-[30%] line-through"
+                            )}
+                            title={`${app.patientName} - ${proc.name} (${app.duration}m) - Status: ${app.status}`}
+                          >
+                            <div className="overflow-hidden">
+                              <div className="flex justify-between items-start mb-0.5 gap-1">
+                                <span 
+                                  className="font-black truncate block hover:text-brand-primary cursor-pointer transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const p = patients.find(pat => pat.id === app.patientId);
+                                    if (p) setSelectedPatientRecord(p);
+                                  }}
+                                >
+                                  {app.patientName}
+                                </span>
+                                <span className="text-[8px] font-bold opacity-75 shrink-0 bg-white/70 px-1 py-0.2 rounded border border-black/5">
+                                  {app.duration}m
+                                </span>
+                              </div>
+                              
+                              {/* Tag visual do procedimento com a cor específica */}
+                              <div className="flex items-center gap-1.5 text-[8px] truncate font-black">
+                                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", proc.dotBg)} />
+                                <span className={cn("truncate uppercase tracking-wider", proc.badgeText)}>
+                                  {app.procedure || proc.name}
+                                </span>
+                              </div>
+                            </div>
+
+                            {(app.duration || 0) >= 30 && (
+                              <div className="mt-0.5 pt-0.5 border-t border-black/5 flex items-center justify-between gap-1">
+                                <span className="text-[7px] opacity-75 flex items-center gap-1 truncate max-w-[55%]">
+                                  <User size={8} className="shrink-0" /> {app.doctorName?.split(' ')[0] || 'Dentista'}
+                                </span>
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                  {/* Status badge compacto */}
+                                  <span className={cn(
+                                    "text-[7px] font-black uppercase px-1 py-0.2 rounded-full",
+                                    app.status === 'confirmado' ? 'bg-green-100 text-green-700' :
+                                    app.status === 'marcado' ? 'bg-blue-100 text-blue-700' :
+                                    app.status === 'aguardando' ? 'bg-orange-100 text-orange-700' :
+                                    app.status === 'desmarcado' ? 'bg-red-100 text-red-700' :
+                                    'bg-slate-100 text-slate-600'
+                                  )}>
+                                    {app.status === 'confirmado' ? 'Conf.' :
+                                     app.status === 'marcado' ? 'Marc.' :
+                                     app.status === 'aguardando' ? 'Aguard.' :
+                                     app.status === 'desmarcado' ? 'Desm.' : 'Atend.'}
+                                  </span>
+
+                                  {(app.status === 'marcado' || app.status === 'aguardando') && (
+                                    <button 
+                                      title="Confirmar consulta"
+                                      onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'confirmado'); }} 
+                                      className="hover:text-green-600 transition-colors p-0.5"
+                                    >
+                                      <CheckCircle2 size={10} />
+                                    </button>
+                                  )}
+                                  {app.status !== 'desmarcado' && (
+                                    <button 
+                                      title="Desmarcar consulta"
+                                      onClick={(e) => { e.stopPropagation(); handleUpdateStatus(app.id!, 'desmarcado'); }} 
+                                      className="hover:text-red-600 transition-colors p-0.5"
+                                    >
+                                      <XCircle size={10} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Linha em tempo real do horário atual (sobreposta no dia de hoje) */}
+                      {isToday(day) && (
+                        <div 
+                          ref={currentTimeLineRef}
+                          style={{ top: `${currentTimeTop}px` }}
+                          className="absolute left-0 right-0 z-40 pointer-events-none flex items-center transition-[top] duration-500 ease-linear"
+                        >
+                          {/* Marcador flutuante da hora atual com indicador pulsante */}
+                          <div className="absolute left-1 -translate-y-1/2 flex items-center gap-1 bg-rose-600 text-white shadow-lg shadow-rose-600/40 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-black tracking-wide z-50">
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-300 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                            </span>
+                            <span>{format(currentTime, 'HH:mm')}</span>
+                          </div>
+
+                          {/* Linha contínua sobreposta por cima de todos os pacientes */}
+                          <div className="w-full h-[2.5px] bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
+                          
+                          {/* Ponto indicador na extremidade direita */}
+                          <div className="w-2.5 h-2.5 rounded-full bg-rose-500 -ml-1 shadow-sm shrink-0" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
         </div>
       </div>
 
