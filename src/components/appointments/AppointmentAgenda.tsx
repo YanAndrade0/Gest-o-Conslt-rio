@@ -56,6 +56,29 @@ import { cn } from '../../lib/utils';
 import { PatientMedicalRecord } from '../patients/PatientMedicalRecord';
 import { PREDEFINED_PROCEDURES, getProcedureConfig, formatProcedureDuration } from '../../constants/procedures';
 
+/**
+ * Formata o nome do profissional para exibição legível na agenda tanto no celular quanto no computador
+ * Evita exibir apenas "Dr." ou "Dra." e garante visualização nítida sem exagerar no tamanho
+ */
+export function getDoctorDisplayName(doctorName?: string): string {
+  if (!doctorName || !doctorName.trim()) return 'Dr(a). Responsável';
+  const clean = doctorName.trim();
+  const parts = clean.split(/\s+/);
+  if (parts.length === 0) return 'Dr(a). Responsável';
+
+  const firstWordLower = parts[0].toLowerCase().replace(/\./g, '');
+  const isPrefix = ['dr', 'dra', 'doutor', 'doutora'].includes(firstWordLower);
+
+  if (isPrefix) {
+    if (parts.length >= 2) {
+      return parts.slice(0, 3).join(' ');
+    }
+    return clean;
+  }
+
+  return `Dr(a). ${parts.slice(0, 2).join(' ')}`;
+}
+
 const TIME_SLOTS = Array.from({ length: (20 - 8) * 2 + 1 }, (_, i) => {
   const hour = Math.floor(i / 2) + 8;
   const minute = (i % 2) * 30;
@@ -78,6 +101,7 @@ export function AppointmentAgenda() {
   const [isPatientListOpen, setIsPatientListOpen] = useState(false);
   const [selectedDoctorFilter, setSelectedDoctorFilter] = useState<string>('all');
   const [isCustomProcedure, setIsCustomProcedure] = useState(false);
+  const [isCustomDoctor, setIsCustomDoctor] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const patientSearchRef = useRef<HTMLDivElement>(null);
   const currentTimeLineRef = useRef<HTMLDivElement>(null);
