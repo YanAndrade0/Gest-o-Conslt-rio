@@ -80,6 +80,7 @@ export function AppointmentAgenda() {
   const [isCustomProcedure, setIsCustomProcedure] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const patientSearchRef = useRef<HTMLDivElement>(null);
+  const currentTimeLineRef = useRef<HTMLDivElement>(null);
   const initialScrollDoneRef = useRef(false);
 
   // Estado da hora atual em tempo real
@@ -110,50 +111,52 @@ export function AppointmentAgenda() {
 
   // Função para a vista da agenda acompanhar a linha do horário atual
   const scrollToCurrentTime = (smooth = true) => {
-    if (!scrollContainerRef.current) return;
     const now = new Date();
     const minutesFrom8 = (now.getHours() - 8) * 60 + now.getMinutes();
     const rawTop = minutesFrom8 * (80 / 30);
     const targetTop = Math.max(0, Math.min(rawTop, (TIME_SLOTS.length * 80) - 2));
 
-    // Mantém a linha visível a cerca de 1/3 do topo para dar contexto dos horários anteriores e seguintes
-    const containerHeight = scrollContainerRef.current.clientHeight || 600;
-    const targetScroll = Math.max(0, targetTop - containerHeight / 3);
+    if (scrollContainerRef.current) {
+      const containerHeight = scrollContainerRef.current.clientHeight || 600;
+      const targetScroll = Math.max(0, targetTop - Math.round(containerHeight / 3));
 
-    scrollContainerRef.current.scrollTo({
-      top: targetScroll,
-      behavior: smooth ? 'smooth' : 'auto'
-    });
+      scrollContainerRef.current.scrollTo({
+        top: targetScroll,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    }
+
+    if (currentTimeLineRef.current) {
+      try {
+        currentTimeLineRef.current.scrollIntoView({
+          behavior: smooth ? 'smooth' : 'auto',
+          block: 'center',
+          inline: 'nearest'
+        });
+      } catch (e) {
+        // Fallback já tratado no scrollTo do container
+      }
+    }
   };
 
-  // Ao abrir a agenda no dia de hoje, a visualização acompanha imediatamente a linha do horário atual
+  // Ao abrir a agenda no dia de hoje ou trocar para hoje, a visualização rola automaticamente para a hora atual
   useEffect(() => {
     if (isToday(selectedDate)) {
-      const timer = setTimeout(() => {
-        scrollToCurrentTime(false);
-      }, 120);
-      return () => clearTimeout(timer);
-    }
-  }, []);
+      const trigger = (smooth: boolean) => {
+        requestAnimationFrame(() => scrollToCurrentTime(smooth));
+      };
 
-  // Quando os dados terminam de carregar pela primeira vez, recentraliza na linha
-  useEffect(() => {
-    if (!loading && !initialScrollDoneRef.current && isToday(selectedDate)) {
-      initialScrollDoneRef.current = true;
-      const timer = setTimeout(() => {
-        scrollToCurrentTime(true);
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, selectedDate]);
+      // Execuções em cascata para garantir o alinhamento mesmo com montagem assíncrona do DOM
+      trigger(false);
+      const t1 = setTimeout(() => trigger(false), 50);
+      const t2 = setTimeout(() => trigger(false), 150);
+      const t3 = setTimeout(() => trigger(true), 350);
 
-  // Quando o usuário muda a data e volta para hoje, acompanha a linha em tempo real
-  useEffect(() => {
-    if (isToday(selectedDate)) {
-      const timer = setTimeout(() => {
-        scrollToCurrentTime(true);
-      }, 100);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
     }
   }, [selectedDate]);
 
@@ -980,8 +983,8 @@ export function AppointmentAgenda() {
         </Dialog>
       </header>
 
-      <div className="flex-1 bg-white rounded-xl sm:rounded-[2rem] border border-slate-100 shadow-xl sm:shadow-2xl shadow-slate-200/50 overflow-auto flex flex-col scrollbar-hide">
-        <div className="w-full flex-1 flex flex-col">
+      <div className="flex-1 bg-white rounded-xl sm:rounded-[2rem] border border-slate-100 shadow-xl sm:shadow-2xl shadow-slate-200/50 overflow-hidden flex flex-col min-h-0 scrollbar-hide">
+        <div className="w-full flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Days Header */}
           <div className="grid grid-cols-[46px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] border-b border-slate-50 bg-slate-50/20 shrink-0">
           <div className="p-1 sm:p-4 border-r border-slate-50 flex items-center justify-center">
@@ -1014,7 +1017,7 @@ export function AppointmentAgenda() {
         </div>
 
         {/* Scrollable Grid */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-xl sm:rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide bg-white rounded-xl sm:rounded-3xl border border-slate-100 shadow-inner group/grid" ref={scrollContainerRef}>
           <div className="grid grid-cols-[46px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] relative">
             
             {/* Time Indicators Column */}
@@ -1178,6 +1181,7 @@ export function AppointmentAgenda() {
                   {/* Linha em tempo real do horário atual (sobreposta por cima dos pacientes marcados) */}
                   {isToday(day) && (
                     <div 
+                      ref={currentTimeLineRef}
                       style={{ top: `${currentTimeTop}px` }}
                       className="absolute left-0 right-0 z-40 pointer-events-none flex items-center transition-[top] duration-500 ease-linear"
                     >
