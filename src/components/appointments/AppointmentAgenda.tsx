@@ -574,25 +574,24 @@ export function AppointmentAgenda() {
         </div>
       )}
 
-      {/* Faixa superior da agenda semanal reduzida e compacta */}
-      <header className="shrink-0 flex items-center justify-between bg-white px-2 sm:px-3 py-1 rounded-xl border border-slate-200/70 shadow-xs gap-1.5 min-h-[38px]">
-        {/* Lado Esquerdo: Título e Filtro de Profissional */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="w-6 h-6 bg-brand-primary/10 rounded-lg flex items-center justify-center text-brand-primary shrink-0">
-            <CalendarIcon size={14} />
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-tight leading-none whitespace-nowrap">Agenda Semanal</h2>
+      {/* Faixa superior da agenda - adaptada com perfeição para mobile e desktop */}
+      <header className="shrink-0 bg-white px-2 sm:px-3 py-1.5 sm:py-1 rounded-xl border border-slate-200/70 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+        {/* Linha 1 no Mobile / Lado Esquerdo no Desktop */}
+        <div className="flex items-center justify-between sm:justify-start gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 bg-brand-primary/10 rounded-lg flex items-center justify-center text-brand-primary shrink-0">
+              <CalendarIcon size={14} />
+            </div>
+            <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-tight leading-none whitespace-nowrap">Agenda</h2>
             <span className="text-[9px] font-bold text-slate-400 hidden md:inline capitalize whitespace-nowrap">
-              ({format(weekDays[0], "dd/MM")} a {format(weekDays[6], "dd/MM/yyyy")})
+              Semanal ({format(weekDays[0], "dd/MM")} a {format(weekDays[6], "dd/MM/yyyy")})
             </span>
           </div>
 
           {/* Filtro por Profissional (apenas se puder ver todos) */}
           {canViewAllAgenda && availableDoctors.length > 0 && (
-            <div className="flex items-center gap-1 bg-slate-100/80 px-1.5 py-0.5 rounded-md border border-slate-200/50 shrink-0 ml-1">
+            <div className="flex items-center gap-1 bg-slate-100/80 px-1.5 py-0.5 rounded-md border border-slate-200/50 shrink-0">
               <Filter size={10} className="text-slate-400 shrink-0" />
-              <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider hidden lg:inline">Dentista:</span>
               <select
                 value={selectedDoctorFilter}
                 onChange={(e) => setSelectedDoctorFilter(e.target.value)}
@@ -607,22 +606,34 @@ export function AppointmentAgenda() {
               </select>
             </div>
           )}
+
+          {/* Botão Novo Agendamento - Destaque no Mobile (topo direito) */}
+          <div className="sm:hidden flex items-center">
+            <Button 
+              onClick={handleOpenNewAppointment}
+              className="bg-brand-primary text-white px-2.5 py-1 rounded-lg font-black hover:bg-brand-accent transition-all shadow-sm shadow-brand-primary/25 gap-1 h-7 shrink-0 flex items-center justify-center cursor-pointer active:scale-95 text-[11px]"
+              title="Agendar nova consulta"
+            >
+              <Plus size={14} className="shrink-0 stroke-[2.5]" />
+              <span className="whitespace-nowrap font-black">Agendar</span>
+            </Button>
+          </div>
         </div>
 
-        {/* Lado Direito: Navegação de Semanas + Botão Novo Agendamento */}
-        <div className="flex items-center gap-1 sm:gap-1.5">
+        {/* Linha 2 no Mobile / Lado Direito no Desktop */}
+        <div className="flex items-center justify-between sm:justify-end gap-1 sm:gap-1.5">
           {/* Navegador de Semana Compacto */}
-          <div className="flex items-center gap-0.5 bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/50 shrink-0">
+          <div className="flex items-center justify-between sm:justify-start flex-1 sm:flex-initial gap-0.5 bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/50 shrink-0">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={handlePrevWeek} 
-              className="rounded-md hover:bg-white transition-all h-6 w-6"
+              className="rounded-md hover:bg-white transition-all h-6 w-6 shrink-0"
               title="Semana anterior"
             >
               <ChevronLeft size={13} />
             </Button>
-            <div className="px-1 py-0.5 flex items-center gap-1 relative">
+            <div className="px-1 py-0.5 flex items-center justify-center gap-1 relative flex-1 sm:flex-initial">
               <span className="text-[10px] sm:text-[11px] font-black text-slate-700 capitalize whitespace-nowrap">
                 {format(weekDays[0], "dd 'de' MMM", { locale: ptBR })} - {format(weekDays[6], "dd 'de' MMM", { locale: ptBR })}
               </span>
@@ -638,7 +649,7 @@ export function AppointmentAgenda() {
               variant="ghost" 
               size="icon" 
               onClick={handleNextWeek} 
-              className="rounded-md hover:bg-white transition-all h-6 w-6"
+              className="rounded-md hover:bg-white transition-all h-6 w-6 shrink-0"
               title="Próxima semana"
             >
               <ChevronRight size={13} />
@@ -652,7 +663,7 @@ export function AppointmentAgenda() {
                   setSelectedDate(new Date());
                   setTimeout(() => scrollToCurrentTime(true), 80);
                 }}
-                className="h-6 px-1.5 rounded-md text-brand-primary hover:bg-white font-black text-[9px] sm:text-[10px] transition-all cursor-pointer"
+                className="h-6 px-1.5 rounded-md text-brand-primary hover:bg-white font-black text-[9px] sm:text-[10px] transition-all cursor-pointer shrink-0"
                 title="Ir para a semana atual"
               >
                 Hoje
@@ -662,7 +673,7 @@ export function AppointmentAgenda() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => scrollToCurrentTime(true)}
-                className="h-6 px-1.5 rounded-md text-rose-600 bg-white shadow-xs hover:bg-rose-50 font-black text-[9px] transition-all cursor-pointer flex items-center gap-1"
+                className="h-6 px-1.5 rounded-md text-rose-600 bg-white shadow-xs hover:bg-rose-50 font-black text-[9px] transition-all cursor-pointer flex items-center gap-1 shrink-0"
                 title="Centralizar na linha da hora atual"
               >
                 <span className="relative flex h-1.5 w-1.5">
@@ -674,16 +685,17 @@ export function AppointmentAgenda() {
             )}
           </div>
 
-          {/* Botão Novo Agendamento */}
-          <Button 
-            onClick={handleOpenNewAppointment}
-            className="bg-brand-primary text-white px-2 sm:px-2.5 rounded-lg font-black hover:bg-brand-accent transition-all shadow-xs gap-1 h-6 sm:h-7 shrink-0 flex items-center justify-center cursor-pointer active:scale-95 text-[10px] sm:text-[11px]"
-            title="Agendar nova consulta"
-          >
-            <Plus size={13} className="shrink-0 stroke-[2.5]" />
-            <span className="whitespace-nowrap font-black hidden xs:inline">Agendar</span>
-            <span className="whitespace-nowrap font-black inline xs:hidden">+</span>
-          </Button>
+          {/* Botão Novo Agendamento no Desktop */}
+          <div className="hidden sm:flex items-center">
+            <Button 
+              onClick={handleOpenNewAppointment}
+              className="bg-brand-primary text-white px-2.5 sm:px-3 rounded-lg font-black hover:bg-brand-accent transition-all shadow-xs gap-1.5 h-7 shrink-0 flex items-center justify-center cursor-pointer active:scale-95 text-[11px]"
+              title="Agendar nova consulta"
+            >
+              <Plus size={13} className="stroke-[2.5]" />
+              <span className="whitespace-nowrap font-black">Agendar</span>
+            </Button>
+          </div>
         </div>
 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -1259,6 +1271,16 @@ export function AppointmentAgenda() {
           </div>
         </div>
       </footer>
+
+      {/* Botão Flutuante de Agendamento Rápido no Mobile (acima da barra inferior) */}
+      <button
+        onClick={handleOpenNewAppointment}
+        className="sm:hidden fixed bottom-20 right-4 z-40 w-12 h-12 bg-brand-primary text-white rounded-full shadow-xl shadow-brand-primary/40 flex items-center justify-center active:scale-90 transition-all cursor-pointer border-2 border-white"
+        title="Novo Agendamento"
+        aria-label="Novo Agendamento"
+      >
+        <Plus size={22} className="stroke-[2.5]" />
+      </button>
 
       {selectedPatientRecord && (
         <PatientMedicalRecord 
