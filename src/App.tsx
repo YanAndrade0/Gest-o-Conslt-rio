@@ -17,7 +17,7 @@ import { medicalRecordService, PatientPayment } from './services/medicalRecordSe
 import { appointmentService, Appointment as AppointmentType } from './services/appointmentService';
 import { patientService } from './services/patientService';
 import { toast } from 'sonner';
-import { Mail, Lock, User as UserIcon, ArrowRight, History, Clock, CreditCard, PlusCircle, Menu, X as CloseIcon, AlertCircle, Eye, EyeOff, Calendar } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, History, Clock, CreditCard, PlusCircle, Menu, X as CloseIcon, AlertCircle, Eye, EyeOff, Calendar, Settings as SettingsIcon, Shield, LogOut } from 'lucide-react';
 import { format, isToday, startOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from './components/ui/input';
@@ -621,8 +621,8 @@ const Dashboard = () => {
                         {item.procedure || proc.name}
                       </span>
                       {item.doctorName && (
-                        <span className="text-[10px] font-bold text-brand-primary uppercase tracking-wider bg-brand-light/60 px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <UserIcon size={10} className="text-brand-primary" /> {item.doctorName}
+                        <span className="text-[10px] font-black text-brand-primary/50 uppercase tracking-widest bg-brand-light/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <UserIcon size={8} /> {item.doctorName}
                         </span>
                       )}
                     </div>
@@ -653,17 +653,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  const isAgenda = location.pathname === '/agenda';
   
   const navItems = [
-    { name: 'Painel Geral', path: '/', id: 'nav-dashboard' },
-    { name: 'Agenda', path: '/agenda', id: 'nav-agenda' },
-    { name: 'Pacientes', path: '/pacientes', id: 'nav-pacientes' },
-    { name: 'Financeiro', path: '/financeiro', id: 'nav-financeiro' },
-    { name: 'Configurações', path: '/configuracoes', id: 'nav-config' },
+    { name: 'Painel Geral', shortName: 'Painel', path: '/', id: 'nav-dashboard', icon: Clock },
+    { name: 'Agenda', shortName: 'Agenda', path: '/agenda', id: 'nav-agenda', icon: Calendar },
+    { name: 'Pacientes', shortName: 'Pacientes', path: '/pacientes', id: 'nav-pacientes', icon: UserIcon },
+    { name: 'Financeiro', shortName: 'Financeiro', path: '/financeiro', id: 'nav-financeiro', icon: CreditCard },
+    { name: 'Configurações', shortName: 'Config.', path: '/configuracoes', id: 'nav-config', icon: SettingsIcon },
   ];
 
   if (user?.isMasterAdmin) {
-    navItems.push({ name: 'Admin Master', path: '/admin', id: 'nav-admin' });
+    navItems.push({ name: 'Admin Master', shortName: 'Admin', path: '/admin', id: 'nav-admin', icon: Shield });
   }
 
   return (
@@ -671,13 +672,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <TrialBanner />
       <div className="flex flex-1 flex-col lg:flex-row overflow-hidden pb-16 lg:pb-0">
         {/* Mobile Header */}
-      <header className="lg:hidden bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 z-40 shrink-0">
-        <Logo className="w-10 h-10" />
+      <header className={cn(
+        "lg:hidden bg-white border-b border-slate-200 flex items-center justify-between z-40 shrink-0 transition-all",
+        isAgenda ? "h-11 px-3" : "h-16 px-6"
+      )}>
+        <Logo className={isAgenda ? "w-8 h-8" : "w-10 h-10"} />
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-600 transition-all active:scale-95"
+          className={cn(
+            "rounded-xl bg-slate-50 flex items-center justify-center text-slate-600 transition-all active:scale-95",
+            isAgenda ? "w-8 h-8" : "w-10 h-10"
+          )}
         >
-          {isSidebarOpen ? <CloseIcon size={20} /> : <Menu size={20} />}
+          {isSidebarOpen ? <CloseIcon size={isAgenda ? 16 : 20} /> : <Menu size={isAgenda ? 16 : 20} />}
         </button>
       </header>
 
@@ -689,49 +696,90 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Fica ultra-compacto (w-14 / 56px) na Agenda para a tela ser praticamente 100% livre */}
       <aside className={cn(
-        "w-72 bg-white border-r border-slate-200 flex flex-col items-stretch z-50 shadow-xl shadow-slate-200/20 transition-all duration-300 lg:static fixed inset-y-0 left-0 h-full",
+        "bg-white border-r border-slate-200 flex flex-col items-stretch z-50 shadow-xl shadow-slate-200/20 transition-all duration-300 lg:static fixed inset-y-0 left-0 h-full",
+        isAgenda ? "w-72 lg:w-14" : "w-72",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        <Logo className="p-8 pb-12 hidden lg:flex" />
+        {isAgenda ? (
+          <div className="p-2 hidden lg:flex items-center justify-center border-b border-slate-100 shrink-0">
+            <div className="w-8 h-8 bg-brand-primary rounded-xl flex items-center justify-center font-black text-white text-[11px] shadow-sm shadow-brand-primary/30" title="OralCloud">
+              OC
+            </div>
+          </div>
+        ) : (
+          <Logo className="p-8 pb-12 hidden lg:flex" />
+        )}
         
-        <nav className="flex-1 px-6 space-y-2 mt-8 lg:mt-0">
+        <nav className={cn(
+          "flex-1 space-y-1 mt-3 lg:mt-2 overflow-y-auto no-scrollbar",
+          isAgenda ? "px-1 sm:px-1.5" : "px-6"
+        )}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const Icon = item.icon;
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 id={item.id}
+                title={item.name}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center gap-4 px-6 py-4 rounded-2xl cursor-pointer transition-all text-sm font-bold ${
+                className={cn(
+                  "flex items-center rounded-xl cursor-pointer transition-all font-bold group",
+                  isAgenda 
+                    ? "justify-center p-2 mx-auto w-10 h-10" 
+                    : "gap-4 px-6 py-4 text-sm",
                   isActive 
-                    ? 'bg-brand-light text-brand-primary border-l-4 border-brand-primary shadow-sm' 
-                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-                }`}
+                    ? "bg-brand-light text-brand-primary shadow-xs font-black" + (!isAgenda ? " border-l-4 border-brand-primary" : "")
+                    : "text-slate-400 hover:bg-slate-50 hover:text-slate-600"
+                )}
               >
-                {item.name}
+                <Icon size={18} className="shrink-0" />
+                {!isAgenda && (
+                  <span className="text-sm">
+                    {item.name}
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-6 border-t border-slate-50">
-          <div className="flex items-center gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group relative">
-            <div className="w-10 h-10 rounded-full bg-brand-muted flex items-center justify-center overflow-hidden border-2 border-white shadow-sm shrink-0">
-               {user?.photoURL ? <img src={user.photoURL} alt={user.displayName || ''} /> : <span className="text-sm font-black text-brand-primary">{(user?.displayName || 'D').charAt(0)}</span>}
-            </div>
-            <div className="overflow-hidden flex-1">
-              <p className="text-sm font-bold text-slate-800 truncate">{user?.displayName || 'Usuário'}</p>
+        <div className={cn("border-t border-slate-100 shrink-0", isAgenda ? "p-1.5" : "p-6")}>
+          {isAgenda ? (
+            <div className="flex flex-col items-center gap-1.5 p-1 bg-slate-50/80 rounded-xl border border-slate-100">
+              <div 
+                className="w-7 h-7 rounded-full bg-brand-muted flex items-center justify-center overflow-hidden border border-white shadow-xs shrink-0"
+                title={user?.displayName || 'Usuário'}
+              >
+                {user?.photoURL ? <img src={user.photoURL} alt={user.displayName || ''} /> : <span className="text-[10px] font-black text-brand-primary">{(user?.displayName || 'D').charAt(0)}</span>}
+              </div>
               <button 
                 onClick={() => logout()}
-                className="text-[10px] text-red-400 font-bold uppercase tracking-widest hover:text-red-600 transition-colors"
+                title="Sair da conta"
+                className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors rounded-lg cursor-pointer"
               >
-                Sair
+                <LogOut size={14} />
               </button>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group relative">
+              <div className="w-10 h-10 rounded-full bg-brand-muted flex items-center justify-center overflow-hidden border-2 border-white shadow-sm shrink-0">
+                 {user?.photoURL ? <img src={user.photoURL} alt={user.displayName || ''} /> : <span className="text-sm font-black text-brand-primary">{(user?.displayName || 'D').charAt(0)}</span>}
+              </div>
+              <div className="overflow-hidden flex-1">
+                <p className="text-sm font-bold text-slate-800 truncate">{user?.displayName || 'Usuário'}</p>
+                <button 
+                  onClick={() => logout()}
+                  className="text-[10px] text-red-400 font-bold uppercase tracking-widest hover:text-red-600 transition-colors cursor-pointer"
+                >
+                  Sair
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
       <main className={cn(

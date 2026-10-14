@@ -559,45 +559,44 @@ export function AppointmentAgenda() {
   }, [appointments, weekDays, canViewAllAgenda, selectedDoctorFilter]);
 
   return (
-    <div className="p-2 sm:p-4 md:p-8 space-y-2 sm:space-y-4 md:space-y-6 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-500">
+    <div className="p-0.5 sm:p-1.5 gap-1 h-full overflow-hidden flex flex-col bg-bg-main animate-in fade-in duration-300">
       {!canManageAgenda && (
-        <div className="bg-amber-50 border border-amber-200/80 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 text-amber-800 text-[11px] sm:text-xs font-bold shadow-sm animate-in fade-in duration-300">
-          <Lock size={15} className="shrink-0 text-amber-600 sm:size-[18px]" />
-          <span>Modo de Leitura na Agenda: Sua conta não possui permissão para agendar ou editar consultas.</span>
+        <div className="bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-lg flex items-center gap-1.5 text-amber-800 text-[10px] font-bold shadow-xs shrink-0">
+          <Lock size={12} className="shrink-0 text-amber-600" />
+          <span>Modo de Leitura: Sem permissão para agendar ou editar consultas.</span>
         </div>
       )}
 
       {!canViewAllAgenda && (
-        <div className="bg-blue-50 border border-blue-200/80 p-2 sm:p-3.5 rounded-xl sm:rounded-2xl flex items-center gap-2 sm:gap-3 text-blue-800 text-[11px] sm:text-xs font-bold shadow-sm animate-in fade-in duration-300">
-          <EyeOff size={15} className="shrink-0 text-blue-600 sm:size-[18px]" />
-          <span>Visualização Restrita da Agenda: Exibindo apenas consultas atribuídas a você ({user?.displayName || 'Você'}).</span>
+        <div className="bg-blue-50 border border-blue-200/80 px-2 py-0.5 rounded-lg flex items-center gap-1.5 text-blue-800 text-[10px] font-bold shadow-xs shrink-0">
+          <EyeOff size={12} className="shrink-0 text-blue-600" />
+          <span>Visualização Restrita: Exibindo apenas consultas de {user?.displayName || 'Você'}.</span>
         </div>
       )}
 
-      <header className="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white/80 backdrop-blur-md p-2.5 sm:p-4 md:p-5 rounded-2xl sm:rounded-[2rem] border border-white shadow-lg sm:shadow-xl shadow-slate-200/50 gap-2 sm:gap-4">
+      {/* Faixa superior da agenda semanal reduzida e compacta */}
+      <header className="shrink-0 flex items-center justify-between bg-white px-2 sm:px-3 py-1 rounded-xl border border-slate-200/70 shadow-xs gap-1.5 min-h-[38px]">
         {/* Lado Esquerdo: Título e Filtro de Profissional */}
-        <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <div className="w-9 h-9 sm:w-12 sm:h-12 bg-brand-primary/10 rounded-xl sm:rounded-2xl flex items-center justify-center text-brand-primary shrink-0 shadow-sm">
-              <CalendarIcon size={18} className="sm:size-6" />
-            </div>
-            <div>
-              <h2 className="text-base sm:text-2xl font-black text-slate-800 tracking-tight leading-tight">Agenda Semanal</h2>
-              <p className="text-slate-400 text-[9px] sm:text-xs font-bold uppercase tracking-widest">
-                Semana de {format(weekDays[0], "dd 'de' MMMM", { locale: ptBR })} a {format(weekDays[6], "dd 'de' MMMM", { locale: ptBR })}
-              </p>
-            </div>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="w-6 h-6 bg-brand-primary/10 rounded-lg flex items-center justify-center text-brand-primary shrink-0">
+            <CalendarIcon size={14} />
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <h2 className="text-xs sm:text-sm font-black text-slate-800 tracking-tight leading-none whitespace-nowrap">Agenda Semanal</h2>
+            <span className="text-[9px] font-bold text-slate-400 hidden md:inline capitalize whitespace-nowrap">
+              ({format(weekDays[0], "dd/MM")} a {format(weekDays[6], "dd/MM/yyyy")})
+            </span>
           </div>
 
           {/* Filtro por Profissional (apenas se puder ver todos) */}
           {canViewAllAgenda && availableDoctors.length > 0 && (
-            <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100/70 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
-              <Filter size={12} className="text-slate-400 shrink-0 sm:size-3.5" />
-              <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-400 tracking-wider">Dentista:</span>
+            <div className="flex items-center gap-1 bg-slate-100/80 px-1.5 py-0.5 rounded-md border border-slate-200/50 shrink-0 ml-1">
+              <Filter size={10} className="text-slate-400 shrink-0" />
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider hidden lg:inline">Dentista:</span>
               <select
                 value={selectedDoctorFilter}
                 onChange={(e) => setSelectedDoctorFilter(e.target.value)}
-                className="bg-transparent border-none text-[10px] sm:text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1 max-w-[110px] sm:max-w-[150px] truncate"
+                className="bg-transparent border-none text-[10px] font-bold text-slate-700 focus:outline-none cursor-pointer pr-1 max-w-[85px] sm:max-w-[120px] truncate"
               >
                 <option value="all">Todos</option>
                 {availableDoctors.map(doc => (
@@ -610,46 +609,41 @@ export function AppointmentAgenda() {
           )}
         </div>
 
-        {/* Lado Direito: Navegação de Semanas (Avançar e Voltar) + Botão Novo Agendamento */}
-        <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-3 w-full sm:w-auto">
-          {/* Navegador de Semana */}
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100/70 p-0.5 sm:p-1 rounded-xl sm:rounded-2xl border border-slate-200/60 shrink-0">
+        {/* Lado Direito: Navegação de Semanas + Botão Novo Agendamento */}
+        <div className="flex items-center gap-1 sm:gap-1.5">
+          {/* Navegador de Semana Compacto */}
+          <div className="flex items-center gap-0.5 bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/50 shrink-0">
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={handlePrevWeek} 
-              className="rounded-lg sm:rounded-xl hover:bg-white transition-all h-8 w-8 sm:h-9 sm:w-9"
+              className="rounded-md hover:bg-white transition-all h-6 w-6"
               title="Semana anterior"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={13} />
             </Button>
-            <div className="px-1.5 sm:px-3 py-1 flex items-center gap-1 sm:gap-2 relative">
-              <span className="text-xs sm:text-sm font-black text-slate-700 capitalize whitespace-nowrap block sm:hidden">
-                {format(weekDays[0], "dd/MM")} - {format(weekDays[6], "dd/MM")}
-              </span>
-              <span className="text-xs sm:text-sm font-black text-slate-700 capitalize whitespace-nowrap hidden sm:block">
+            <div className="px-1 py-0.5 flex items-center gap-1 relative">
+              <span className="text-[10px] sm:text-[11px] font-black text-slate-700 capitalize whitespace-nowrap">
                 {format(weekDays[0], "dd 'de' MMM", { locale: ptBR })} - {format(weekDays[6], "dd 'de' MMM", { locale: ptBR })}
               </span>
               <Input 
                 type="date"
                 value={format(selectedDate, 'yyyy-MM-dd')}
                 onChange={(e) => setSelectedDate(parseISO(e.target.value))}
-                className="w-8 h-8 p-0 border-none bg-transparent cursor-pointer opacity-0 absolute inset-0"
+                className="w-6 h-6 p-0 border-none bg-transparent cursor-pointer opacity-0 absolute inset-0"
               />
-              <Button variant="ghost" size="icon" className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-lg text-brand-primary p-0 pointer-events-none">
-                <CalendarIcon size={12} className="sm:size-3.5" />
-              </Button>
+              <CalendarIcon size={11} className="text-brand-primary shrink-0 pointer-events-none" />
             </div>
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={handleNextWeek} 
-              className="rounded-lg sm:rounded-xl hover:bg-white transition-all h-8 w-8 sm:h-9 sm:w-9"
+              className="rounded-md hover:bg-white transition-all h-6 w-6"
               title="Próxima semana"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={13} />
             </Button>
-            {/* Botão Hoje / Agora para acompanhar em tempo real */}
+            {/* Botão Hoje / Agora */}
             {!isTodayInWeek ? (
               <Button 
                 variant="ghost" 
@@ -658,7 +652,7 @@ export function AppointmentAgenda() {
                   setSelectedDate(new Date());
                   setTimeout(() => scrollToCurrentTime(true), 80);
                 }}
-                className="h-8 sm:h-9 px-2 sm:px-3 rounded-lg sm:rounded-xl text-brand-primary hover:bg-white font-black text-[11px] sm:text-xs transition-all cursor-pointer"
+                className="h-6 px-1.5 rounded-md text-brand-primary hover:bg-white font-black text-[9px] sm:text-[10px] transition-all cursor-pointer"
                 title="Ir para a semana atual"
               >
                 Hoje
@@ -668,12 +662,12 @@ export function AppointmentAgenda() {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => scrollToCurrentTime(true)}
-                className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg sm:rounded-xl text-rose-600 bg-white shadow-xs hover:bg-rose-50 font-black text-[10px] sm:text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                className="h-6 px-1.5 rounded-md text-rose-600 bg-white shadow-xs hover:bg-rose-50 font-black text-[9px] transition-all cursor-pointer flex items-center gap-1"
                 title="Centralizar na linha da hora atual"
               >
-                <span className="relative flex h-2 w-2">
+                <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-600"></span>
                 </span>
                 <span>Agora</span>
               </Button>
@@ -683,11 +677,12 @@ export function AppointmentAgenda() {
           {/* Botão Novo Agendamento */}
           <Button 
             onClick={handleOpenNewAppointment}
-            className="bg-brand-primary text-white px-2.5 sm:px-6 rounded-xl sm:rounded-2xl font-black hover:bg-brand-accent transition-all shadow-md sm:shadow-xl shadow-brand-primary/25 gap-1 sm:gap-2 h-8 sm:h-11 shrink-0 flex items-center justify-center cursor-pointer active:scale-95 text-xs sm:text-sm"
-            title="Agendar nova consulta ou atendimento"
+            className="bg-brand-primary text-white px-2 sm:px-2.5 rounded-lg font-black hover:bg-brand-accent transition-all shadow-xs gap-1 h-6 sm:h-7 shrink-0 flex items-center justify-center cursor-pointer active:scale-95 text-[10px] sm:text-[11px]"
+            title="Agendar nova consulta"
           >
-            <Plus size={15} className="shrink-0 stroke-[2.5] sm:size-[18px]" />
-            <span className="whitespace-nowrap font-black">Novo Agendamento</span>
+            <Plus size={13} className="shrink-0 stroke-[2.5]" />
+            <span className="whitespace-nowrap font-black hidden xs:inline">Agendar</span>
+            <span className="whitespace-nowrap font-black inline xs:hidden">+</span>
           </Button>
         </div>
 
@@ -1010,35 +1005,35 @@ export function AppointmentAgenda() {
           <div className="min-w-[850px] lg:min-w-full flex flex-col">
             {/* Days Header - Fixo no topo durante a rolagem vertical (sticky top-0 z-30) */}
             <div className="grid grid-cols-[50px_repeat(7,1fr)] sm:grid-cols-[70px_repeat(7,1fr)] border-b border-slate-100 bg-white sticky top-0 z-30 shrink-0 shadow-xs">
-              <div className="p-2 sm:p-3 border-r border-slate-100 flex items-center justify-center bg-slate-50/80 sticky left-0 z-40">
-                <Clock size={16} className="text-slate-400" />
+              <div className="py-1 px-1 sm:py-1.5 border-r border-slate-100 flex items-center justify-center bg-slate-50/80 sticky left-0 z-40">
+                <Clock size={13} className="text-slate-400" />
               </div>
               {weekDays.map((day, i) => (
                 <div 
                   key={i} 
                   className={cn(
-                    "p-2 sm:p-3 text-center border-r border-slate-100 last:border-r-0 flex flex-col items-center justify-center gap-0.5 sm:gap-1 transition-colors",
-                    isToday(day) ? "bg-brand-light/35 font-black" : "bg-slate-50/50"
+                    "py-1 px-0.5 sm:py-1.5 text-center border-r border-slate-100 last:border-r-0 flex flex-col items-center justify-center gap-0.5 transition-colors",
+                    isToday(day) ? "bg-brand-light/40 font-black" : "bg-slate-50/50"
                   )}
                 >
                   <span className={cn(
-                    "text-[9px] sm:text-[10px] font-black uppercase tracking-wider",
+                    "text-[8px] sm:text-[9px] font-black uppercase tracking-wider",
                     isToday(day) ? "text-brand-primary" : "text-slate-400"
                   )}>
                     {format(day, 'EEE', { locale: ptBR })}
                   </span>
                   <div className="flex items-center gap-1">
                     <span className={cn(
-                      "text-xs sm:text-base font-black w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg transition-all",
-                      isToday(day) ? "bg-brand-primary text-white shadow-md shadow-brand-primary/30" : "text-slate-700"
+                      "text-[10px] sm:text-xs font-black w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-md transition-all",
+                      isToday(day) ? "bg-brand-primary text-white shadow-xs shadow-brand-primary/30" : "text-slate-700"
                     )}>
                       {format(day, 'dd')}
                     </span>
                   </div>
                   {isToday(day) && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
-                      <span className="text-[8px] font-black uppercase tracking-widest text-brand-primary">Hoje</span>
+                    <div className="flex items-center gap-0.5">
+                      <span className="w-1 h-1 rounded-full bg-brand-primary animate-pulse" />
+                      <span className="text-[7px] font-black uppercase tracking-widest text-brand-primary">Hoje</span>
                     </div>
                   )}
                 </div>
@@ -1047,6 +1042,28 @@ export function AppointmentAgenda() {
 
             {/* Grid de Horários e 7 Colunas da Semana */}
             <div className="grid grid-cols-[50px_repeat(7,1fr)] sm:grid-cols-[70px_repeat(7,1fr)] relative">
+              {/* Linha do tempo em tempo real atravessando TODOS os dias da semana */}
+              <div 
+                ref={currentTimeLineRef}
+                style={{ top: `${currentTimeTop}px` }}
+                className="absolute left-0 right-0 z-40 pointer-events-none flex items-center transition-[top] duration-500 ease-linear w-full"
+              >
+                {/* Marcador na régua de horários à esquerda com hora exata e pulso */}
+                <div className="sticky left-0 z-50 flex items-center gap-1 bg-rose-600 text-white shadow-md shadow-rose-600/40 px-1.5 py-0.5 rounded-r-md text-[8px] sm:text-[9px] font-black tracking-tight shrink-0 select-none">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-300 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
+                  </span>
+                  <span>{format(currentTime, 'HH:mm')}</span>
+                </div>
+
+                {/* Linha contínua cortando todos os 7 dias da semana por cima de todos os pacientes */}
+                <div className="flex-1 h-[2px] sm:h-[2.5px] bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.85)]" />
+
+                {/* Ponto indicador na extremidade direita da semana */}
+                <div className="w-2.5 h-2.5 rounded-full bg-rose-500 -ml-1 shadow-sm shrink-0" />
+              </div>
+
               {/* Coluna da Régua de Horários */}
               <div className="flex flex-col relative bg-white border-r border-slate-100 sticky left-0 z-20 shadow-xs">
                 {TIME_SLOTS.map((timeStr) => (
@@ -1058,18 +1075,6 @@ export function AppointmentAgenda() {
                     {timeStr.endsWith(':00') && <span className="hidden sm:inline-block text-[7px] font-black text-slate-300 uppercase tracking-tighter">Horário</span>}
                   </div>
                 ))}
-
-                {/* Marcador na régua lateral se hoje estiver na semana visível */}
-                {isTodayInWeek && (
-                  <div 
-                    style={{ top: `${currentTimeTop}px` }}
-                    className="absolute right-0 z-30 pointer-events-none -translate-y-1/2 pr-1 transition-[top] duration-500 ease-linear flex items-center"
-                  >
-                    <span className="bg-rose-600 text-white text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded shadow-sm">
-                      {format(currentTime, 'HH:mm')}
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Colunas dos 7 Dias da Semana */}
@@ -1193,27 +1198,14 @@ export function AppointmentAgenda() {
                         );
                       })}
 
-                      {/* Linha em tempo real do horário atual (sobreposta no dia de hoje) */}
+                      {/* Marcador indicador discreto sobre a linha contínua na coluna de Hoje */}
                       {isToday(day) && (
                         <div 
-                          ref={currentTimeLineRef}
                           style={{ top: `${currentTimeTop}px` }}
-                          className="absolute left-0 right-0 z-40 pointer-events-none flex items-center transition-[top] duration-500 ease-linear"
+                          className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none flex items-center gap-1 bg-rose-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full shadow-md shadow-rose-600/40 select-none whitespace-nowrap"
                         >
-                          {/* Marcador flutuante da hora atual com indicador pulsante */}
-                          <div className="absolute left-1 -translate-y-1/2 flex items-center gap-1 bg-rose-600 text-white shadow-lg shadow-rose-600/40 px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-black tracking-wide z-50">
-                            <span className="relative flex h-1.5 w-1.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-300 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
-                            </span>
-                            <span>{format(currentTime, 'HH:mm')}</span>
-                          </div>
-
-                          {/* Linha contínua sobreposta por cima de todos os pacientes */}
-                          <div className="w-full h-[2.5px] bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
-                          
-                          {/* Ponto indicador na extremidade direita */}
-                          <div className="w-2.5 h-2.5 rounded-full bg-rose-500 -ml-1 shadow-sm shrink-0" />
+                          <span className="w-1 h-1 rounded-full bg-white animate-ping" />
+                          <span>Hoje</span>
                         </div>
                       )}
                     </div>
@@ -1225,22 +1217,23 @@ export function AppointmentAgenda() {
         </div>
       </div>
 
-      <footer className="bg-white/80 backdrop-blur-sm p-2 sm:p-3.5 md:p-4 rounded-xl sm:rounded-2xl border border-white flex flex-col md:flex-row items-stretch md:items-center justify-between gap-1.5 sm:gap-3 shadow-sm shrink-0">
-        {/* Procedimentos Pré-definidos e suas cores na agenda */}
-        <div className="flex items-center gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 whitespace-nowrap">
-          <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-400 tracking-wider shrink-0">
+      {/* Rodapé de Legenda Compacto para não ocupar espaço vertical */}
+      <footer className="bg-white/90 backdrop-blur-sm px-2 sm:px-3 py-1 rounded-lg border border-slate-200/70 flex flex-wrap items-center justify-between gap-1.5 shadow-2xs shrink-0 text-[8px] sm:text-[9px]">
+        {/* Procedimentos Pré-definidos */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.2 whitespace-nowrap">
+          <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider shrink-0">
             Procedimentos:
           </span>
           {PREDEFINED_PROCEDURES.map((p) => (
-            <div key={p.id} className="flex items-center gap-1 bg-white/70 px-1.5 sm:px-2 py-0.5 rounded-md border border-slate-100 text-[8px] sm:text-[10px] shrink-0">
-              <span className={cn("w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0", p.dotBg)} />
-              <span className="font-bold text-slate-700">{p.name}</span>
+            <div key={p.id} className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100 text-[8px] shrink-0">
+              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", p.dotBg)} />
+              <span className="font-bold text-slate-600">{p.name}</span>
             </div>
           ))}
         </div>
 
         {/* Legenda de Status */}
-        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar pt-1 md:pt-0 border-t md:border-t-0 border-slate-100 text-[8px] sm:text-[9px] whitespace-nowrap">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.2 text-[8px] whitespace-nowrap">
           <span className="font-black uppercase text-slate-400 tracking-wider shrink-0">
             Status:
           </span>
