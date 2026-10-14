@@ -76,6 +76,7 @@
         "duration": { "type": "integer", "description": "minutos" },
         "procedure": { "type": "string" },
         "doctorName": { "type": "string" },
+        "doctorId": { "type": "string" },
         "status": { "type": "string", "enum": ["marcado", "confirmado", "aguardando", "desmarcado", "finalizado"] },
         "reminderSent": { "type": "boolean" },
         "clinicId": { "type": "string" }

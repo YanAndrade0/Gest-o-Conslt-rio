@@ -281,12 +281,14 @@ service cloud.firestore {
         && resource.data.clinicId == getUserData().clinicId
         && (
           canViewAllAppointments() ||
-          resource.data.get('doctorName', '') == getUserData().get('displayName', '')
+          resource.data.get('doctorName', '') == getUserData().get('displayName', '') ||
+          resource.data.get('doctorId', '') == request.auth.uid
         )));
       allow get: if isSignedIn() && (isMasterAdmin() || (isClinicMember(existing().clinicId)
         && (
           canViewAllAppointments() ||
-          existing().get('doctorName', '') == getUserData().get('displayName', '')
+          existing().get('doctorName', '') == getUserData().get('displayName', '') ||
+          existing().get('doctorId', '') == request.auth.uid
         )));
       allow create: if isVerified() && (isMasterAdmin() || (isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidAppointment(incoming()) && canManageAppointments()));
       allow update: if isVerified() && (isMasterAdmin() || (isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidAppointment(incoming()) && canManageAppointments()));

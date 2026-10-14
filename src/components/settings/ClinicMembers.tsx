@@ -22,10 +22,12 @@ import {
   AlertTriangle,
   Eye,
   EyeOff,
-  Pencil
+  Pencil,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { clinicService, UserProfile, Clinic } from '../../services/clinicService';
+import { appointmentService } from '../../services/appointmentService';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -54,6 +56,7 @@ export function ClinicMembers() {
   const [canCancelAppts, setCanCancelAppts] = useState<boolean>(true);
   const [canViewAllAppts, setCanViewAllAppts] = useState<boolean>(true);
   const [savingPermissions, setSavingPermissions] = useState(false);
+  const [isSyncingAppts, setIsSyncingAppts] = useState(false);
 
   // Modal State for Member Removal
   const [memberToRemove, setMemberToRemove] = useState<UserProfile | null>(null);
@@ -116,6 +119,8 @@ export function ClinicMembers() {
       return;
     }
 
+    const previousName = selectedMember.displayName || '';
+
     setSavingPermissions(true);
     try {
       const isOwnerMember = selectedMember.role === 'owner';
@@ -129,18 +134,53 @@ export function ClinicMembers() {
         })
       }, user.clinicId);
 
+      // Atualiza o nome dos doutores em todas as consultas já marcadas no sistema
+      let updatedApptsCount = 0;
+      try {
+        updatedApptsCount = await appointmentService.updateDoctorNameInAllAppointments(
+          user.clinicId,
+          selectedMember.uid,
+          trimmedName,
+          previousName
+        );
+      } catch (apptErr) {
+        console.error('Erro ao sincronizar nome nas consultas:', apptErr);
+      }
+
       // Se o próprio dono atualizou o seu próprio nome, atualiza a sessão local
       if (selectedMember.uid === user.uid) {
         await refreshProfile(user.uid);
       }
 
-      toast.success(`Nome e dados de "${trimmedName}" atualizados com sucesso!`);
+      if (updatedApptsCount > 0) {
+        toast.success(`Nome atualizado para "${trimmedName}" e atualizado em ${updatedApptsCount} consultas marcadas!`);
+      } else {
+        toast.success(`Nome e dados de "${trimmedName}" atualizados com sucesso!`);
+      }
       setIsPermissionModalOpen(false);
     } catch (err) {
       console.error('Erro ao salvar dados do membro:', err);
       toast.error('Erro ao atualizar dados do membro.');
     } finally {
       setSavingPermissions(false);
+    }
+  };
+
+  const handleSyncAllDoctorAppointments = async () => {
+    if (!user?.clinicId) return;
+    setIsSyncingAppts(true);
+    try {
+      const count = await appointmentService.syncDoctorNamesInClinicAppointments(user.clinicId, members);
+      if (count > 0) {
+        toast.success(`${count} ${count === 1 ? 'consulta atualizada' : 'consultas atualizadas'} com o nome completo dos doutores!`);
+      } else {
+        toast.info('Todas as consultas já estão com o nome completo dos doutores atualizado.');
+      }
+    } catch (err) {
+      console.error('Erro ao sincronizar consultas:', err);
+      toast.error('Erro ao sincronizar consultas dos doutores.');
+    } finally {
+      setIsSyncingAppts(false);
     }
   };
 
@@ -342,7 +382,7 @@ export function ClinicMembers() {
 
         <Card className="md:col-span-2 bg-white rounded-2xl sm:rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden flex flex-col">
           <CardHeader className="border-b border-slate-50 bg-slate-50/30 p-4 sm:p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary shrink-0">
                   <Users size={20} />
@@ -352,8 +392,23 @@ export function ClinicMembers() {
                   <CardDescription className="font-medium text-slate-400 text-xs">Profissionais e equipe vinculados.</CardDescription>
                 </div>
               </div>
-              <div className="bg-brand-light px-3 py-1 rounded-full shrink-0">
-                <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest">{members.length} {members.length === 1 ? 'Membro' : 'Membros'}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {isOwnerOrMaster && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleSyncAllDoctorAppointments}
+                    disabled={isSyncingAppts}
+                    className="h-8 px-2.5 rounded-lg border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-white font-bold text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-xs"
+                    title="Atualizar o nome dos doutores em todas as consultas já marcadas da clínica"
+                  >
+                    <RefreshCw size={12} className={isSyncingAppts ? "animate-spin" : ""} />
+                    {isSyncingAppts ? 'Atualizando...' : 'Atualizar Consultas Marcadas'}
+                  </Button>
+                )}
+                <div className="bg-brand-light px-3 py-1 rounded-full shrink-0">
+                  <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest">{members.length} {members.length === 1 ? 'Membro' : 'Membros'}</span>
+                </div>
               </div>
             </div>
           </CardHeader>

@@ -80,10 +80,82 @@ export function AppointmentAgenda() {
   const [isCustomProcedure, setIsCustomProcedure] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const patientSearchRef = useRef<HTMLDivElement>(null);
+  const initialScrollDoneRef = useRef(false);
+
+  // Estado da hora atual em tempo real
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
   const canManageAgenda = user?.isMasterAdmin || user?.role === 'owner' || user?.canManageAppointments !== false;
   const canCancelAgenda = user?.isMasterAdmin || user?.role === 'owner' || (user?.canManageAppointments !== false && user?.canCancelAppointments !== false);
   const canViewAllAgenda = user?.isMasterAdmin || user?.role === 'owner' || user?.canViewAllAppointments !== false;
+
+  // Atualiza o relógio em tempo real a cada 10 segundos
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Minutos decorridos a partir das 08:00 (início da grade)
+  const currentMinutesFrom8 = useMemo(() => {
+    return (currentTime.getHours() - 8) * 60 + currentTime.getMinutes() + currentTime.getSeconds() / 60;
+  }, [currentTime]);
+
+  // Posição vertical em pixels: cada 30 min = 80px (80 / 30 px por minuto)
+  const currentTimeTop = useMemo(() => {
+    const rawTop = currentMinutesFrom8 * (80 / 30);
+    return Math.max(0, Math.min(rawTop, (TIME_SLOTS.length * 80) - 2));
+  }, [currentMinutesFrom8]);
+
+  // Função para a vista da agenda acompanhar a linha do horário atual
+  const scrollToCurrentTime = (smooth = true) => {
+    if (!scrollContainerRef.current) return;
+    const now = new Date();
+    const minutesFrom8 = (now.getHours() - 8) * 60 + now.getMinutes();
+    const rawTop = minutesFrom8 * (80 / 30);
+    const targetTop = Math.max(0, Math.min(rawTop, (TIME_SLOTS.length * 80) - 2));
+
+    // Mantém a linha visível a cerca de 1/3 do topo para dar contexto dos horários anteriores e seguintes
+    const containerHeight = scrollContainerRef.current.clientHeight || 600;
+    const targetScroll = Math.max(0, targetTop - containerHeight / 3);
+
+    scrollContainerRef.current.scrollTo({
+      top: targetScroll,
+      behavior: smooth ? 'smooth' : 'auto'
+    });
+  };
+
+  // Ao abrir a agenda no dia de hoje, a visualização acompanha imediatamente a linha do horário atual
+  useEffect(() => {
+    if (isToday(selectedDate)) {
+      const timer = setTimeout(() => {
+        scrollToCurrentTime(false);
+      }, 120);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  // Quando os dados terminam de carregar pela primeira vez, recentraliza na linha
+  useEffect(() => {
+    if (!loading && !initialScrollDoneRef.current && isToday(selectedDate)) {
+      initialScrollDoneRef.current = true;
+      const timer = setTimeout(() => {
+        scrollToCurrentTime(true);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, selectedDate]);
+
+  // Quando o usuário muda a data e volta para hoje, acompanha a linha em tempo real
+  useEffect(() => {
+    if (isToday(selectedDate)) {
+      const timer = setTimeout(() => {
+        scrollToCurrentTime(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedDate]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -556,6 +628,35 @@ export function AppointmentAgenda() {
             >
               <ChevronRight size={16} />
             </Button>
+            {/* Botão Hoje / Agora para acompanhar em tempo real */}
+            {!isToday(selectedDate) ? (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  setSelectedDate(new Date());
+                  setTimeout(() => scrollToCurrentTime(true), 80);
+                }}
+                className="h-8 sm:h-9 px-2 sm:px-3 rounded-lg sm:rounded-xl text-brand-primary hover:bg-white font-black text-[11px] sm:text-xs transition-all cursor-pointer"
+                title="Ir para o dia de hoje"
+              >
+                Hoje
+              </Button>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => scrollToCurrentTime(true)}
+                className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg sm:rounded-xl text-rose-600 bg-white shadow-xs hover:bg-rose-50 font-black text-[10px] sm:text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                title="Centralizar na linha da hora atual"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                </span>
+                <span>Agora</span>
+              </Button>
+            )}
           </div>
 
           {/* Botão Novo Agendamento */}
@@ -917,7 +1018,7 @@ export function AppointmentAgenda() {
           <div className="grid grid-cols-[46px_1fr] sm:grid-cols-[75px_1fr] md:grid-cols-[100px_1fr] relative">
             
             {/* Time Indicators Column */}
-            <div className="flex flex-col">
+            <div className="flex flex-col relative">
               <div className="h-6 bg-slate-50 border-b border-slate-100"></div> {/* Header spacer */}
               {TIME_SLOTS.map((timeStr) => (
                 <div key={timeStr} className="h-20 border-r border-b border-slate-50 flex flex-col items-center justify-start p-1 sm:p-3 bg-white sticky left-0 z-20">
@@ -928,6 +1029,18 @@ export function AppointmentAgenda() {
                   {timeStr.endsWith(':00') && <span className="hidden sm:inline-block text-[7px] font-black text-slate-300 uppercase tracking-tighter">Horário</span>}
                 </div>
               ))}
+
+              {/* Indicador na régua de horários à esquerda */}
+              {isToday(selectedDate) && (
+                <div 
+                  style={{ top: `${currentTimeTop + 24}px` }}
+                  className="absolute right-0 z-30 pointer-events-none -translate-y-1/2 pr-1 transition-[top] duration-500 ease-linear flex items-center"
+                >
+                  <span className="bg-rose-600 text-white text-[8px] sm:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded shadow-sm">
+                    {format(currentTime, 'HH:mm')}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Day Columns */}
@@ -987,7 +1100,7 @@ export function AppointmentAgenda() {
                           proc.cardText,
                           isCanceled && "opacity-60 grayscale-[30%] line-through"
                         )}
-                        title={`${app.patientName} - ${proc.name} (${app.duration}m) - Dentista: ${app.doctorName || 'Dentista'} - Status: ${app.status}`}
+                        title={`${app.patientName} - ${proc.name} (${app.duration}m) - Status: ${app.status}`}
                       >
                          <div className="overflow-hidden">
                           <div className="flex justify-between items-start mb-0.5 gap-1">
@@ -1017,12 +1130,8 @@ export function AppointmentAgenda() {
 
                         {(app.duration || 0) >= 30 && (
                           <div className="mt-0.5 pt-0.5 border-t border-black/5 flex items-center justify-between gap-1">
-                            <span 
-                              className="text-[8px] font-bold opacity-90 flex items-center gap-1 truncate max-w-[62%]"
-                              title={`Dentista Responsável: ${app.doctorName || 'Dentista'}`}
-                            >
-                              <User size={9} className="shrink-0 text-brand-primary" />
-                              <span className="truncate">{app.doctorName || 'Dentista'}</span>
+                            <span className="text-[7px] opacity-75 flex items-center gap-1 truncate max-w-[55%]">
+                              <User size={8} className="shrink-0" /> {app.doctorName?.split(' ')[0] || 'Dentista'}
                             </span>
 
                             <div className="flex items-center gap-1 shrink-0">
@@ -1065,6 +1174,30 @@ export function AppointmentAgenda() {
                       </div>
                     );
                   })}
+
+                  {/* Linha em tempo real do horário atual (sobreposta por cima dos pacientes marcados) */}
+                  {isToday(day) && (
+                    <div 
+                      style={{ top: `${currentTimeTop}px` }}
+                      className="absolute left-0 right-0 z-40 pointer-events-none flex items-center transition-[top] duration-500 ease-linear"
+                    >
+                      {/* Marcador flutuante da hora atual com indicador pulsante */}
+                      <div className="absolute left-1.5 -translate-y-1/2 flex items-center gap-1.5 bg-rose-600 text-white shadow-lg shadow-rose-600/40 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black tracking-wide z-50">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-300 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                        </span>
+                        <span>{format(currentTime, 'HH:mm')}</span>
+                        <span className="text-[8px] uppercase font-bold text-rose-200 tracking-wider hidden sm:inline">Agora</span>
+                      </div>
+
+                      {/* Linha contínua sobreposta por cima de todos os pacientes */}
+                      <div className="w-full h-[2.5px] bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)]" />
+                      
+                      {/* Ponto indicador na extremidade direita */}
+                      <div className="w-2.5 h-2.5 rounded-full bg-rose-500 -ml-1 shadow-sm shrink-0" />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
