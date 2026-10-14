@@ -13,18 +13,15 @@ import { OnboardingManual } from './components/OnboardingManual';
 import { TrialBanner } from './components/TrialBanner';
 import { Legal } from './components/Legal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { medicalRecordService, PatientPayment } from './services/medicalRecordService';
-import { appointmentService, Appointment as AppointmentType } from './services/appointmentService';
+import { medicalRecordService } from './services/medicalRecordService';
 import { patientService } from './services/patientService';
 import { toast } from 'sonner';
-import { Mail, Lock, User as UserIcon, ArrowRight, History, Clock, CreditCard, PlusCircle, Menu, X as CloseIcon, AlertCircle, Eye, EyeOff, Calendar, Settings as SettingsIcon, Shield, LogOut } from 'lucide-react';
-import { format, isToday, startOfMonth, parseISO } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Mail, Lock, User as UserIcon, CreditCard, PlusCircle, Menu, X as CloseIcon, Eye, EyeOff, Calendar, Settings as SettingsIcon, Shield, LogOut } from 'lucide-react';
+import { isToday, startOfMonth, parseISO } from 'date-fns';
 import { Input } from './components/ui/input';
 import { Button } from './components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from './components/ui/card';
 import { cn } from './lib/utils';
-import { getProcedureConfig } from './constants/procedures';
 
 // Components
 const EmailVerificationScreen = () => {
@@ -118,7 +115,7 @@ const Login = () => {
   const [loading, setLoading] = React.useState(false);
   const [resetSent, setResetSent] = React.useState(false);
   
-  if (user) return <Navigate to="/" />;
+  if (user) return <Navigate to="/agenda" />;
 
   const handleGoogleLogin = async () => {
     try {
@@ -529,126 +526,6 @@ const Finance = () => {
   );
 };
 
-const Dashboard = () => {
-  const { user } = useAuth();
-  const [todayAppointments, setTodayAppointments] = React.useState<AppointmentType[]>([]);
-  const [clinicName, setClinicName] = React.useState('');
-
-  React.useEffect(() => {
-    if (!user?.clinicId) return;
-
-    // Fetch Clinic Name
-    const fetchClinic = async () => {
-      const docRef = doc(db, 'clinics', user.clinicId!);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setClinicName(docSnap.data().name);
-      }
-    };
-    fetchClinic();
-
-    // Appointments Sub
-    const canViewAll = user.isMasterAdmin || user.role === 'owner' || user.canViewAllAppointments !== false;
-    const unsubAppts = appointmentService.subscribeToAppointments(
-      user.clinicId, 
-      canViewAll,
-      user.displayName || '',
-      (appts) => {
-        const filtered = appts.filter(a => isToday(parseISO(a.date)));
-        setTodayAppointments(filtered);
-      }
-    );
-
-    return () => {
-      unsubAppts();
-    };
-  }, [user?.clinicId, user?.canViewAllAppointments, user?.role, user?.displayName]);
-
-  return (
-    <div className="p-4 md:p-8 space-y-8 h-full overflow-y-auto">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/50 backdrop-blur-sm p-4 md:p-6 rounded-2xl border border-white gap-4">
-        <div>
-          <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] bg-brand-light/50 px-3 py-1 rounded-lg mb-2 inline-block">
-            {clinicName || 'Carregando...'}
-          </span>
-          <h2 className="text-3xl font-bold text-slate-800">Olá, {user?.displayName ? `Dr(a). ${user.displayName.split(' ')[0]}` : 'Bem-vindo'}</h2>
-          <p className="text-slate-500">Seu consultório está com {todayAppointments.length} consultas agendadas para hoje.</p>
-        </div>
-        <Link to="/agenda">
-          <Button className="bg-brand-primary text-white px-6 py-2 rounded-xl font-medium hover:bg-brand-accent transition-colors shadow-lg shadow-brand-primary/20">
-            + Nova Consulta
-          </Button>
-        </Link>
-      </header>
-
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="card-custom p-6 border-l-4 border-brand-primary flex flex-col justify-between h-32">
-        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Consultas Hoje</span>
-        <span className="text-4xl font-extrabold text-slate-800">{todayAppointments.length.toString().padStart(2, '0')}</span>
-        <span className="text-xs text-brand-primary font-medium">Agenda em tempo real</span>
-      </div>
-    </div>
-
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <section className="lg:col-span-8 card-custom overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-          <h3 className="font-bold text-slate-700">Agenda de Hoje</h3>
-          <Link to="/agenda" className="text-sm text-brand-primary font-bold hover:underline">Ver agenda completa</Link>
-        </div>
-        <div className="p-6 space-y-4">
-          {todayAppointments.length === 0 ? (
-            <div className="py-12 text-center space-y-4">
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
-                <Clock size={32} />
-              </div>
-              <p className="text-slate-400 font-bold italic text-sm">Nenhuma consulta para hoje.</p>
-            </div>
-          ) : (
-            todayAppointments.map((item, i) => {
-              const proc = getProcedureConfig(item.procedure);
-              return (
-                <div key={i} className="flex items-center gap-3 md:gap-6 p-3 md:p-4 border border-slate-100 rounded-2xl hover:bg-slate-50/50 transition-all cursor-pointer">
-                  <div className="text-center w-16 md:w-20">
-                    <p className="text-sm font-bold text-slate-400">{format(parseISO(item.date), 'HH:mm')}</p>
-                    <p className="text-[10px] text-slate-300 font-medium">{item.duration} min</p>
-                  </div>
-                  <div className={cn("w-1.5 h-12 rounded-full flex-shrink-0", proc.dotBg)}></div>
-                  <div className="flex-1">
-                    <p className="text-base font-bold text-slate-800">{item.patientName}</p>
-                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                      <span className={cn("text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md flex items-center gap-1", proc.badgeBg, proc.badgeText)}>
-                        <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", proc.dotBg)} />
-                        {item.procedure || proc.name}
-                      </span>
-                      {item.doctorName && (
-                        <span className="text-[10px] font-black text-brand-primary/50 uppercase tracking-widest bg-brand-light/30 px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <UserIcon size={8} /> {item.doctorName}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
-                    ${item.status === 'marcado' ? 'bg-blue-50 text-blue-600' : 
-                      item.status === 'confirmado' ? 'bg-green-50 text-green-600' : 
-                      item.status === 'aguardando' ? 'bg-orange-50 text-orange-600' : 
-                      item.status === 'desmarcado' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-400'}`}>
-                    {item.status}
-                  </span>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </section>
-
-      <div className="lg:col-span-4 space-y-8">
-        {/* Prontuário Rápido e Alertas removidos conforme solicitação */}
-      </div>
-    </div>
-    </div>
-  );
-};
-
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
@@ -656,7 +533,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isAgenda = location.pathname === '/agenda';
   
   const navItems = [
-    { name: 'Painel Geral', shortName: 'Painel', path: '/', id: 'nav-dashboard', icon: Clock },
     { name: 'Agenda', shortName: 'Agenda', path: '/agenda', id: 'nav-agenda', icon: Calendar },
     { name: 'Pacientes', shortName: 'Pacientes', path: '/pacientes', id: 'nav-pacientes', icon: UserIcon },
     { name: 'Financeiro', shortName: 'Financeiro', path: '/financeiro', id: 'nav-financeiro', icon: CreditCard },
@@ -814,8 +690,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
       {/* Mobile Bottom Navigation Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 z-[44] flex justify-around items-center shadow-lg px-2">
-        {navItems.slice(0, 4).map((item) => {
+        {navItems.map((item) => {
           const isActive = location.pathname === item.path;
+          const Icon = item.icon;
           return (
             <Link
               key={item.path}
@@ -824,12 +701,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 isActive ? 'text-brand-primary' : ''
               }`}
             >
-              {item.name === 'Painel Geral' && <Clock size={18} className={isActive ? 'text-brand-primary' : ''} />}
-              {item.name === 'Agenda' && <Calendar size={18} className={isActive ? 'text-brand-primary' : ''} />}
-              {item.name === 'Pacientes' && <UserIcon size={18} className={isActive ? 'text-brand-primary' : ''} />}
-              {item.name === 'Financeiro' && <CreditCard size={18} className={isActive ? 'text-brand-primary' : ''} />}
+              <Icon size={18} className={isActive ? 'text-brand-primary' : ''} />
               <span className={`text-[9px] font-black tracking-tight ${isActive ? 'text-brand-primary' : 'text-slate-400'}`}>
-                {item.name === 'Painel Geral' ? 'Painel' : item.name}
+                {item.shortName || item.name}
               </span>
             </Link>
           );
@@ -885,7 +759,7 @@ function MasterAdminRoute({ children }: { children: React.ReactNode }) {
   );
   
   if (!user || !user.isMasterAdmin) {
-    return <Navigate to="/" />;
+    return <Navigate to="/agenda" />;
   }
   
   return <Layout>{children}</Layout>;
@@ -897,7 +771,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/" element={<Navigate to="/agenda" replace />} />
           <Route path="/agenda" element={<PrivateRoute><Agenda /></PrivateRoute>} />
           <Route path="/pacientes" element={<PrivateRoute><Patients /></PrivateRoute>} />
           <Route path="/financeiro" element={<PrivateRoute><Finance /></PrivateRoute>} />
@@ -905,7 +779,7 @@ export default function App() {
           <Route path="/admin" element={<MasterAdminRoute><AdminDashboard /></MasterAdminRoute>} />
           <Route path="/termos" element={<Legal type="terms" />} />
           <Route path="/privacidade" element={<Legal type="privacy" />} />
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/agenda" replace />} />
         </Routes>
         <Toaster />
       </AuthProvider>
