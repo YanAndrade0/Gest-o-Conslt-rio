@@ -54,7 +54,7 @@ import { clinicService, UserProfile } from '../../services/clinicService';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import { PatientMedicalRecord } from '../patients/PatientMedicalRecord';
-import { PREDEFINED_PROCEDURES, getProcedureConfig } from '../../constants/procedures';
+import { PREDEFINED_PROCEDURES, getProcedureConfig, formatProcedureDuration } from '../../constants/procedures';
 
 const TIME_SLOTS = Array.from({ length: (20 - 8) * 2 + 1 }, (_, i) => {
   const hour = Math.floor(i / 2) + 8;
@@ -808,7 +808,7 @@ export function AppointmentAgenda() {
                                   <span className="text-slate-800 font-bold">{p.name}</span>
                                 </div>
                                 <span className="text-[10px] font-semibold text-slate-400 bg-slate-100/80 px-1.5 py-0.5 rounded">
-                                  {p.defaultDuration} min
+                                  {formatProcedureDuration(p.defaultDuration)}
                                 </span>
                               </div>
                             </SelectItem>
@@ -842,7 +842,7 @@ export function AppointmentAgenda() {
                                 "text-[10px] font-black py-1.5 px-1 rounded-lg transition-all flex items-center justify-center gap-1 truncate text-center cursor-pointer",
                                 isSelected ? p.chipActive : p.chipInactive
                               )}
-                              title={`${p.name} (${p.defaultDuration} min) - ${p.description}`}
+                              title={`${p.name} (${formatProcedureDuration(p.defaultDuration)}) - ${p.description}`}
                             >
                               <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", isSelected ? "bg-white" : p.dotBg)} />
                               <span className="truncate">{p.name}</span>

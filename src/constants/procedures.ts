@@ -20,7 +20,7 @@ export const PREDEFINED_PROCEDURES: ProcedureDefinition[] = [
     id: 'canal',
     name: 'Canal',
     description: 'Tratamento endodôntico / polpa dentária',
-    defaultDuration: 60,
+    defaultDuration: 90, // 1h 30min
     colorHex: '#8B5CF6',
     cardBg: 'bg-purple-50/95 hover:bg-purple-100/90',
     cardBorder: 'border-purple-200',
@@ -52,7 +52,7 @@ export const PREDEFINED_PROCEDURES: ProcedureDefinition[] = [
     id: 'restauracao',
     name: 'Restauração',
     description: 'Dentística restauradora em resina ou ionômero',
-    defaultDuration: 45,
+    defaultDuration: 60, // 1 hora
     colorHex: '#0284C7',
     cardBg: 'bg-sky-50/95 hover:bg-sky-100/90',
     cardBorder: 'border-sky-200',
@@ -188,4 +188,19 @@ export function getProcedureConfig(procedureName?: string): ProcedureDefinition 
     ...DEFAULT_PROCEDURE_FALLBACK,
     name: procedureName,
   };
+}
+
+/**
+ * Formata minutos em string amigável (ex: 30 min, 1h, 1h 30min, 2h)
+ */
+export function formatProcedureDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (remainingMinutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${remainingMinutes}min`;
 }
