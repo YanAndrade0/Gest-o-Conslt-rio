@@ -66,6 +66,22 @@ export function ProcedureSearchPanel({
   const [customProcPrice, setCustomProcPrice] = useState('');
   const [customProcCategory, setCustomProcCategory] = useState('Dentística');
 
+  // Controle para não poluir a tela exibindo todos os procedimentos de uma vez
+  const [showAllCatalog, setShowAllCatalog] = useState(false);
+
+  const isSearching = searchTerm.trim().length > 0;
+  const hasCategoryFilter = selectedCategory !== 'Todos';
+
+  // Procedimentos mais comuns do dia a dia clínico para atalhos rápidos
+  const frequentProcedures = useMemo(() => {
+    return DEFAULT_PROCEDURE_PRICING.filter(p => 
+      p.id === 'proc_restauracao_1' || 
+      p.id === 'proc_endo_multi' || 
+      p.id === 'proc_extracao_simples' ||
+      p.id === 'proc_profilaxia'
+    );
+  }, []);
+
   // Filtragem dos procedimentos pelo termo de busca e categoria
   const filteredProcedures = useMemo(() => {
     return DEFAULT_PROCEDURE_PRICING.filter(proc => {
@@ -260,7 +276,7 @@ export function ProcedureSearchPanel({
           <Input 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Pesquisar procedimento..."
+            placeholder="Buscar procedimento (ex: Restauração, Canal...)"
             className="pl-10 h-11 bg-slate-50 border-slate-200 rounded-xl text-xs font-bold focus-visible:ring-brand-primary"
             autoFocus
           />
@@ -281,9 +297,12 @@ export function ProcedureSearchPanel({
             <button
               key={cat}
               type="button"
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setShowAllCatalog(false);
+              }}
               className={cn(
-                "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 transition-all",
+                "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 transition-all cursor-pointer",
                 selectedCategory === cat 
                   ? "bg-brand-primary text-white shadow-2xs" 
                   : "bg-slate-100 text-slate-500 hover:bg-slate-200"
@@ -295,78 +314,199 @@ export function ProcedureSearchPanel({
         </div>
       </div>
 
-      {/* Lista de Procedimentos Pré-estabelecidos */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 no-scrollbar">
-        {filteredProcedures.length === 0 ? (
-          <div className="py-12 text-center space-y-3">
-            <p className="text-xs font-bold text-slate-400">Nenhum procedimento encontrado.</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => { setIsAddingCustom(true); setCustomProcName(searchTerm); }}
-              className="rounded-xl text-xs font-bold border-brand-primary/30 text-brand-primary"
-            >
-              <Plus size={14} className="mr-1" /> Criar procedimento personalizado
-            </Button>
-          </div>
-        ) : (
-          filteredProcedures.map(proc => (
-            <div 
-              key={proc.id}
-              className="p-3 rounded-2xl border border-slate-200/80 bg-white hover:border-brand-primary/40 hover:bg-brand-light/10 transition-all group flex flex-col justify-between gap-2 shadow-2xs"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600">
-                      {proc.category}
-                    </span>
-                    {proc.defaultDuration && (
-                      <span className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5">
-                        <Clock size={10} /> {proc.defaultDuration}m
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-800 mt-1 leading-snug">
-                    {proc.name}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
-                    {proc.description}
-                  </p>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="text-xs sm:text-sm font-black text-slate-800 block">
-                    R$ {proc.defaultPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                    Valor tabelado
-                  </span>
-                </div>
-              </div>
-
-              {/* Botões de Ação para o procedimento */}
-              <div className="flex items-center gap-1.5 pt-1 border-t border-slate-50">
-                <button
-                  type="button"
-                  onClick={() => handleQuickAdd(proc)}
-                  className="flex-1 h-8 rounded-xl bg-brand-primary text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-brand-primary/90 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <Plus size={14} /> Adicionar
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleOpenCustomize(proc)}
-                  title="Personalizar valor, desconto ou faces"
-                  className="h-8 px-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
-                >
-                  <Edit3 size={12} /> Ajustar
-                </button>
+      {/* Conteúdo: Não polui a tela com todos os procedimentos */}
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 no-scrollbar">
+        {/* Caso padrão: Sem busca e categoria "Todos" -> Exibe atalhos rápidos e mais comuns, sem despejar a lista inteira */}
+        {!isSearching && !hasCategoryFilter && !showAllCatalog ? (
+          <div className="space-y-4 animate-in fade-in duration-200">
+            {/* Atalhos de busca rápida */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                Atalhos Rápidos
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: 'Restauração', query: 'Restauração' },
+                  { label: 'Canal', query: 'Canal' },
+                  { label: 'Extração', query: 'Exodontia' },
+                  { label: 'Limpeza', query: 'Profilaxia' },
+                  { label: 'Clareamento', query: 'Clareamento' },
+                  { label: 'Coroa / Bloco', query: 'Coroa' },
+                  { label: 'Implante', query: 'Implante' },
+                ].map(tag => (
+                  <button
+                    key={tag.label}
+                    type="button"
+                    onClick={() => setSearchTerm(tag.query)}
+                    className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-brand-light hover:text-brand-primary text-slate-600 text-xs font-bold transition-all border border-slate-200/60 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Sparkles size={11} className="text-brand-primary" />
+                    {tag.label}
+                  </button>
+                ))}
               </div>
             </div>
-          ))
+
+            {/* Procedimentos Mais Frequentes */}
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  Mais Frequentes
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  Valores tabelados
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {frequentProcedures.map(proc => (
+                  <div 
+                    key={proc.id}
+                    className="p-2.5 rounded-2xl border border-slate-200/90 bg-white hover:border-brand-primary/40 hover:bg-brand-light/5 transition-all flex flex-col gap-2 shadow-2xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600 inline-block mb-0.5">
+                          {proc.category}
+                        </span>
+                        <h4 className="text-xs font-bold text-slate-800 leading-snug truncate">
+                          {proc.name}
+                        </h4>
+                      </div>
+                      <span className="text-xs font-black text-slate-800 shrink-0">
+                        R$ {proc.defaultPrice.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-slate-50">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickAdd(proc)}
+                        className="flex-1 h-7 rounded-xl bg-brand-primary text-white text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-brand-primary/90 transition-all cursor-pointer shadow-2xs"
+                      >
+                        <Plus size={13} /> Adicionar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenCustomize(proc)}
+                        className="h-7 px-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                        title="Personalizar valor ou faces"
+                      >
+                        <Edit3 size={11} /> Ajustar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Opção para expandir todos se o profissional desejar */}
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => setShowAllCatalog(true)}
+                className="text-[11px] font-bold text-slate-400 hover:text-brand-primary transition-colors cursor-pointer"
+              >
+                Ver lista completa de procedimentos ({DEFAULT_PROCEDURE_PRICING.length})
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Quando estiver pesquisando, ou com categoria selecionada, ou expandido: exibe apenas os procedimentos filtrados */
+          <div className="space-y-2.5">
+            {/* Header de status do filtro */}
+            <div className="flex items-center justify-between pb-1 text-xs">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                {isSearching ? `Resultados para "${searchTerm}"` : hasCategoryFilter ? `Categoria: ${selectedCategory}` : 'Todos os Procedimentos'}
+                {' '}({filteredProcedures.length})
+              </span>
+              {(isSearching || hasCategoryFilter || showAllCatalog) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedCategory('Todos');
+                    setShowAllCatalog(false);
+                  }}
+                  className="text-[10px] font-bold text-brand-primary hover:underline"
+                >
+                  Limpar filtro
+                </button>
+              )}
+            </div>
+
+            {filteredProcedures.length === 0 ? (
+              <div className="py-10 text-center space-y-3 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 p-4">
+                <p className="text-xs font-bold text-slate-400">Nenhum procedimento encontrado.</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setIsAddingCustom(true); setCustomProcName(searchTerm); }}
+                  className="rounded-xl text-xs font-bold border-brand-primary/30 text-brand-primary"
+                >
+                  <Plus size={14} className="mr-1" /> Criar procedimento personalizado
+                </Button>
+              </div>
+            ) : (
+              filteredProcedures.map(proc => (
+                <div 
+                  key={proc.id}
+                  className="p-3 rounded-2xl border border-slate-200/80 bg-white hover:border-brand-primary/40 hover:bg-brand-light/10 transition-all group flex flex-col justify-between gap-2 shadow-2xs"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-600">
+                          {proc.category}
+                        </span>
+                        {proc.defaultDuration && (
+                          <span className="text-[9px] font-bold text-slate-400 flex items-center gap-0.5">
+                            <Clock size={10} /> {proc.defaultDuration}m
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-xs font-bold text-slate-800 mt-1 leading-snug">
+                        {proc.name}
+                      </h4>
+                      <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                        {proc.description}
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-xs sm:text-sm font-black text-slate-800 block">
+                        R$ {proc.defaultPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                        Valor tabelado
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botões de Ação para o procedimento */}
+                  <div className="flex items-center gap-1.5 pt-1 border-t border-slate-50">
+                    <button
+                      type="button"
+                      onClick={() => handleQuickAdd(proc)}
+                      className="flex-1 h-8 rounded-xl bg-brand-primary text-white text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-brand-primary/90 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      <Plus size={14} /> Adicionar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenCustomize(proc)}
+                      title="Personalizar valor, desconto ou faces"
+                      className="h-8 px-2.5 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                    >
+                      <Edit3 size={12} /> Ajustar
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         )}
 
         {/* Botão para adicionar procedimento fora da tabela */}
