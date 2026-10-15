@@ -13,10 +13,11 @@ import { OnboardingManual } from './components/OnboardingManual';
 import { TrialBanner } from './components/TrialBanner';
 import { Legal } from './components/Legal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { BudgetManager } from './components/budget/BudgetManager';
 import { medicalRecordService } from './services/medicalRecordService';
 import { patientService } from './services/patientService';
 import { toast } from 'sonner';
-import { Mail, Lock, User as UserIcon, CreditCard, PlusCircle, Menu, X as CloseIcon, Eye, EyeOff, Calendar, Settings as SettingsIcon, Shield, LogOut } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, CreditCard, PlusCircle, Menu, X as CloseIcon, Eye, EyeOff, Calendar, Settings as SettingsIcon, Shield, LogOut, Calculator } from 'lucide-react';
 import { isToday, startOfMonth, parseISO } from 'date-fns';
 import { Input } from './components/ui/input';
 import { Button } from './components/ui/button';
@@ -423,6 +424,17 @@ const Login = () => {
 const Settings = () => <WhatsAppSettings />;
 const Agenda = () => <AppointmentAgenda />;
 const Patients = () => <PatientManagement />;
+const Budgets = () => (
+  <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">Orçamentos & Planos de Tratamento</h1>
+        <p className="text-xs sm:text-sm text-slate-400 font-medium mt-1">Gerencie propostas clínicas com odontograma interativo e valores pré-estabelecidos</p>
+      </div>
+    </div>
+    <BudgetManager />
+  </div>
+);
 const Finance = () => {
   const { user } = useAuth();
   const [monthRevenue, setMonthRevenue] = React.useState(0);
@@ -531,11 +543,12 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const { user, logout } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const isAgenda = location.pathname === '/agenda';
-  const isCompactSidebar = location.pathname === '/agenda' || location.pathname === '/pacientes';
+  const isCompactSidebar = location.pathname === '/agenda' || location.pathname === '/pacientes' || location.pathname === '/orcamentos';
   
   const navItems = [
     { name: 'Agenda', shortName: 'Agenda', path: '/agenda', id: 'nav-agenda', icon: Calendar },
     { name: 'Pacientes', shortName: 'Pacientes', path: '/pacientes', id: 'nav-pacientes', icon: UserIcon },
+    { name: 'Orçamentos', shortName: 'Orçamentos', path: '/orcamentos', id: 'nav-orcamentos', icon: Calculator },
     { name: 'Financeiro', shortName: 'Financeiro', path: '/financeiro', id: 'nav-financeiro', icon: CreditCard },
     { name: 'Configurações', shortName: 'Config.', path: '/configuracoes', id: 'nav-config', icon: SettingsIcon },
   ];
@@ -775,6 +788,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/agenda" replace />} />
           <Route path="/agenda" element={<PrivateRoute><Agenda /></PrivateRoute>} />
           <Route path="/pacientes" element={<PrivateRoute><Patients /></PrivateRoute>} />
+          <Route path="/orcamentos" element={<PrivateRoute><Budgets /></PrivateRoute>} />
           <Route path="/financeiro" element={<PrivateRoute><Finance /></PrivateRoute>} />
           <Route path="/configuracoes" element={<PrivateRoute><Settings /></PrivateRoute>} />
           <Route path="/admin" element={<MasterAdminRoute><AdminDashboard /></MasterAdminRoute>} />

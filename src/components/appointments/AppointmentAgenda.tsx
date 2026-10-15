@@ -1188,9 +1188,13 @@ export function AppointmentAgenda() {
                             </div>
 
                             {(app.duration || 0) >= 30 && (
-                              <div className="mt-0.5 pt-0.5 border-t border-black/5 flex items-center justify-between gap-1">
-                                <span className="text-[7px] opacity-75 flex items-center gap-1 truncate max-w-[55%]">
-                                  <User size={8} className="shrink-0" /> {app.doctorName?.split(' ')[0] || 'Dentista'}
+                              <div className="mt-0.5 pt-0.5 border-t border-black/10 flex items-center justify-between gap-1">
+                                <span 
+                                  className="text-[8px] sm:text-[9px] font-extrabold text-slate-800 bg-white/90 px-1.5 py-0.5 rounded-md border border-slate-200/80 shadow-2xs flex items-center gap-1 truncate max-w-[62%]"
+                                  title={`Profissional: ${app.doctorName || 'Dentista'}`}
+                                >
+                                  <Stethoscope size={9} className="shrink-0 text-brand-primary" />
+                                  <span className="truncate">{getDoctorDisplayName(app.doctorName)}</span>
                                 </span>
 
                                 <div className="flex items-center gap-1 shrink-0">

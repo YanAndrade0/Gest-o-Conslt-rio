@@ -165,6 +165,28 @@
         "details": { "type": "object" }
       },
       "required": ["userId", "action", "timestamp", "clinicId"]
+    },
+    "Budget": {
+      "title": "Orçamento Odontológico",
+      "description": "Orçamento clínico vinculado a procedimentos por dente",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string" },
+        "patientId": { "type": "string" },
+        "patientName": { "type": "string" },
+        "dentistName": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["pendente", "aprovado", "em_andamento", "concluido", "recusado"] },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "discountAmount": { "type": "number" },
+        "total": { "type": "number" },
+        "paymentConditions": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["clinicId", "patientId", "patientName", "status", "total"]
     }
   },
   "firestore": {
@@ -176,6 +198,7 @@
     "patientPhotos": { "schema": "PatientPhoto", "description": "Galeria de fotos/exames dos pacientes" },
     "transactions": { "schema": "Transaction", "description": "Movimentação financeira" },
     "settings": { "schema": "Settings", "description": "Configurações gerais" },
-    "auditLogs": { "schema": "AuditLog", "description": "Logs de auditoria" }
+    "auditLogs": { "schema": "AuditLog", "description": "Logs de auditoria" },
+    "budgets": { "schema": "Budget", "description": "Orçamentos e planos de tratamento odontológico" }
   }
 }

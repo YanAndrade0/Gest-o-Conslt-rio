@@ -225,6 +225,14 @@ service cloud.firestore {
         && data.keys().hasAll(['patientId', 'url', 'clinicId']);
     }
 
+    function isValidBudget(data) {
+      return data.patientId is string && isValidId(data.patientId)
+        && data.clinicId is string && isValidId(data.clinicId)
+        && data.total is number
+        && data.status in ['pendente', 'aprovado', 'em_andamento', 'concluido', 'recusado']
+        && data.keys().hasAll(['clinicId', 'patientId', 'status', 'total']);
+    }
+
     // ---------------------------------------------------------
     // ENTITIES
     // ---------------------------------------------------------
@@ -349,6 +357,15 @@ service cloud.firestore {
       allow list: if isVerified() && isClinicOwner(getUserData().clinicId);
       allow create: if isVerified() && isClinicMember(incoming().clinicId) && isValidAuditLog(incoming());
       allow read, update, delete: if false; 
+    }
+
+    // Budgets / Orçamentos
+    match /budgets/{budgetId} {
+      allow list: if isSignedIn() && (isMasterAdmin() || resource.data.clinicId == getUserData().clinicId);
+      allow get: if isSignedIn() && (isMasterAdmin() || isClinicMember(existing().clinicId));
+      allow create: if isVerified() && isClinicMember(incoming().clinicId) && isClinicActive(incoming().clinicId) && isValidBudget(incoming());
+      allow update: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId) && isValidBudget(incoming());
+      allow delete: if isVerified() && isClinicMember(existing().clinicId) && isClinicActive(existing().clinicId);
     }
 
     // Licenses

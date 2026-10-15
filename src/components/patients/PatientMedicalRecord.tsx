@@ -19,7 +19,8 @@ import {
   Loader2,
   Stethoscope,
   ClipboardList,
-  Sparkles
+  Sparkles,
+  Calculator
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
@@ -42,6 +43,7 @@ import { cn } from '../../lib/utils';
 import { appointmentService } from '../../services/appointmentService';
 import { Odontogram } from './Odontogram';
 import { AnamnesisForm } from './AnamnesisForm';
+import { BudgetManager } from '../budget/BudgetManager';
 
 interface PatientMedicalRecordProps {
   patient: Patient;
@@ -391,6 +393,9 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
                 <TabsTrigger value="ficha" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
                   <Stethoscope size={16} className="md:size-[18px]" /> Ficha Clínica
                 </TabsTrigger>
+                <TabsTrigger value="orcamentos" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
+                  <Calculator size={16} className="md:size-[18px]" /> Orçamentos
+                </TabsTrigger>
                 <TabsTrigger value="anamnese" className="rounded-xl px-4 md:px-6 py-2 md:py-3 font-bold text-xs md:text-sm data-[state=active]:bg-brand-primary data-[state=active]:text-white transition-all gap-2">
                   <ClipboardList size={16} className="md:size-[18px]" /> Anamnese
                 </TabsTrigger>
@@ -407,6 +412,11 @@ export function PatientMedicalRecord({ patient, onClose }: PatientMedicalRecordP
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-6 bg-slate-50/30">
+              {/* Orçamentos Tab */}
+              <TabsContent value="orcamentos" className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <BudgetManager patient={patient} />
+              </TabsContent>
+
               {/* Anamnese Tab */}
               <TabsContent value="anamnese" className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <AnamnesisForm patientId={patient.id!} clinicId={user?.clinicId || patient.clinicId} />
