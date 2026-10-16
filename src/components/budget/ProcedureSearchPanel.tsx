@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Plus, 
@@ -69,6 +69,13 @@ export function ProcedureSearchPanel({
     });
   }, [searchTerm, showAllCatalog]);
 
+  // Limpa a barra de pesquisa e estados ao trocar o dente selecionado
+  useEffect(() => {
+    setSearchTerm('');
+    setShowAllCatalog(false);
+    setIsAddingCustom(false);
+  }, [selectedTooth]);
+
   const toothLabel = useMemo(() => {
     if (selectedTooth === null || selectedTooth === -1) {
       return 'Procedimento Geral (Boca Toda)';
@@ -91,6 +98,9 @@ export function ProcedureSearchPanel({
     };
 
     onAddItem(newItem);
+    // Limpa a barra de pesquisa após vincular o procedimento
+    setSearchTerm('');
+    setShowAllCatalog(false);
     toast.success(`"${proc.name}" adicionado ao orçamento!`);
   };
 
@@ -129,6 +139,9 @@ export function ProcedureSearchPanel({
 
     onAddItem(newItem);
     setCustomPriceModal(null);
+    // Limpa a barra de pesquisa após vincular o procedimento personalizado
+    setSearchTerm('');
+    setShowAllCatalog(false);
     toast.success(`"${customPriceModal.name}" adicionado ao orçamento!`);
   };
 
@@ -161,6 +174,9 @@ export function ProcedureSearchPanel({
     setIsAddingCustom(false);
     setCustomProcName('');
     setCustomProcPrice('');
+    // Limpa a barra de pesquisa após vincular o procedimento avulso
+    setSearchTerm('');
+    setShowAllCatalog(false);
     toast.success(`Procedimento personalizado adicionado!`);
   };
 
