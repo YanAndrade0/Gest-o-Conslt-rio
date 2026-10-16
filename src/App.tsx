@@ -1,8 +1,6 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { db } from './lib/firebase-config';
-import { doc, getDoc } from 'firebase/firestore';
 import { Logo } from './components/ui/Logo';
 import { Toaster } from './components/ui/sonner';
 import { WhatsAppSettings } from './components/settings/WhatsAppSettings';
@@ -14,14 +12,10 @@ import { TrialBanner } from './components/TrialBanner';
 import { Legal } from './components/Legal';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { BudgetManager } from './components/budget/BudgetManager';
-import { medicalRecordService } from './services/medicalRecordService';
-import { patientService } from './services/patientService';
 import { toast } from 'sonner';
-import { Mail, Lock, User as UserIcon, CreditCard, PlusCircle, Menu, X as CloseIcon, Eye, EyeOff, Calendar, Settings as SettingsIcon, Shield, LogOut, Calculator } from 'lucide-react';
-import { isToday, startOfMonth, parseISO } from 'date-fns';
+import { Mail, Lock, User as UserIcon, Menu, X as CloseIcon, Eye, EyeOff, Calendar, Settings as SettingsIcon, Shield, LogOut, Calculator } from 'lucide-react';
 import { Input } from './components/ui/input';
 import { Button } from './components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription } from './components/ui/card';
 import { cn } from './lib/utils';
 
 // Components
@@ -435,108 +429,6 @@ const Budgets = () => (
     <BudgetManager />
   </div>
 );
-const Finance = () => {
-  const { user } = useAuth();
-  const [monthRevenue, setMonthRevenue] = React.useState(0);
-  const [todayRevenue, setTodayRevenue] = React.useState(0);
-  const [totalPatients, setTotalPatients] = React.useState(0);
-  const [clinicName, setClinicName] = React.useState('');
-
-  React.useEffect(() => {
-    if (!user?.clinicId) return;
-
-    // Fetch Clinic Name
-    const fetchClinic = async () => {
-      const docRef = doc(db, 'clinics', user.clinicId!);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setClinicName(docSnap.data().name);
-      }
-    };
-    fetchClinic();
-
-    // Revenue Sub
-    const unsubRevenue = medicalRecordService.subscribeToClinicRevenue(user.clinicId, (payments) => {
-      const now = new Date();
-      const monthStart = startOfMonth(now);
-      
-      let mTotal = 0;
-      let tTotal = 0;
-
-      payments.forEach(p => {
-        const pDate = parseISO(p.date);
-        if (pDate >= monthStart) mTotal += p.amount;
-        if (isToday(pDate)) tTotal += p.amount;
-      });
-
-      setMonthRevenue(mTotal);
-      setTodayRevenue(tTotal);
-    });
-
-    // Patients Count
-    const unsubPatients = patientService.subscribeToPatients(user.clinicId, (patients) => {
-      setTotalPatients(patients.length);
-    });
-
-    return () => {
-      unsubRevenue();
-      unsubPatients();
-    };
-  }, [user?.clinicId]);
-
-  return (
-    <div className="p-4 md:p-8 space-y-8 h-full overflow-y-auto">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/50 backdrop-blur-sm p-4 md:p-6 rounded-2xl border border-white gap-4">
-        <div>
-          <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] bg-brand-light/50 px-3 py-1 rounded-lg mb-2 inline-block">
-            {clinicName || 'Carregando...'}
-          </span>
-          <h2 className="text-3xl font-bold text-slate-800">Gestão Clínica</h2>
-          <p className="text-slate-500">Dados financeiros e base de dados consolidada da clínica.</p>
-        </div>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="card-custom p-8 border-l-4 border-brand-secondary flex flex-col justify-center gap-4 min-h-[160px]">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-brand-secondary/10 rounded-2xl flex items-center justify-center text-brand-secondary">
-              <UserIcon size={24} />
-            </div>
-            <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Base de Pacientes</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-5xl font-extrabold text-slate-800">{totalPatients}</span>
-            <span className="text-xs text-slate-500 font-medium">Pacientes cadastrados no sistema</span>
-          </div>
-        </div>
-
-        <div className="card-custom p-8 border-l-4 border-brand-accent flex flex-col justify-center gap-4 min-h-[160px]">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-brand-accent/10 rounded-2xl flex items-center justify-center text-brand-accent">
-              <CreditCard size={24} />
-            </div>
-            <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Faturamento Mensal</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-5xl font-extrabold text-slate-800">
-              R$ {monthRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-            <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-              <PlusCircle size={12} /> R$ {todayRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} gerados hoje
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <Card className="card-custom border-none bg-white p-8">
-        <CardHeader className="p-0 mb-6">
-          <CardTitle className="text-xl font-bold text-slate-800">Módulo Financeiro</CardTitle>
-          <CardDescription>O módulo completo de fluxo de caixa e relatórios detalhados está sendo preparado para o próximo lançamento.</CardDescription>
-        </CardHeader>
-      </Card>
-    </div>
-  );
-};
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -549,7 +441,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { name: 'Agenda', shortName: 'Agenda', path: '/agenda', id: 'nav-agenda', icon: Calendar },
     { name: 'Pacientes', shortName: 'Pacientes', path: '/pacientes', id: 'nav-pacientes', icon: UserIcon },
     { name: 'Orçamentos', shortName: 'Orçamentos', path: '/orcamentos', id: 'nav-orcamentos', icon: Calculator },
-    { name: 'Financeiro', shortName: 'Financeiro', path: '/financeiro', id: 'nav-financeiro', icon: CreditCard },
     { name: 'Configurações', shortName: 'Config.', path: '/configuracoes', id: 'nav-config', icon: SettingsIcon },
   ];
 
@@ -789,7 +680,7 @@ export default function App() {
           <Route path="/agenda" element={<PrivateRoute><Agenda /></PrivateRoute>} />
           <Route path="/pacientes" element={<PrivateRoute><Patients /></PrivateRoute>} />
           <Route path="/orcamentos" element={<PrivateRoute><Budgets /></PrivateRoute>} />
-          <Route path="/financeiro" element={<PrivateRoute><Finance /></PrivateRoute>} />
+          <Route path="/financeiro" element={<Navigate to="/orcamentos" replace />} />
           <Route path="/configuracoes" element={<PrivateRoute><Settings /></PrivateRoute>} />
           <Route path="/admin" element={<MasterAdminRoute><AdminDashboard /></MasterAdminRoute>} />
           <Route path="/termos" element={<Legal type="terms" />} />
