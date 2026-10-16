@@ -161,9 +161,14 @@ export function BudgetEditor({
       const savedId = await budgetService.saveBudget(budgetPayload, clinicId);
       toast.success(initialBudget?.id ? 'Orçamento atualizado com sucesso!' : 'Orçamento salvo com sucesso!');
       onSaveSuccess(savedId);
-    } catch (error) {
-      console.error(error);
-      toast.error('Erro ao salvar orçamento. Verifique sua conexão.');
+    } catch (error: any) {
+      console.error('Error saving budget:', error);
+      const errMsg = error?.message || '';
+      if (errMsg.includes('permission-denied') || errMsg.includes('insufficient permissions')) {
+        toast.error('Permissão insuficiente para salvar o orçamento.');
+      } else {
+        toast.error(error?.message ? `Erro ao salvar: ${error.message}` : 'Erro ao salvar orçamento. Verifique os dados e tente novamente.');
+      }
     } finally {
       setSaving(false);
     }
