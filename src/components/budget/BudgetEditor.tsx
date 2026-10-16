@@ -24,6 +24,7 @@ import { Budget, BudgetItem, BudgetStatus } from '../../types/budget';
 import { budgetService } from '../../services/budgetService';
 import { BudgetOdontogram, TOOTH_NAMES } from './BudgetOdontogram';
 import { ProcedureSearchPanel } from './ProcedureSearchPanel';
+import { BudgetPrintModal } from './BudgetPrintModal';
 import { Patient } from '../../services/patientService';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -80,6 +81,7 @@ export function BudgetEditor({
   // Estado do Odontograma: qual dente está selecionado para abrir a busca lateral de procedimentos
   const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   // Cálculos financeiros automáticos
   const subtotal = useMemo(() => {
@@ -196,7 +198,7 @@ export function BudgetEditor({
   };
 
   const handlePrint = () => {
-    window.print();
+    setIsPrintModalOpen(true);
   };
 
   return (
@@ -233,7 +235,7 @@ export function BudgetEditor({
           </div>
         </div>
 
-        {/* Ações: Status, WhatsApp, Salvar */}
+        {/* Ações: Status, WhatsApp, Imprimir/Gerar Arquivo, Salvar */}
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
           {/* Seletor de Status */}
           <select
@@ -267,15 +269,15 @@ export function BudgetEditor({
             <Send size={14} /> WhatsApp
           </Button>
 
-          {/* Imprimir */}
+          {/* Imprimir / Gerar Arquivo */}
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             onClick={handlePrint}
-            className="h-10 rounded-xl text-xs font-bold gap-1.5 text-slate-500 hover:bg-slate-100 hidden sm:flex"
-            title="Imprimir orçamento"
+            className="h-10 rounded-xl text-xs font-bold gap-1.5 text-slate-700 border-slate-200 hover:bg-slate-50 flex items-center"
+            title="Imprimir ou gerar arquivo com Nome, CPF e tabela de dentes e procedimentos"
           >
-            <Printer size={16} /> Imprimir
+            <Printer size={16} className="text-brand-primary" /> Imprimir / Arquivo
           </Button>
 
           {/* Salvar Orçamento */}
@@ -583,6 +585,22 @@ export function BudgetEditor({
           </Button>
         </div>
       </div>
+
+      {/* Modal de Impressão e Geração de Arquivo com Nome, CPF e Tabela de 3 Colunas */}
+      <BudgetPrintModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        patient={patient}
+        title={title}
+        items={items}
+        subtotal={subtotal}
+        discountAmount={discountAmount}
+        discountPercent={discountPercent}
+        total={total}
+        paymentConditions={paymentConditions}
+        notes={notes}
+        dentistName={dentistName}
+      />
     </div>
   );
 }

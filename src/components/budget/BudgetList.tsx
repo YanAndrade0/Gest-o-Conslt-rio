@@ -12,11 +12,13 @@ import {
   ChevronRight,
   User,
   DollarSign,
-  AlertTriangle
+  AlertTriangle,
+  Printer
 } from 'lucide-react';
 import { Budget, BudgetStatus } from '../../types/budget';
 import { budgetService } from '../../services/budgetService';
 import { Patient } from '../../services/patientService';
+import { BudgetPrintModal } from './BudgetPrintModal';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { cn } from '../../lib/utils';
@@ -42,6 +44,7 @@ export function BudgetList({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
   const [budgetToDelete, setBudgetToDelete] = useState<Budget | null>(null);
+  const [budgetToPrint, setBudgetToPrint] = useState<Budget | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Filtros
@@ -269,6 +272,16 @@ export function BudgetList({
                       <Trash2 size={15} />
                     </button>
 
+                    {/* Imprimir / Gerar Arquivo */}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setBudgetToPrint(b); }}
+                      title="Imprimir ou gerar arquivo com Nome, CPF e tabela de 3 colunas"
+                      className="p-2 rounded-xl text-slate-400 hover:text-brand-primary hover:bg-brand-light/40 transition-colors"
+                    >
+                      <Printer size={15} />
+                    </button>
+
                     {/* Abrir / Editar */}
                     <button
                       type="button"
@@ -319,6 +332,24 @@ export function BudgetList({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Impressão e Geração de Arquivo com Nome, CPF e Tabela de 3 Colunas */}
+      {budgetToPrint && (
+        <BudgetPrintModal
+          isOpen={true}
+          onClose={() => setBudgetToPrint(null)}
+          patient={patient || { name: budgetToPrint.patientName, clinicId, cpf: '' }}
+          title={budgetToPrint.title}
+          items={budgetToPrint.items || []}
+          subtotal={budgetToPrint.subtotal}
+          discountAmount={budgetToPrint.discountAmount || 0}
+          discountPercent={budgetToPrint.discountPercent || 0}
+          total={budgetToPrint.total}
+          paymentConditions={budgetToPrint.paymentConditions || ''}
+          notes={budgetToPrint.notes || ''}
+          dentistName={budgetToPrint.dentistName}
+        />
       )}
     </div>
   );
