@@ -846,8 +846,8 @@ export function AppointmentAgenda() {
                         </SelectContent>
                       </Select>
 
-                      {/* Botões rápidos com as cores dos 8 procedimentos pré-definidos */}
-                      <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                      {/* Botões rápidos com as cores dos procedimentos pré-definidos */}
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-0.5">
                         {PREDEFINED_PROCEDURES.map((p) => {
                           const isSelected = (formData.procedure || '').toLowerCase() === p.name.toLowerCase();
                           return (
