@@ -7,18 +7,7 @@ import { BudgetList } from './BudgetList';
 import { BudgetEditor } from './BudgetEditor';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { 
-  FileText, 
-  Plus, 
-  RotateCcw, 
-  DollarSign, 
-  CheckCircle2, 
-  Clock, 
-  TrendingUp, 
-  User,
-  Search,
-  X
-} from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BudgetManagerProps {
@@ -88,14 +77,6 @@ export function BudgetManager({ patient: initialPatient }: BudgetManagerProps) {
     };
   }, [clinicId, initialPatient]);
 
-  // Métricas para a tela geral de orçamentos
-  const metrics = React.useMemo(() => {
-    const totalAmount = budgets.reduce((acc, b) => acc + (b.total || 0), 0);
-    const approvedAmount = budgets.filter(b => b.status === 'aprovado').reduce((acc, b) => acc + (b.total || 0), 0);
-    const pendingCount = budgets.filter(b => b.status === 'pendente').length;
-    const approvedCount = budgets.filter(b => b.status === 'aprovado').length;
-    return { totalAmount, approvedAmount, pendingCount, approvedCount };
-  }, [budgets]);
 
   const handleStartNewBudget = () => {
     if (activePatient) {
@@ -167,54 +148,6 @@ export function BudgetManager({ patient: initialPatient }: BudgetManagerProps) {
 
   return (
     <div className="space-y-6">
-      {/* Se estiver na visão geral da clínica (sem paciente específico), exibe Métricas de Orçamento */}
-      {!initialPatient && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-[10px] font-black uppercase tracking-wider">Total Orçado</span>
-              <DollarSign size={18} className="text-brand-primary" />
-            </div>
-            <p className="text-2xl font-black text-slate-800">
-              R$ {metrics.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
-            <p className="text-[10px] font-bold text-slate-400">{budgets.length} orçamentos gerados</p>
-          </div>
-
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-[10px] font-black uppercase tracking-wider">Aprovados</span>
-              <CheckCircle2 size={18} className="text-emerald-500" />
-            </div>
-            <p className="text-2xl font-black text-emerald-600">
-              R$ {metrics.approvedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </p>
-            <p className="text-[10px] font-bold text-emerald-600/80">{metrics.approvedCount} orçamentos aprovados</p>
-          </div>
-
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-[10px] font-black uppercase tracking-wider">Em Negociação</span>
-              <Clock size={18} className="text-amber-500" />
-            </div>
-            <p className="text-2xl font-black text-amber-600">
-              {metrics.pendingCount}
-            </p>
-            <p className="text-[10px] font-bold text-amber-600/80">Aguardando resposta do paciente</p>
-          </div>
-
-          <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-slate-400">
-              <span className="text-[10px] font-black uppercase tracking-wider">Taxa de Conversão</span>
-              <TrendingUp size={18} className="text-blue-500" />
-            </div>
-            <p className="text-2xl font-black text-slate-800">
-              {budgets.length > 0 ? `${Math.round((metrics.approvedCount / budgets.length) * 100)}%` : '0%'}
-            </p>
-            <p className="text-[10px] font-bold text-slate-400">Conversão de propostas clínicas</p>
-          </div>
-        </div>
-      )}
 
       {/* Lista de Orçamentos */}
       <BudgetList
